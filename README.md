@@ -164,8 +164,9 @@ pnpm dev                     # run with hot reload
 pnpm package                 # or build release/mac-arm64/Cue.app
 ```
 
-Development builds keep their data separate from the packaged app
-(`~/Library/Application Support/Cue Dev`), so working on Cue can't touch your notes.
+Development builds run as "Cue Dev" (a branded copy of Electron's bundle is created the
+first time you run `pnpm dev`). They keep their data separate from the packaged app, in
+`~/Library/Application Support/Cue Dev`, so working on Cue can't touch your notes.
 
 ## Keyboard
 
