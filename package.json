@@ -6,7 +6,7 @@
   "description": "A calm, keyboard-first daily notes and to-do app.",
   "main": "./out/main/index.js",
   "author": "Zach Waterfield",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "devDependencies": {
     "@playwright/test": "^1.64.1",
     "@types/node": "^24.19.2",

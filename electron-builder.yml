@@ -19,9 +19,11 @@ mac:
     - target: zip
       arch: [arm64]
   darkModeSupport: true
-  # Local builds are unsigned; set CSC_LINK / APPLE_ID etc. to sign and notarize.
-  identity: null
-  hardenedRuntime: true
+  # Ad-hoc signed ("-") so local builds verify and run without an Apple Developer account.
+  # Distributed builds should use a Developer ID identity and notarization instead.
+  identity: '-'
+  # Hardened runtime is required for notarization; enable it with a Developer ID identity.
+  hardenedRuntime: false
   extendInfo:
     LSApplicationCategoryType: public.app-category.productivity
     NSSupportsAutomaticGraphicsSwitching: true

@@ -154,7 +154,8 @@ pnpm bench --check    # exits non-zero if anything misses its budget
 ## Getting started
 
 There are no signed downloads yet. To try Cue, build it from source on macOS (Apple silicon),
-with Node 24+ and pnpm installed:
+with Node 24+ and pnpm installed. Local builds are ad-hoc signed, so they run on your Mac
+without an Apple Developer account:
 
 ```sh
 git clone https://github.com/zlwaterfield/cue.git
@@ -277,4 +278,4 @@ A few rules keep Cue the way it is:
 
 ## License
 
-No license has been chosen yet; one will be added before the first public release.
+[MIT](LICENSE) © 2026 Zach Waterfield
