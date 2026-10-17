@@ -58,6 +58,10 @@ Cue 0.1 is a working macOS app (Apple silicon). Here is everything it does right
 - Select several lines with Esc then ⇧↑/⇧↓, by dragging across them, or with ⌘A twice. Then
   indent, move, complete, convert, copy, cut or delete them together.
 
+<p align="center">
+  <img src="docs/images/move-to-date.png" alt="Moving a to-do with ⇧⌘D: typing &quot;fri&quot; resolves to Friday, October 23, with a calendar alongside" width="80%">
+</p>
+
 **Finding**
 
 - **⌘K command palette**: fuzzy search over every action, with shortcuts shown. It also
@@ -66,6 +70,11 @@ Cue 0.1 is a working macOS app (Apple silicon). Here is everything it does right
   "oct 31", "in 3 days", "+2w", "2026-10-31", with a calendar alongside.
 - **⌘F search** across every day you've ever written. It ignores case and accents and shows each
   result's date and type; Enter opens the day with the caret on the match.
+
+<p align="center">
+  <img src="docs/images/command-palette.png" alt="The ⌘K command palette understanding &quot;move to fri&quot; as a date" width="49%">
+  <img src="docs/images/search.png" alt="⌘F search across days, with matches highlighted and each result's date" width="49%">
+</p>
 
 **Reliability**
 
@@ -189,6 +198,10 @@ first time you run `pnpm dev`). They keep their data separate from the packaged 
 | Select lines | Esc, then ⇧↑ / ⇧↓ (⌘A twice selects the whole day) |
 | Undo / redo | ⌘Z · ⇧⌘Z |
 | Every shortcut | ⌘/ |
+
+<p align="center">
+  <img src="docs/images/shortcuts.png" alt="The ⌘/ keyboard shortcuts sheet" width="80%">
+</p>
 
 ## Your data
 

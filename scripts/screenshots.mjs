@@ -60,8 +60,25 @@ await press('Enter')
 await type('Meal prep for the week')
 await press('Enter', 'Enter')
 await type('Reading: The Overstory, chapter 12')
+// A few earlier days, so search has history to find.
+const earlier = [
+  ['1:1 with Priya: Q4 planning, hiring, the offsite', '[x] Book the dentist'],
+  ['[x] Draft the Q4 plan for Priya', 'Ideas for the team offsite'],
+  ["Priya's feedback: tighten the roadmap, cut the dashboard", '[x] Renew passport']
+]
+await press('Meta+1')
+for (const [first, second] of earlier) {
+  await press('Meta+[')
+  await page.waitForTimeout(150)
+  await type(first)
+  await press('Enter')
+  await type(second)
+}
+await press('Meta+3')
+await page.waitForTimeout(200)
 // Rest the caret at the end of today's last line.
-await press('ArrowUp', 'ArrowUp', 'ArrowUp', 'Meta+ArrowRight')
+await page.getByText('Send the Q4 plan to Priya').click()
+await press('Meta+ArrowRight')
 await page.mouse.move(980, 690)
 
 const shoot = async (name, scheme) => {
@@ -82,7 +99,19 @@ await shoot('move-to-date', 'light')
 await press('Escape')
 
 await press('Meta+K')
+await type('move to fri')
 await shoot('command-palette', 'dark')
+await press('Escape')
+
+await press('Meta+F')
+await type('priya')
+await shoot('search', 'light')
+await press('Escape')
+
+// The shortcuts sheet scrolls below ~950 px; give it room to show everything.
+await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1000, 960))
+await press('Meta+/')
+await shoot('shortcuts', 'dark')
 await press('Escape')
 
 await app.close()
