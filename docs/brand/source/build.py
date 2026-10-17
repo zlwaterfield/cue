@@ -95,7 +95,9 @@ for ap in ('light', 'dark', 'tinted-dark'):
     png(s, f'app-icon/ios/cue-ios-{ap}-1024.png', 1024, 1024)
 
 # Icon Composer layered source: one SVG per foreground group on the 1024 canvas.
-layers = B.icon_layers(B.INK)
+# Icon Composer treats the whole canvas as the icon shape (macOS 26 included), so the
+# layers use the full-bleed scale, same as iOS, not the 824 macOS body.
+layers = B.icon_layers(B.INK, k=1024 / 824)
 order = [('01-rules', 'rules'), ('02-written-line', 'written'), ('03-current-line', 'current'), ('04-caret', 'caret')]
 for fname, key in order:
     body = layers[key]
@@ -103,7 +105,7 @@ for fname, key in order:
     body = body.replace(f' fill-opacity="{B.op(B.RULE_OPACITY)}"', '').replace(f' fill-opacity="{B.op(B.WRITTEN_OPACITY)}"', '')
     w(f'app-icon/icon-composer/Assets/{fname}.svg',
       f'<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">{body}</svg>\n')
-small = B.icon_layers(B.INK, simple=True)['current+caret']
+small = B.icon_layers(B.INK, simple=True, k=1024 / 824)['current+caret']
 w('app-icon/icon-composer/Assets/small-current-and-caret.svg',
   f'<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">{small}</svg>\n')
 

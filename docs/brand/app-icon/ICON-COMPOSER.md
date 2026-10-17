@@ -1,24 +1,26 @@
 # Cue app icon — Icon Composer source
 
-The layered source lives in `icon-composer/Assets/`. Every layer is an SVG on the 1024 × 1024 canvas, filled with #2C2C31 at 100%. Opacity is set per layer in Icon Composer, not baked into the SVG, so the system can derive the dark, tinted and clear appearances.
+The layered source lives in `icon-composer/Assets/`. Every layer is an SVG on the 1024 × 1024 canvas, filled with #2C2C31 at 100%. Icon Composer treats the whole canvas as the icon shape on every platform, macOS 26 included, so the layers use the full-bleed (iOS) geometry, not the 824 macOS body. Import them at Layout 0, 0, 100%. Opacity is set per layer in Icon Composer, not baked into the SVG, so the system can derive the dark, tinted and clear appearances.
 
 ## Build the .icon
 
 1. Create a new Icon Composer document. Set the platforms to macOS and iOS ("shared" squares).
 2. Background fill: **Linear gradient, top #FAFAFB → bottom #ECECEF**.
    - Dark appearance override: **#232327 → #141416**.
-3. Add one group per layer, ordered back to front:
+3. Import the four numbered SVGs and split them into two groups: **flat** (`01-rules`, `02-written-line`) and **glass** (`03-current-line`, `04-caret`). Set fill and opacity on each layer. Set the Default appearance first, then switch the Color section to Dark for the dark values:
 
-| Order | Layer | Fill (light) | Opacity (light) | Fill (dark) | Opacity (dark) | Glass |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | `01-rules.svg` | #2C2C31 | 10% | #E6E6EA | 12% | Off |
-| 2 | `02-written-line.svg` | #2C2C31 | 28% | #E6E6EA | 30% | Off |
-| 3 | `03-current-line.svg` | #2C2C31 | 100% | #E6E6EA | 100% | On, low specular |
-| 4 | `04-caret.svg` | #2C2C31 | 100% | #E6E6EA | 100% | On, low specular |
+| Group | Layer | Fill (light) | Opacity (light) | Fill (dark) | Opacity (dark) |
+| --- | --- | --- | --- | --- | --- |
+| flat | `01-rules.svg` | #2C2C31 | 10% | #E6E6EA | 12% |
+| flat | `02-written-line.svg` | #2C2C31 | 28% | #E6E6EA | 30% |
+| glass | `03-current-line.svg` | #2C2C31 | 100% | #E6E6EA | 100% |
+| glass | `04-caret.svg` | #2C2C31 | 100% | #E6E6EA | 100% |
 
-4. Shadow: **Neutral**. Translucency: **Off** for the rules and the written line, and the system default for the line and caret.
-5. Tinted and clear: let Icon Composer derive them from the layers. Then check the previews against `macos/cue-icon-tinted-*.png` and `macos/cue-icon-clear-*.png`. If the written line disappears in clear mode, raise its clear-appearance opacity to 40%.
-6. Small sizes: at 16 and 32 pt, swap in `small-current-and-caret.svg` (line and caret only, larger). The `.iconset` already does this for the legacy ICNS.
+4. Group settings (Liquid Glass section of the group inspector; translucency is a group property, not a layer one):
+   - **flat**: Specular off, Blur off, Refraction off, Translucency off, Shadow Neutral.
+   - **glass**: Mode Individual, Specular Automatic, Blur off, Refraction off, Translucency on (default 30%), Shadow Neutral.
+5. Tinted and clear: Icon Composer derives them from the layers, but at 28% and 10% the written line and rules nearly vanish. Add a Tinted (mono) opacity override: written line **60%**, rules **45%**. That one override covers both the tinted and clear appearances. Check the previews against `macos/cue-icon-tinted-*.png` and `macos/cue-icon-clear-*.png`.
+6. Small sizes: Icon Composer has no per-size artwork option that we've found, so `small-current-and-caret.svg` is reference only. The `.iconset` uses the small master at 16 and 32 px for the legacy ICNS.
 
 The `.icon` bundle format isn't publicly documented, so this kit ships the layers and settings rather than a hand-assembled bundle.
 
@@ -35,7 +37,9 @@ The `.icon` bundle format isn't publicly documented, so this kit ships the layer
 
 Legacy PNG/ICNS drop shadow: #000000 @ 30%, y-offset 12 px, blur 14 px (at 1024).
 
-## Geometry (1024 canvas)
+## Geometry (1024 canvas, legacy macOS template)
+
+These are the flat-render coordinates, with the 824 body inset in the canvas. The Icon Composer layers are the same shapes scaled ×1.2427 (1024/824) around (512, 512), which matches the iOS files.
 
 - Body: 824 × 824 at (100, 100), corner radius 185 (macOS template). On macOS 26, Icon Composer applies the continuous-corner mask itself.
 - Written line: x 236, y 300, 424 × 52, r 26

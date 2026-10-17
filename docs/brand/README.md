@@ -15,7 +15,14 @@ Geist (OFL); those fonts keep their own licenses.
 ## In this repo
 
 - The app's colors are these tokens, in `src/renderer/src/styles/app.css`.
-- The app icon is `build/icon.icns`, built from `app-icon/macos/Cue.iconset` with
+- The packaged app icon is `build/Cue.icon`, the Icon Composer document built per
+  `app-icon/ICON-COMPOSER.md`. electron-builder compiles it with Xcode 26's `actool`, so
+  `pnpm package` / `pnpm dist` need Xcode 26 or later. The icon's `tinted` opacity override
+  (written line 60%, rules 45%) keeps the flat layers visible in the tinted and clear
+  appearances. Preview any appearance with
+  `"$(xcode-select -p)/../Applications/Icon Composer.app/Contents/Executables/ictool" build/Cue.icon --export-image --output-file out.png --platform macOS --rendition Dark --width 512 --height 512 --scale 1`.
+- `build/icon.icns` and `build/icon.png` are only the `pnpm dev` Dock icon. The `.icns` is built
+  from `app-icon/macos/Cue.iconset` with
   `iconutil -c icns app-icon/macos/Cue.iconset -o build/icon.icns`. The kit's Linux-built
   `Cue.icns` is not included.
 - The DMG background is `build/dmg-background.tiff`
