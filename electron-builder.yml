@@ -1,0 +1,44 @@
+appId: com.zlwaterfield.cue
+productName: Cue
+copyright: Copyright © 2026 Zach Waterfield
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+  - package.json
+asar: true
+# All code is bundled by electron-vite, and package.json has no runtime
+# dependencies, so nothing from node_modules ships.
+mac:
+  category: public.app-category.productivity
+  icon: build/icon.icns
+  target:
+    - target: dmg
+      arch: [arm64]
+    - target: zip
+      arch: [arm64]
+  darkModeSupport: true
+  # Ad-hoc signed ("-") so local builds verify and run without an Apple Developer account.
+  # Distributed builds should use a Developer ID identity and notarization instead.
+  identity: '-'
+  # Hardened runtime is required for notarization; enable it with a Developer ID identity.
+  hardenedRuntime: false
+  extendInfo:
+    LSApplicationCategoryType: public.app-category.productivity
+    NSSupportsAutomaticGraphicsSwitching: true
+dmg:
+  title: Cue
+  # Brand kit DMG (docs/brand/dmg): 540 × 380, 128 px icons, retina TIFF background.
+  background: build/dmg-background.tiff
+  iconSize: 128
+  window:
+    width: 540
+    height: 380
+  contents:
+    - x: 150
+      y: 170
+    - x: 390
+      y: 170
+      type: link
+      path: /Applications

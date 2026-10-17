@@ -1,0 +1,42 @@
+{
+  "name": "cue",
+  "productName": "Cue",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A calm, keyboard-first daily notes and to-do app.",
+  "main": "./out/main/index.js",
+  "author": "Zach Waterfield",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "electron": "44.9.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^6.0.0",
+    "fractional-indexing": "^4.0.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:e2e": "electron-vite build && playwright test",
+    "package": "electron-vite build && electron-builder --mac --dir",
+    "dist": "electron-vite build && electron-builder --mac",
+    "seed": "node scripts/run-ts.mjs scripts/seed.ts",
+    "bench": "node scripts/bench.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

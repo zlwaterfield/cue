@@ -1,0 +1,68 @@
+/* Cue — color tokens v1.0
+ * Monochrome graphite. No hue in the product UI.
+ * Translucent values are 8-digit hex (#RRGGBBAA); comments give base hex @ opacity.
+ * The alpha byte rounds to the nearest 1/255, e.g. #000000 @ 4.5% -> #0000000B (4.3%).
+ */
+
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #FFFFFF; /* Window background */
+  --bg-elevated: #FFFFFF; /* Palette, sheets */
+  --bg-subtle: #F5F5F6; /* Keycaps, segmented controls */
+  --bg-hover: #0000000B; /* #000000 @ 4.5% — Hover fill */
+  --text: #1C1C1E; /* Primary text */
+  --text-2: #6C6C72; /* Secondary text */
+  --text-3: #8E8E94; /* Tertiary, placeholders, done items */
+  --line: #00000012; /* #000000 @ 7% — Hairlines, day separators */
+  --line-strong: #0000003D; /* #000000 @ 24% — Checkbox borders */
+  --accent: #2C2C31; /* Checked boxes, links, caret */
+  --on-accent: #FFFFFF; /* Checkmark on accent */
+  --accent-soft: #2C2C311A; /* #2C2C31 @ 10% — Search highlight, focus ring */
+  --selection: #2C2C3112; /* #2C2C31 @ 7% — Selected-lines band */
+  --text-selection: #2C2C3129; /* #2C2C31 @ 16% — Text selection */
+  --toast-bg: #1F1F23; /* Toast */
+  --toast-text: #F2F2F4; /* Toast */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #18181A; /* Window background */
+    --bg-elevated: #232326; /* Palette, sheets */
+    --bg-subtle: #2C2C30; /* Keycaps, segmented controls */
+    --bg-hover: #FFFFFF0F; /* #FFFFFF @ 6% — Hover fill */
+    --text: #ECECEF; /* Primary text */
+    --text-2: #9D9DA4; /* Secondary text */
+    --text-3: #76767D; /* Tertiary, placeholders, done items */
+    --line: #FFFFFF13; /* #FFFFFF @ 7.5% — Hairlines, day separators */
+    --line-strong: #FFFFFF42; /* #FFFFFF @ 26% — Checkbox borders */
+    --accent: #E6E6EA; /* Checked boxes, links, caret */
+    --on-accent: #18181A; /* Checkmark on accent */
+    --accent-soft: #E6E6EA24; /* #E6E6EA @ 14% — Search highlight, focus ring */
+    --selection: #E6E6EA14; /* #E6E6EA @ 8% — Selected-lines band */
+    --text-selection: #E6E6EA38; /* #E6E6EA @ 22% — Text selection */
+    --toast-bg: #333338; /* Toast */
+    --toast-text: #F2F2F4; /* Toast */
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #18181A; /* Window background */
+  --bg-elevated: #232326; /* Palette, sheets */
+  --bg-subtle: #2C2C30; /* Keycaps, segmented controls */
+  --bg-hover: #FFFFFF0F; /* #FFFFFF @ 6% — Hover fill */
+  --text: #ECECEF; /* Primary text */
+  --text-2: #9D9DA4; /* Secondary text */
+  --text-3: #76767D; /* Tertiary, placeholders, done items */
+  --line: #FFFFFF13; /* #FFFFFF @ 7.5% — Hairlines, day separators */
+  --line-strong: #FFFFFF42; /* #FFFFFF @ 26% — Checkbox borders */
+  --accent: #E6E6EA; /* Checked boxes, links, caret */
+  --on-accent: #18181A; /* Checkmark on accent */
+  --accent-soft: #E6E6EA24; /* #E6E6EA @ 14% — Search highlight, focus ring */
+  --selection: #E6E6EA14; /* #E6E6EA @ 8% — Selected-lines band */
+  --text-selection: #E6E6EA38; /* #E6E6EA @ 22% — Text selection */
+  --toast-bg: #333338; /* Toast */
+  --toast-text: #F2F2F4; /* Toast */
+}
