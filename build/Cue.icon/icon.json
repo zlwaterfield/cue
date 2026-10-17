@@ -1,0 +1,150 @@
+{
+  "fill-specializations" : [
+    {
+      "value" : {
+        "linear-gradient" : [
+          "srgb:0.98039,0.98039,0.98431,1.00000",
+          "srgb:0.92549,0.92549,0.93725,1.00000"
+        ]
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "linear-gradient" : [
+          "srgb:0.13725,0.13725,0.15294,1.00000",
+          "srgb:0.07843,0.07843,0.08627,1.00000"
+        ]
+      }
+    }
+  ],
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "srgb:0.17255,0.17255,0.19216,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:0.90196,0.90196,0.91765,1.00000"
+              }
+            }
+          ],
+          "image-name" : "04-caret.svg",
+          "name" : "04-caret"
+        },
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "srgb:0.17255,0.17255,0.19216,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:0.90196,0.90196,0.91765,1.00000"
+              }
+            }
+          ],
+          "image-name" : "03-current-line.svg",
+          "name" : "03-current-line"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.3
+      }
+    },
+    {
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "srgb:0.17255,0.17255,0.19216,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:0.90196,0.90196,0.91765,1.00000"
+              }
+            }
+          ],
+          "glass" : false,
+          "image-name" : "02-written-line.svg",
+          "name" : "02-written-line",
+          "opacity-specializations" : [
+            {
+              "value" : 0.28
+            },
+            {
+              "appearance" : "dark",
+              "value" : 0.3
+            },
+            {
+              "appearance" : "tinted",
+              "value" : 0.6
+            }
+          ]
+        },
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "srgb:0.17255,0.17255,0.19216,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:0.90196,0.90196,0.91765,1.00000"
+              }
+            }
+          ],
+          "glass" : false,
+          "image-name" : "01-rules.svg",
+          "name" : "01-rules",
+          "opacity-specializations" : [
+            {
+              "value" : 0.1
+            },
+            {
+              "appearance" : "dark",
+              "value" : 0.12
+            },
+            {
+              "appearance" : "tinted",
+              "value" : 0.45
+            }
+          ]
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "specular" : false,
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0.3
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

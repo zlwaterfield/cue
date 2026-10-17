@@ -12,7 +12,9 @@ asar: true
 # dependencies, so nothing from node_modules ships.
 mac:
   category: public.app-category.productivity
-  icon: build/icon.icns
+  # Icon Composer source (docs/brand/app-icon/ICON-COMPOSER.md). electron-builder compiles it
+  # with Xcode 26's actool into Assets.car for macOS 26 and a generated icon.icns for older macOS.
+  icon: build/Cue.icon
   target:
     - target: dmg
       arch: [arm64]
