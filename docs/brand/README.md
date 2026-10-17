@@ -2,6 +2,16 @@
 
 Cue is a page you type into, so the brand is a page you type into: one written line, then the caret waiting on the next. It's monochrome graphite with no hue, and typography does the rest.
 
+## Use of the brand
+
+The Cue name, logo, app icon and other artwork in this folder are not covered by the
+repository's MIT license, which applies to the code. Use them to refer to Cue; don't use them
+for other apps, forks or services. A modified version you distribute needs its own name and
+icon.
+
+The wordmark is outlined from Newsreader (SIL Open Font License), and the raster assets use
+Geist (OFL); those fonts keep their own licenses.
+
 ## In this repo
 
 - The app's colors are these tokens, in `src/renderer/src/styles/app.css`.

@@ -278,4 +278,10 @@ A few rules keep Cue the way it is:
 
 ## License
 
-[MIT](LICENSE) © 2026 Zach Waterfield
+The code is [MIT](LICENSE) © 2026 Zach Waterfield.
+
+The Cue name, logo and app icon (the artwork in [docs/brand](docs/brand)) are not covered
+by the MIT license. You're welcome to use them to refer to Cue, for example in an article or
+a link. Please don't use them for your own app or service, or in a way that suggests it's
+made or endorsed by Cue. If you distribute a modified version, give it a different name and
+icon.
