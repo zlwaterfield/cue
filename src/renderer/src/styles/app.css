@@ -1038,6 +1038,107 @@ kbd.is-text {
   color: var(--text-2);
 }
 
+.setting-split {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.setting-split > .button {
+  flex: none;
+  white-space: nowrap;
+}
+
+.setting-help strong {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.setting-error {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+  max-width: 360px;
+}
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.field {
+  flex: 1;
+  min-width: 180px;
+  border: 0;
+  border-radius: 7px;
+  padding: 6px 10px;
+  font: 13px var(--font);
+  color: var(--text);
+  background: var(--bg-elevated);
+  box-shadow: 0 0 0 0.5px var(--line-strong);
+  outline: none;
+}
+
+.field::placeholder {
+  color: var(--text-3);
+}
+
+.field:focus-visible {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent),
+    0 0 0 4px var(--accent-soft);
+}
+
+.field.is-code {
+  flex: 0 0 120px;
+  min-width: 0;
+  font-family: var(--font-mono);
+  letter-spacing: 0.18em;
+}
+
+/* Title bar sync status: absent while healthy. */
+.sync-status {
+  border: 0;
+  background: transparent;
+  font-size: 11.5px;
+  color: var(--text-3);
+  padding: 3px 7px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sync-status:hover {
+  background: var(--bg-hover);
+  color: var(--text-2);
+}
+
+.sync-status.is-attention::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Quick syncs finish long before this appears. */
+.sync-status.is-delayed {
+  animation: sync-status-in 200ms ease 1.2s both;
+}
+
+@keyframes sync-status-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* About */
 .about {
   display: flex;

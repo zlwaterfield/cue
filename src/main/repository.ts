@@ -112,8 +112,10 @@ export class Repository {
     outboxPut: StatementSync
     outboxDelete: StatementSync
     outboxAck: StatementSync
+    outboxCount: StatementSync
     metaGet: StatementSync
     metaPut: StatementSync
+    metaDelete: StatementSync
     range: StatementSync
     dates: StatementSync
   }
@@ -146,10 +148,12 @@ export class Repository {
       ),
       outboxDelete: db.prepare('DELETE FROM outbox WHERE item_id = ?'),
       outboxAck: db.prepare('DELETE FROM outbox WHERE item_id = ? AND version = ?'),
+      outboxCount: db.prepare('SELECT count(*) AS n FROM outbox'),
       metaGet: db.prepare('SELECT value FROM meta WHERE key = ?'),
       metaPut: db.prepare(
         'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value'
       ),
+      metaDelete: db.prepare('DELETE FROM meta WHERE key = ?'),
       range: db.prepare(
         `SELECT ${COLUMNS} FROM items WHERE deleted = 0 AND date >= ? AND date <= ? ORDER BY date, position, id`
       ),
@@ -273,8 +277,12 @@ export class Repository {
    * Merge records from another replica (sync pull, backup import). A record wins
    * only if its version is newer than the stored one, so applying the same batch
    * twice, or applying an old backup, can never duplicate, revert, or resurrect.
+   *
+   * Records pulled from the sync server are already there, so they leave the outbox.
+   * Records from anywhere else (`upload: true`, e.g. an imported backup) join it so
+   * they reach the server too.
    */
-  applyRemote(inputs: unknown[]): { applied: Item[]; skipped: number } {
+  applyRemote(inputs: unknown[], options: { upload?: boolean } = {}): { applied: Item[]; skipped: number } {
     const applied: Item[] = []
     let skipped = 0
     let newest: string | null = null
@@ -298,7 +306,8 @@ export class Repository {
           continue
         }
         this.write(record)
-        this.stmts.outboxDelete.run(record.id)
+        if (options.upload) this.stmts.outboxPut.run(record.id, record.version)
+        else this.stmts.outboxDelete.run(record.id)
         this.hlc.receive(record.version)
         applied.push(record)
         if (!newest || record.version > newest) newest = record.version
@@ -329,6 +338,18 @@ export class Repository {
     })
   }
 
+  /** How many items have changes not yet uploaded. */
+  pendingCount(): number {
+    return (this.stmts.outboxCount.get() as { n: number }).n
+  }
+
+  /** Queue every item, tombstones included, for upload (e.g. on joining a sync account). */
+  queueAll(): void {
+    this.db.exec(
+      'INSERT INTO outbox (item_id, version) SELECT id, version FROM items WHERE true ON CONFLICT (item_id) DO UPDATE SET version = excluded.version'
+    )
+  }
+
   private write(item: Item): void {
     this.stmts.upsert.run(
       item.id,
@@ -355,6 +376,10 @@ export class Repository {
 
   setMeta(key: string, value: string): void {
     this.stmts.metaPut.run(key, value)
+  }
+
+  deleteMeta(key: string): void {
+    this.stmts.metaDelete.run(key)
   }
 
   getSettings(): Settings {

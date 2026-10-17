@@ -21,6 +21,8 @@ export interface CommandMeta {
   paletteHidden?: boolean
   /** Requires a focused or selected item. */
   needsItem?: boolean
+  /** Only offered when this build has a sync server. */
+  needsSync?: boolean
 }
 
 export const COMMANDS: CommandMeta[] = [
@@ -63,6 +65,7 @@ export const COMMANDS: CommandMeta[] = [
   { id: 'export.json', title: 'Export JSON backup…', group: 'Data', keywords: 'backup save' },
   { id: 'import.json', title: 'Import JSON backup…', group: 'Data', keywords: 'restore' },
   { id: 'app.revealData', title: 'Show data folder', group: 'Data', keywords: 'finder database location' },
+  { id: 'sync.now', title: 'Sync now', group: 'Data', keywords: 'cloud devices refresh upload download', needsSync: true },
   { id: 'theme.system', title: 'Use system appearance', group: 'General', keywords: 'theme auto' },
   { id: 'theme.light', title: 'Use light appearance', group: 'General', keywords: 'theme' },
   { id: 'theme.dark', title: 'Use dark appearance', group: 'General', keywords: 'theme night' }

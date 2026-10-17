@@ -118,6 +118,12 @@ export const icons: Record<string, React.ReactNode> = {
     <Svg>
       <rect x="2.5" y="4.5" width="11" height="7" rx="2" {...stroke} />
     </Svg>
+  ),
+  sync: (
+    <Svg>
+      <path d="M12.8 6.6A5 5 0 0 0 3.6 5.3M3.2 9.4a5 5 0 0 0 9.2 1.3" {...stroke} />
+      <path d="M3.4 2.8v2.7h2.7M12.6 13.2v-2.7H9.9" {...stroke} />
+    </Svg>
   )
 }
 
@@ -155,6 +161,7 @@ const BY_COMMAND: Record<string, keyof typeof icons> = {
   'export.json': 'exportFile',
   'import.json': 'importFile',
   'app.revealData': 'folder',
+  'sync.now': 'sync',
   'theme.system': 'theme',
   'theme.light': 'theme',
   'theme.dark': 'theme'

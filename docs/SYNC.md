@@ -1,152 +1,204 @@
-# Sync design
+# Sync
 
-Cue's desktop MVP is local-only, but its storage was built for the mobile app and
-cross-device sync that come next. This document records the strategy chosen, the
-protocol, and why the current data model already supports it.
+Cue is local-first. Sync is **off by default**, and Cue on one Mac works exactly the same
+with it off: no account, no network, and the sync code isn't even loaded. Turning it on in
+Settings (email plus a six-digit code) keeps your notes on every device signed in to the same
+account. Sync works entirely in the background and never makes typing wait.
 
 ## Decision
 
-**Supabase (managed Postgres + Auth) with a small push/pull protocol implemented as
+**Supabase (managed Postgres + Auth + Realtime) with a small push/pull protocol implemented as
 two Postgres functions.** Item-level last-write-wins, ordered by hybrid logical clocks.
-
-Why this over the alternatives:
 
 | Option | Verdict |
 | --- | --- |
-| Supabase / Postgres | ✅ Chosen. Auth (Sign in with Apple, email links), TLS, row-level security, backups, and account deletion are provided. The sync logic is ~60 lines of SQL. Works the same for Electron and any mobile stack. |
+| Supabase / Postgres | ✅ Chosen. Auth, TLS, row-level security, backups, and account deletion are provided. The sync logic is ~100 lines of SQL. Works the same for Electron and any mobile stack. |
 | Small custom server | Viable fallback using the identical protocol (the reference server is `src/main/sync/memoryServer.ts`), but means running and securing a service. |
 | CloudKit | Apple-only and awkward from Electron (CKSyncEngine is native-only). Reconsider only if Cue becomes a native Apple-only app. |
 | Firebase | Document model and opaque conflict behavior; harder to reason about tombstones and ordering. |
 | CRDT framework (Automerge, Yjs) | More machinery than plain text lines need. Revisit only if character-level merging of concurrent edits to the *same line* becomes important. |
 
-## What the desktop already does
+## How it works
 
-Everything below exists and is tested today (`tests/unit/sync.test.ts`,
-`tests/unit/repository.test.ts`):
+```
+ renderer                        main process                              Supabase
+┌──────────────┐ save ┌───────────────────────────────┐  sync_push(records)  ┌──────────────┐
+│ item store   │─────▶│ repository: item + outbox row │─────────────────────▶│ items (RLS)  │
+│ (typing      │      │ in one SQLite transaction     │  sync_pull(cursor)   │ seq feed     │
+│  never waits)│◀─────│ sync engine ─ push, then pull │◀─────────────────────│              │
+└──────────────┘ items│ service ─ account, lifecycle  │◀── "changed" hint ───│ Realtime     │
+          :changed    └───────────────────────────────┘   (private channel)  └──────────────┘
+```
 
-- **Stable identities.** Items have UUIDv7 ids minted on-device; pages are identified
-  by their ISO date, so two devices "creating" the same day can never duplicate it.
-- **Versions.** Every write is stamped by a hybrid logical clock
-  (`src/main/hlc.ts`): `wallclock-counter-deviceId`, fixed width, compared as strings.
-  Versions never go backwards on a device, always exceed anything the device has
-  seen, and never tie across devices.
-- **Tombstones.** Deleting sets `deleted = 1`; rows are never removed, so deletions
-  replicate and cannot be resurrected by a stale copy.
-- **Pending-change queue.** Each local write upserts `outbox(item_id, version)` in
-  the same SQLite transaction as the item. Push sends the *current* row, so repeated
-  edits coalesce naturally. Acknowledgement removes the outbox row only if the
-  version still matches, so edits made during a push stay queued.
-- **Deterministic merge.** `Repository.applyRemote` accepts a record only if its
-  version is strictly newer than the stored one. Applying the same batch twice, or an
-  old backup, is a no-op. JSON backup import uses this same path.
-- **Sync engine.** `src/main/sync/engine.ts` implements push-all → pull-all with
-  batching, a durable cursor (advanced only after a batch is merged), exponential
-  backoff, and a status (`idle | syncing | offline | error`) for the UI.
-- **Editor isolation.** The renderer never sees versions or the outbox. Remote changes
-  arrive through `ItemStore.ingest` (the same path a backup import uses today), so
-  adding sync requires no editor changes.
+- **Data model.** Items have UUIDv7 ids minted on-device; pages are identified by their ISO
+  date, so two devices "creating" the same day never duplicate it. Every write is stamped with
+  a hybrid-logical-clock version (`src/main/hlc.ts`) that compares as a plain string, never
+  goes backwards, and never ties across devices. Deletions are tombstones.
+- **Outbox.** Each local write upserts `outbox(item_id, version)` in the same transaction as
+  the item, whether sync is on or not. Push sends the *current* row, so repeated edits
+  coalesce. Acknowledging removes the outbox row only if the version still matches, so edits
+  made during a push stay queued.
+- **Merge.** `Repository.applyRemote` accepts a record only if its version is strictly newer.
+  Applying the same batch twice, or an old backup, is a no-op. Imported backups use the same
+  path and are queued for upload.
+
+### The engine (`src/main/sync/engine.ts`)
+
+- **Single flight.** One run at a time: push the outbox in batches of 500, then pull if needed.
+  Triggers that arrive during a run share one follow-up run.
+- **Local edits** are pushed 600 ms after typing pauses, or every 3 s during continuous
+  typing. A burst of keystrokes is one request.
+- **Remote edits** arrive as a realtime hint carrying the new feed position (`seq`). The engine
+  pulls only if that's past its cursor, so its own pushes, which echo back, cost nothing. It
+  also pulls on launch, when the channel reconnects, when the Mac wakes or Cue comes to the
+  front after a minute away, and every 5 minutes as a safety net.
+- **No echo downloads.** `sync_push` returns the account's highest `seq` before and after the
+  write. If "before" equals the client's cursor, nothing else happened in between, so the client
+  moves its cursor to "after" instead of downloading its own changes.
+- **Failures** retry with exponential backoff (1 s doubling to 60 s, with jitter). While
+  failing, typing doesn't add requests. Nothing is lost: the outbox and cursor live in SQLite,
+  and the cursor advances only after a batch is stored.
+- **Never in the way.** Network I/O is async. Each batch is merged in its own transaction and
+  the engine yields between batches. With 5 years of notes (36,545 items), the longest stretch
+  sync holds the main process is about 8 ms, during the very first full download. A normal edit
+  costs 0.1 ms.
+- **Quitting** right after typing waits up to 2 s for the last edits to upload. Anything
+  still unsent goes on the next launch.
+- **Server reset.** If the server reports less than the client has already seen (a restore,
+  or a reset development database), the client re-queues everything and starts over.
+
+### Sync and the editor
+
+The editor doesn't know sync exists. Remote changes arrive through `ItemStore.applyExternal`,
+the same path an import uses, with one rule: **an edit in progress always wins.**
+
+- A line with an unsent edit ignores the remote copy. Its save gets a newer version and wins
+  everywhere, so text never changes under your caret while you type.
+- If a save of that line is already in flight, the version the database stored decides: the
+  remote copy is shown only if it's newer than what was saved.
+- When a line changes while it has focus but you're not typing, the caret stays where it was.
+
+### The service (`src/main/sync/service.ts`)
+
+- **Off by default.** Until someone signs in, it does nothing. `@supabase/supabase-js` is
+  a separate chunk loaded only on sign-in, or at launch if this Mac was signed in. Startup is
+  unaffected: sync starts after the first screen is ready.
+- **Sign-in** is an emailed six-digit code typed into Settings (no browser redirect). The
+  session is kept in SQLite, encrypted with the macOS Keychain (`safeStorage`), and
+  refreshed automatically.
+- **Turning sync on** for the first time uploads everything already on the Mac. Turning it off
+  keeps every note locally. Turning it back on with the same account sends only what changed
+  meanwhile. Switching to a different account uploads everything to it.
+- **Network** goes through Electron's `net.fetch` (Chromium's stack), so sync follows the
+  Mac's proxy and certificate settings.
+- **Signed out by the server** (the account was deleted elsewhere, or the session was revoked):
+  sync stops, notes stay, and Settings explains what happened.
+
+### UI
+
+- **Settings → Sync**: off, then your email, then the code, then on. When on, it shows "Synced
+  just now", a pending-change count while offline, **Sync Now**, **Turn Off Sync** and
+  **Delete Account…**. Builds without a sync server don't show it.
+- **Title bar**: nothing while sync is healthy. A quiet "Offline" or "Sync paused" when it isn't,
+  which opens Settings when clicked. A long sync, such as the first upload, fades in
+  "Syncing…" after a second; quick ones never show.
+- **Sync now** is a command (palette and File menu).
 
 ## Protocol
 
 ```
-push(deviceId, records[])  → { accepted: [{ id, version }] }
-pull(cursor, limit)        → { records[], cursor, hasMore }
+sync_push(records jsonb)             → { before, after }
+sync_pull(since bigint, max_rows int) → { records, cursor, hasMore }
+broadcast "changed" { seq } on private channel "sync:<user id>"
 ```
 
-A record is a full item row: `id, date, parentId, position, type, text, done,
-createdAt, updatedAt, deleted, version`.
+A record is the app's `Item` exactly (`id, date, parentId, position, type, text, done,
+createdAt, updatedAt, deleted, version`), so the client does no mapping. The schema and
+functions are in [`supabase/migrations`](../supabase/migrations).
 
-### Server schema (Postgres)
-
-```sql
-create table items (
-  user_id    uuid not null references auth.users on delete cascade,
-  id         text not null,
-  date       date not null,
-  parent_id  text,
-  position   text not null,
-  type       text not null check (type in ('text','bullet','todo')),
-  text       text not null,
-  done       boolean not null,
-  created_at bigint not null,
-  updated_at bigint not null,
-  deleted    boolean not null,
-  version    text not null,
-  seq        bigint not null,
-  primary key (user_id, id)
-);
-create index on items (user_id, seq);
-alter table items enable row level security;
-create policy own_rows on items using (user_id = auth.uid());
-```
-
-### push (Postgres function, `security definer`)
-
-1. `pg_advisory_xact_lock(hashtext(auth.uid()::text))`. This serializes a user's
-   writes so `seq` order equals commit order. Without it, a reader could see seq 11
-   committed before seq 10 and skip 10 forever.
-2. For each record:
-   `insert … on conflict (user_id, id) do update set … , seq = next_seq where excluded.version > items.version`.
-3. Return every pushed `{id, version}` as accepted. The server now holds that version
-   or a newer one, and either way the client can drop it from the outbox.
-
-### pull
-
-`select … from items where user_id = auth.uid() and seq > $cursor order by seq limit $n`.
-The cursor is the last `seq` returned. Clients apply rows with `applyRemote`, which
-ignores anything not newer, including the device's own echoes.
-
-### Scheduling
-
-Sync runs on launch, after local writes (debounced ~2s), on regaining network or
-focus, and every few minutes. Failures back off exponentially (capped at 60s) and
-lose nothing, because the outbox and cursor are durable. Later, a realtime channel
-(Supabase Realtime on `items`) can be used purely as a "pull now" hint.
+- **`items`** has one row per user and item, `version` in the `C` collation (a locale
+  collation could order versions differently from the clients), and a `seq` from a global
+  sequence indexed per user. Row-level security lets a user read only their own rows. No one
+  can write the table directly.
+- **`sync_push`** takes a per-user advisory lock so that seq order is commit order. Without
+  it, a reader could see seq 11 committed before seq 10 and skip 10 forever. It then does one
+  set-based upsert that replaces a row only if the incoming version is newer. Malformed
+  records are skipped instead of failing the batch, so one bad row can't block a queue. It
+  sends one realtime hint per push, not one per row.
+- **`sync_pull`** returns rows after a cursor, oldest first, in pages of up to 1,000.
+- **`sync_delete_account`** deletes the user, and their rows cascade.
 
 ## Conflicts
 
 - **Different items:** always merge. Nothing is shared between rows.
-- **Same item, both edited offline:** the higher version wins on every replica.
-  Because the HLC tracks wall time, this is effectively "the most recent edit wins."
-- **Delete vs. edit:** also LWW. A newer edit restores the item; a newer delete
-  removes it. A stale replica can never resurrect a deletion.
-- **Structure:** each item stores its own parent and position, so concurrent
-  changes can produce odd shapes. The renderer's outline builder
-  (`src/shared/outline.ts`) is total by design: orphans (parent missing, deleted, or
-  on another day) render at the top level, parent cycles are broken, and duplicate
-  positions are ordered by id and re-keyed on the next local insert. Nothing is ever
-  hidden or silently deleted.
+- **Same item, both edited offline:** the higher version wins on every replica. Because the
+  HLC tracks wall time, this is effectively "the most recent edit wins."
+- **Delete vs. edit:** also LWW. A newer edit restores the item; a newer delete removes it.
+  A stale replica can never resurrect a deletion.
+- **Structure:** each item stores its own parent and position, so concurrent changes can
+  produce odd shapes. The outline builder (`src/shared/outline.ts`) is total by design:
+  orphans render at the top level, parent cycles are broken, and nothing is ever hidden.
 
-**Known limitation:** LWW is per *item*. If one device completes a to-do while
-another edits its text, one change wins. The upgrade path is per-field versions
-(`text_version`, `done_version`, `structure_version`) merged field by field. It's a
-contained change in `applyRemote` and the push function, and the record format
-stays compatible.
+**Known limitations**
 
-## Accounts, privacy, deletion
+- LWW is per *item*. If one device completes a to-do while another edits its text, one change
+  wins. The upgrade path is per-field versions merged field by field, a contained change in
+  `applyRemote` and `sync_push` with the same record format.
+- A device whose clock is far in the future wins every conflict until real time catches up.
+  This is standard for HLCs. A server-side bound on accepted versions would close it.
+- Tombstones are never compacted yet. Once every device has pulled a deletion, the server can
+  clear its text.
 
-- Auth: Sign in with Apple plus email magic link (Supabase Auth). The local database
-  gets a `user_id` in `meta` on first sign-in; existing local data is pushed as-is,
-  and stable ids prevent duplicates if the same data reaches the server twice.
-- Transport: HTTPS/TLS only. Server-side encryption at rest comes from the provider.
-  End-to-end encryption of `text` is possible later without protocol changes
-  (encrypt `text` client-side, keep structure fields plain).
-- Deletion: "Delete account" calls a function that deletes `auth.users` rows, and
-  rows cascade. The app then offers to keep or erase the local copy.
-- Tombstone compaction: tombstones older than ~90 days whose deletion every
-  registered device has pulled can have `text` cleared server-side.
+## Setting up a server
 
-## Sync status in the UI
+1. Create a Supabase project and apply the migration: `npx supabase link`, then
+   `npx supabase db push`. You can also paste
+   `supabase/migrations/*_sync.sql` into the SQL editor.
+2. **Auth → Providers → Email**: enable it, and allow new users to sign up.
+3. **Auth → Email Templates**: edit "Magic Link" and "Confirm signup" so they show the
+   code, for example `Your Cue code is {{ .Token }}`
+   (see `supabase/templates/sign-in-code.html`). Set up custom SMTP so the emails come from your
+   domain.
+4. Build Cue with the project URL and publishable (or anon) key, from the environment or a
+   `.env.local` file:
 
-A small dot beside the title bar's ⌘K hint: hidden when synced, a quiet spinner while
-syncing, "Offline" when unreachable, and a clickable warning after repeated errors.
-It is never a modal and never blocks typing.
+   ```sh
+   CUE_SUPABASE_URL=https://<project>.supabase.co
+   CUE_SUPABASE_KEY=sb_publishable_…
+   ```
+
+   The key is public by design; row-level security protects the data. A build without
+   these doesn't offer sync.
+
+## Development and testing
+
+Run a local stack in Docker. Sign-in emails land in Mailpit at http://127.0.0.1:54324.
+
+```sh
+npx supabase start -x studio,storage-api,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor
+npx supabase status    # API URL and publishable key
+export CUE_SUPABASE_URL=http://127.0.0.1:54321 CUE_SUPABASE_KEY=<publishable key>
+pnpm dev               # sync is now offered in Settings
+pnpm test:sync         # integration + end-to-end sync tests against the local stack
+npx supabase stop
+```
+
+- **`pnpm test`** covers the engine without a server: scheduling, echo suppression, backoff,
+  server reset, the service lifecycle, the editor's in-progress rule, and a randomized
+  three-device convergence test. That test replays 400 random offline edits, moves, deletes
+  and reconnects, then checks that every replica ends with exactly the newest write of every
+  item.
+- **`tests/integration`** runs the real protocol against Supabase. It covers sign-in by
+  emailed code, realtime delivery (about 30 ms after the typing pause, locally), no echo
+  downloads, account isolation under RLS, LWW and skipping malformed records, a gap-free feed
+  under concurrent pushes, 5,000 items (up ~0.2 s, down ~0.1 s locally), session restore and
+  account deletion.
+- **`tests/e2e/sync.spec.ts`** drives two real Cue apps. It checks that sync is off by
+  default, that typing is undisturbed while the other Mac edits the same day, turning sync
+  off, a quick quit still uploading, and catching up on launch.
 
 ## Mobile
 
-The mobile app implements the same three pieces: an SQLite store with the same
-columns and outbox, the HLC, and `applyRemote` semantics. The protocol is plain
-JSON over HTTPS, so a native SwiftUI client (GRDB) and a React Native client are
-equally viable. The release gate is a test suite that replays offline edit
-scripts across ≥3 simulated devices and asserts convergence, no duplicates, and no
-resurrection, extending `tests/unit/sync.test.ts`.
+A mobile app implements the same three pieces: an SQLite store with the same columns and
+outbox, the HLC, and `applyRemote` semantics. The protocol is plain JSON over HTTPS, so a
+native SwiftUI client and a React Native client are equally viable.

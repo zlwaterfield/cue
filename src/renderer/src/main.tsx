@@ -5,10 +5,12 @@ import { App } from './App'
 import { backend } from './data/backend'
 import { installCaret } from './editor/caret'
 import { controller } from './editor/controller'
+import { initSync } from './store/sync'
 import './styles/app.css'
 
 async function boot(): Promise<void> {
   await controller.init()
+  initSync()
   const root = createRoot(document.getElementById('root')!)
   flushSync(() => {
     root.render(

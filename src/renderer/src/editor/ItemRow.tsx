@@ -1,6 +1,7 @@
 import { memo, useCallback, useLayoutEffect, useRef } from 'react'
 import type { ISODate } from '@shared/types'
 import { controller } from './controller'
+import { getOffsets, setOffsets } from './dom'
 import { updateLinks } from './highlights'
 import { useIsSelected, useItem } from './hooks'
 import * as ops from './ops'
@@ -28,7 +29,12 @@ export const ItemRow = memo(function ItemRow({ id, depth, date }: { id: string; 
   const text = item?.text ?? ''
   useLayoutEffect(() => {
     const el = ref.current
-    if (el && !controller.composing && el.textContent !== text) el.textContent = text
+    if (el && !controller.composing && el.textContent !== text) {
+      // Changed elsewhere (undo, paste, another device). Keep the caret in place.
+      const caret = el === document.activeElement ? getOffsets(el) : null
+      el.textContent = text
+      if (caret) setOffsets(el, caret.start, caret.end)
+    }
     updateLinks(id, el)
   }, [id, text])
 

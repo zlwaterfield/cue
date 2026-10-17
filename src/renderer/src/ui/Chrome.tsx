@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react'
 import { diffDays, MONTHS, parts, shortDate } from '@shared/dates'
 import { controller } from '../editor/controller'
 import { itemStore } from '../store/items'
+import { syncState } from '../store/sync'
 import { ui, useStore } from '../store/ui'
 import { Chevron } from './Calendar'
 
@@ -43,6 +44,7 @@ export function Header() {
             Week
           </button>
         </div>
+        <SyncIndicator />
         <button className="icon-btn" onMouseDown={keep} onClick={() => controller.execute('search.open')} title="Search  ⌘F" aria-label="Search">
           <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden>
             <circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" strokeWidth="1.5" />
@@ -54,6 +56,43 @@ export function Header() {
         </button>
       </div>
     </header>
+  )
+}
+
+/**
+ * Sync stays out of sight while it works. This shows only when it can't: offline,
+ * or stopped and needing attention. A long sync (the first one) fades in "Syncing…".
+ */
+function SyncIndicator() {
+  const sync = useStore(syncState, (s) => s)
+  let label: string
+  let hint: string
+  if (!sync.email) {
+    if (!sync.message) return null
+    label = 'Sync off'
+    hint = sync.message
+  } else if (sync.status === 'offline') {
+    label = 'Offline'
+    hint = 'Changes are saved on this Mac and will sync when you’re back online.'
+  } else if (sync.status === 'error') {
+    label = 'Sync paused'
+    hint = sync.message ?? 'Sync will retry shortly.'
+  } else if (sync.status === 'syncing') {
+    label = 'Syncing…'
+    hint = 'Syncing with your other devices.'
+  } else {
+    return null
+  }
+  const quiet = sync.status === 'syncing' && !!sync.email
+  return (
+    <button
+      className={`sync-status${quiet ? ' is-delayed' : ' is-attention'}`}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={() => controller.execute('app.settings')}
+      title={hint}
+    >
+      {label}
+    </button>
   )
 }
 

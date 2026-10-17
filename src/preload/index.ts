@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import type { CueBridge, Item } from '../shared/types'
+import type { CueBridge, Item, SyncState } from '../shared/types'
 
 /** The only surface the renderer has to the system: typed, narrow, no Node access. */
 
@@ -29,7 +29,16 @@ const bridge: CueBridge = {
   openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
   markInteractive: () => ipcRenderer.send('app:interactive'),
   onCommand: (callback) => subscribe<string>('command', callback),
-  onItemsChanged: (callback) => subscribe<Item[]>('items:changed', callback)
+  onItemsChanged: (callback) => subscribe<Item[]>('items:changed', callback),
+  sync: {
+    getState: () => ipcRenderer.invoke('sync:state'),
+    onState: (callback) => subscribe<SyncState>('sync:state', callback),
+    sendCode: (email) => ipcRenderer.invoke('sync:sendCode', email),
+    verifyCode: (email, code) => ipcRenderer.invoke('sync:verifyCode', email, code),
+    syncNow: () => ipcRenderer.invoke('sync:now'),
+    signOut: () => ipcRenderer.invoke('sync:signOut'),
+    deleteAccount: () => ipcRenderer.invoke('sync:deleteAccount')
+  }
 }
 
 contextBridge.exposeInMainWorld('cue', bridge)

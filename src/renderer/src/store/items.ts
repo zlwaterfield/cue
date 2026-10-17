@@ -30,6 +30,8 @@ export class PersistenceQueue {
 
   constructor(
     private readonly backend: Backend,
+    /** Called when a batch is stored, with the version stored for each item that changed. */
+    private readonly onSaved: (batch: Item[], versions: Map<string, string>) => void = () => {},
     private readonly delay = 40
   ) {}
 
@@ -66,9 +68,10 @@ export class PersistenceQueue {
     let done!: () => void
     this.inflightDone = new Promise((resolve) => (done = resolve))
     try {
-      await this.backend.saveItems(batch)
+      const saved = await this.backend.saveItems(batch)
       this.failures = 0
       this.inflight = null
+      this.onSaved(batch, new Map(saved.map((s) => [s.id, s.version])))
       if (this.pending.size) this.schedule(this.delay)
       else this.setStatus({ state: 'saved' })
     } catch (error) {
@@ -115,8 +118,14 @@ export class PersistenceQueue {
     }
   }
 
-  discard(ids: string[]): void {
-    for (const id of ids) this.pending.delete(id)
+  /** An edit to this item is waiting to be sent to storage. */
+  isPending(id: string): boolean {
+    return this.pending.has(id)
+  }
+
+  /** An edit to this item is on its way to storage right now. */
+  isInflight(id: string): boolean {
+    return !!this.inflight?.some((item) => item.id === id)
   }
 
   hasPending(): boolean {
@@ -132,10 +141,12 @@ export class ItemStore {
   private loading = new Map<ISODate, Promise<void>>()
   private itemListeners = new Map<string, Set<Listener>>()
   private dateListeners = new Map<ISODate, Set<Listener>>()
+  /** Records from elsewhere that arrived while a local save of the same item was in flight. */
+  private racing = new Map<string, Item>()
   readonly persistence: PersistenceQueue
 
   constructor(private readonly backend: Backend) {
-    this.persistence = new PersistenceQueue(backend)
+    this.persistence = new PersistenceQueue(backend, (batch, versions) => this.settleRaces(batch, versions))
   }
 
   /* ---------------------------------------------------------------- Queries */
@@ -249,13 +260,33 @@ export class ItemStore {
   }
 
   /**
-   * Records written to the database by someone else (import today, sync later).
-   * They already won in storage, so any older local snapshot still queued for those
-   * items is dropped rather than written over them.
+   * Records written to the database by someone else (sync, import). An item with an
+   * unsent edit keeps it: that edit will be stored with a newer version and win
+   * everywhere, so what's under the caret never changes as you type. If the edit is
+   * already in flight, the stored version decides once the save returns.
    */
   applyExternal(items: Item[]): void {
-    this.persistence.discard(items.map((i) => i.id))
-    this.ingest(items)
+    const apply: Item[] = []
+    for (const item of items) {
+      if (this.persistence.isPending(item.id)) continue
+      if (this.persistence.isInflight(item.id)) this.racing.set(item.id, item)
+      else apply.push(item)
+    }
+    this.ingest(apply)
+  }
+
+  private settleRaces(batch: Item[], versions: Map<string, string>): void {
+    if (!this.racing.size) return
+    const apply: Item[] = []
+    for (const { id } of batch) {
+      const remote = this.racing.get(id)
+      if (!remote) continue
+      this.racing.delete(id)
+      // The remote record won in storage unless our save stored something newer.
+      const stored = versions.get(id)
+      if (!this.persistence.isPending(id) && (!stored || stored < remote.version)) apply.push(remote)
+    }
+    this.ingest(apply)
   }
 
   /* ---------------------------------------------------------------- Writes */

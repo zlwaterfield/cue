@@ -6,6 +6,7 @@ import lockupLight from '../assets/cue-lockup-on-light.svg'
 import { backend, isDesktop } from '../data/backend'
 import { controller } from '../editor/controller'
 import { ui, useStore } from '../store/ui'
+import { SyncSettings } from './SyncSettings'
 
 function Keys({ shortcut }: { shortcut: string }) {
   return (
@@ -205,6 +206,7 @@ export function SettingsSheet() {
           onChange={(weekStartsOn) => update({ weekStartsOn })}
         />
       </div>
+      <SyncSettings />
       <div className="setting is-stacked">
         <div>
           <div className="setting-label">Your data</div>

@@ -1,5 +1,5 @@
 import { fold, searchTerms } from '@shared/text'
-import { DEFAULT_SETTINGS, type CueBridge, type Item, type SearchResult, type Settings } from '@shared/types'
+import { DEFAULT_SETTINGS, SYNC_OFF, type CueBridge, type Item, type SearchResult, type Settings, type SyncBridge } from '@shared/types'
 
 /**
  * The renderer's view of storage. In the desktop app this is the preload bridge to
@@ -44,8 +44,9 @@ class MemoryBackend implements Backend {
     return [...this.items.values()].filter((i) => set.has(i.date) && !i.deleted).map((i) => ({ ...i }))
   }
 
-  async saveItems(items: Item[]): Promise<void> {
+  async saveItems(items: Item[]): Promise<Array<Pick<Item, 'id' | 'version'>>> {
     this.saveItemsSync(items)
+    return items.map(({ id }) => ({ id, version: this.items.get(id)!.version }))
   }
 
   saveItemsSync(items: Item[]): void {
@@ -115,6 +116,16 @@ class MemoryBackend implements Backend {
 
   onItemsChanged(): () => void {
     return () => {}
+  }
+
+  sync: SyncBridge = {
+    getState: async () => SYNC_OFF,
+    onState: () => () => {},
+    sendCode: async () => ({ ok: false, error: 'Sync is available in the desktop app.' }),
+    verifyCode: async () => ({ ok: false, error: 'Sync is available in the desktop app.' }),
+    syncNow: async () => ({ ok: false, error: 'Sync is available in the desktop app.' }),
+    signOut: async () => {},
+    deleteAccount: async () => null
   }
 }
 

@@ -7,3 +7,4 @@ playwright-report/
 .context/
 *.log
 .DS_Store
+.env*.local

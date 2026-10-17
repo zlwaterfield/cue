@@ -6,6 +6,7 @@ import { linesToMarkdown, parseMarkdownLines, type LineSpec } from '@shared/mark
 import type { ISODate, ItemType, Settings } from '@shared/types'
 import { backend } from '../data/backend'
 import { itemStore } from '../store/items'
+import { syncState } from '../store/sync'
 import { dismissToast, showToast, ui, type Selection, type View } from '../store/ui'
 import { caretLine, getOffsets, isTextInput, placeCaretAtX, scrollIntoViewIfNeeded, setOffsets } from './dom'
 import { refreshCaret } from './caret'
@@ -878,6 +879,13 @@ class EditorController {
         return
       case 'app.revealData':
         void backend.revealDataFolder()
+        return
+      case 'sync.now':
+        if (!syncState.get().email) {
+          this.openOverlay({ kind: 'settings' })
+          return
+        }
+        void backend.sync.syncNow().then((r) => showToast(r.ok ? 'Synced' : r.error))
         return
       case 'theme.system':
       case 'theme.light':
