@@ -7,6 +7,7 @@ import { itemStore, sync } from '../core/app'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
+import { arriving } from '../editor/hooks'
 import { DayPage } from '../editor/DayPage'
 import { Toolbar } from '../editor/Toolbar'
 import { Header } from '../ui/Header'
@@ -22,18 +23,29 @@ export default function Day() {
 
   useEffect(() => {
     const { today } = ui.get()
+    // An empty today is an invitation to write: put the caret there, once. During the
+    // first download onto this phone, that's decided once today's notes are here.
+    let loaded = false
+    let invited = false
+    const invite = (): void => {
+      const { today, date, focusedId } = ui.get()
+      if (!loaded || invited || arriving(sync.state.get(), today, today)) return
+      invited = true
+      if (date === today && !focusedId && !itemStore.outline(today).length) editor.focus(editor.ghostId(today), 0)
+    }
+    const unsubscribe = sync.state.subscribe(invite)
     void itemStore.ensureLoaded([addDays(today, -1), today, addDays(today, 1)]).then(() => {
       setReady(true)
       void SplashScreen.hideAsync()
-      // An empty today is an invitation to write: put the caret there, unless the
-      // first download onto this phone is still bringing the notes in.
-      if (!itemStore.outline(today).length && !sync.state.get().downloading) editor.focus(editor.ghostId(today), 0)
+      loaded = true
+      invite()
     })
     const timer = setInterval(() => editor.checkToday(), 30_000)
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') editor.checkToday()
     })
     return () => {
+      unsubscribe()
       clearInterval(timer)
       subscription.remove()
     }

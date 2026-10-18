@@ -17,7 +17,10 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 - **Sync is required.** The Mac works without an account; the phone signs in first, with
   the same email and six-digit code. The phone holds a local copy of the account in SQLite,
   so it opens instantly and works offline. Signing out removes that copy (after checking
-  nothing is left unsent); the account keeps everything.
+  nothing is left unsent); the account keeps everything. Right after signing in, today
+  and the week around it download first; an empty day whose notes haven't arrived yet says
+  "Getting your notes…" and can't be written in until they do, and an empty today then
+  gets the caret.
 - **Sync is quicker to send.** iOS suspends apps soon after they leave the screen, so the
   phone pushes 450 ms after typing pauses (2 s at most during continuous typing), the
   moment a line is finished (focus leaves it), and when the app goes to the background
@@ -129,7 +132,8 @@ cd .. && pnpm test              # shared core, including the drag geometry
 [`e2e/`](e2e) holds [Maestro](https://maestro.mobile.dev) flows that drive the real app on a
 simulator, against the local sync server:
 
-- **writing**: Return, Markdown shortcuts, toolbar types and indent, Backspace, undo
+- **writing**: the caret waiting in a new account's empty today, Return, Markdown
+  shortcuts, toolbar types and indent, Backspace, undo
 - **touch**: marker taps, swipes, the undo toast, and drag to reorder and to nest
 - **search**: results as you type, "No matches", and opening a result
 - **sync**: a line from the phone reaches the account, and a line pushed by another device

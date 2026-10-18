@@ -18,7 +18,7 @@ import { metrics, useColors } from '../ui/theme'
 import { editor } from './controller'
 import { drag, scrollState, updateDrag } from './drag'
 import { TOOLBAR_SPACE } from './Toolbar'
-import { useOutline } from './hooks'
+import { useArriving, useOutline } from './hooks'
 import { Row } from './Row'
 import { SwipeUnderlay } from './Swipe'
 
@@ -67,6 +67,7 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
   const keyboard = useAnimatedKeyboard()
   const contentTop = useRef(0)
   const [loaded, setLoaded] = useState(() => itemStore.isLoaded(date))
+  const arriving = useArriving(date)
 
   useEffect(() => {
     if (loaded) return
@@ -129,6 +130,9 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
         const frame = layout.frameOf(id)
         if (!frame) return
         const s = scrollState.value
+        // Not measured yet: the page is still coming on screen (the caret can land in an
+        // empty today as it does, after sign-in), and the keyboard opening will reveal it.
+        if (!s.viewportHeight) return
         const keyboard = Keyboard.metrics()
         // Above the keyboard and the toolbar riding on it.
         const keyboardTop = keyboard ? keyboard.screenY - TOOLBAR_SPACE : s.viewportTop + s.viewportHeight
@@ -159,6 +163,9 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
   const title = relativeDayName(date, today)
   const subtitle = subtitleFor(date, today)
   const empty = rows.length === 0
+  // An empty day whose notes are still on their way can't be written in yet, so nothing
+  // typed now lands beside the notes about to arrive.
+  const waiting = empty && arriving
 
   return (
     <View ref={frame} style={styles.frame} onLayout={onViewport}>
@@ -184,16 +191,20 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
         style={[styles.rows, container]}
         onLayout={(e) => (contentTop.current = e.nativeEvent.layout.y)}
         // Views are in creation order; VoiceOver reads them in the day's order.
-        experimental_accessibilityOrder={accessibilityOrder}
+        experimental_accessibilityOrder={waiting ? undefined : accessibilityOrder}
       >
         <SwipeUnderlay geometry={geometry} />
-        {loaded &&
-          order.map((id) => <Row key={id} id={id} date={date} depth={depths.get(id) ?? 0} empty={empty} />)}
+        {waiting ? (
+          <Text style={[styles.waiting, { color: c.text3 }]}>Getting your notes…</Text>
+        ) : (
+          loaded && order.map((id) => <Row key={id} id={id} date={date} depth={depths.get(id) ?? 0} empty={empty} />)
+        )}
       </Animated.View>
       {/* Tapping the open space below the last line starts a new one. */}
       <Pressable
         style={{ minHeight: screenHeight * 0.45 }}
         onPress={() => editor.focus(editor.ghostId(date), 0)}
+        disabled={waiting}
         accessibilityLabel="New line"
       />
     </AnimatedScrollView>
@@ -222,5 +233,12 @@ const styles = StyleSheet.create({
   },
   rows: {
     position: 'relative'
+  },
+  waiting: {
+    // Where the blank line's text would be.
+    paddingLeft: metrics.gutter + metrics.marker,
+    paddingVertical: metrics.rowPadding,
+    fontSize: metrics.fontSize,
+    lineHeight: metrics.lineHeight
   }
 })
