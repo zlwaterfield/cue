@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Backend } from '../../src/renderer/src/data/backend'
-import { ItemStore } from '../../src/renderer/src/store/items'
+import { ItemStore } from '../../src/shared/itemStore'
 import type { Item } from '../../src/shared/types'
 import { newItem } from './helpers'
 
@@ -62,5 +62,25 @@ describe('ItemStore.applyExternal (changes from another device)', () => {
     saves[0].resolve([{ id: 'a', version: '0000000006-0000-mac' }])
     await flushTimers()
     expect(store.get('a')?.text).toBe('mine wins')
+  })
+})
+
+describe('ItemStore.reset (an account signs out of the phone)', () => {
+  it('forgets loaded days and drops edits not yet saved', async () => {
+    const item = newItem({ id: 'a', date: DAY, text: 'mine' })
+    const { backend, saves } = controlledBackend([item])
+    const store = new ItemStore(backend)
+    await store.ensureLoaded([DAY])
+    let notified = 0
+    store.subscribeDate(DAY, () => notified++)
+    store.commit([{ ...item, text: 'unsaved' }])
+    store.reset()
+    expect(store.get('a')).toBeUndefined()
+    expect(store.isLoaded(DAY)).toBe(false)
+    expect(store.outline(DAY)).toEqual([])
+    expect(store.persistence.hasPending()).toBe(false)
+    expect(notified).toBe(1)
+    await flushTimers()
+    expect(saves).toHaveLength(0)
   })
 })

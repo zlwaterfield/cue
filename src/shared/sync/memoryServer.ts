@@ -1,4 +1,4 @@
-import type { Item } from '../../shared/types'
+import type { Item } from '../types'
 import { OfflineError, type PullResult, type PushResult, type SyncTransport } from './engine'
 
 /**

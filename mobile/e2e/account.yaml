@@ -1,0 +1,44 @@
+# The phone holds a copy of the account. Signing out removes it from the phone (after
+# making sure nothing is left unsent); signing back in brings the notes back down.
+appId: app.cue
+name: Account
+---
+- runFlow: subflows/launch.yaml
+- runScript: scripts/today.js
+- runScript:
+    file: scripts/email.js
+    env:
+      PREFIX: account
+- runFlow:
+    file: subflows/sign-in.yaml
+    env:
+      EMAIL: ${output.email}
+
+- tapOn:
+    id: ${'new-line-' + output.today}
+- inputText: "- Keep this"
+- tapOn:
+    id: tool-hide
+
+- tapOn: "Settings"
+- assertVisible: ${output.email}
+- tapOn: "Sign Out"
+- extendedWaitUntil:
+    visible: "Sign out?"
+    timeout: 10000
+- tapOn:
+    text: "Sign Out"
+    index: 0
+- extendedWaitUntil:
+    visible: "Sign in to sync your notes"
+    timeout: 10000
+
+# Same account again: the line comes back from the server.
+- runFlow:
+    file: subflows/sign-in.yaml
+    env:
+      EMAIL: ${output.email}
+- extendedWaitUntil:
+    visible:
+      id: "0/bullet:Keep this"
+    timeout: 10000

@@ -12,9 +12,9 @@ import { caretLine, getOffsets, isTextInput, placeCaretAtX, scrollIntoViewIfNeed
 import { refreshCaret } from './caret'
 import { flash } from './highlights'
 import { commandFor, isMac } from './keys'
-import * as ops from './ops'
-import { Tx } from './tx'
-import { UndoManager, type SelectionSnapshot, type UndoEntry } from './undo'
+import * as ops from '@shared/editor/ops'
+import { Tx } from '@shared/editor/tx'
+import { UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
 
 /**
  * The editor controller: owns focus, caret movement across items, block selection,

@@ -235,6 +235,8 @@ first time you run `pnpm dev`). They keep their data separate from the packaged 
   flag for deletions. Local changes queue in an outbox written in the same transaction. An
   optional Supabase backend (Postgres, Auth, Realtime) syncs items newest-edit-wins, from the
   main process, without touching the editor.
+- **iPhone:** Expo and React Native, sharing `src/shared` (storage, sync, editing) with the Mac
+  app. See [mobile/README.md](mobile/README.md).
 
 More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SYNC.md](docs/SYNC.md) and
 [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md). The brand (logo, app icon, color tokens, usage guide,
@@ -264,9 +266,15 @@ performance budgets, and the brand ([docs/brand](docs/brand)).
 - Next: Sign in with Apple, and per-field merging, so that completing a to-do on one device
   and editing its text on another both survive.
 
-**After that: mobile**
-- An iPhone app on the same data model and sync protocol. It ships only once sync has proven
-  reliable across devices, offline edits and conflicts.
+**In progress: iPhone**
+- An iPhone app ([mobile/](mobile)) on the same core as the Mac: the data model, storage,
+  sync engine and every editing operation are shared code, not a port. Sync is required
+  there, and edits reach your other devices about a second after you pause.
+- Built for touch: tap a bullet to make it a to-do, tap a box to check it off, swipe right
+  to advance a line and left to send it to tomorrow, and long-press to drag lines (sideways
+  to nest). A toolbar above the keyboard switches line types in one tap.
+- Next: TestFlight builds, and measuring launch and typing on real devices against
+  budgets, as the Mac does.
 
 **Exploring**
 End-to-end encryption of note text, customizable shortcuts, and Windows and Linux builds
@@ -288,6 +296,8 @@ pnpm test:sync    # sync against a real Supabase (see docs/SYNC.md)
 pnpm typecheck
 pnpm bench        # performance against the budgets
 ```
+
+The iPhone app has its own setup and end-to-end tests: see [mobile/README.md](mobile/README.md).
 
 A few rules keep Cue the way it is:
 

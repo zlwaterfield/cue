@@ -1,10 +1,15 @@
 import { generateNKeysBetween } from 'fractional-indexing'
-import { uuidv7 } from '@shared/ids'
-import { buildOutline, type Row } from '@shared/outline'
-import type { ISODate, Item } from '@shared/types'
-import type { ItemStore } from '../store/items'
+import { uuidv7 } from '../ids'
+import { buildOutline, type Row } from '../outline'
+import type { ISODate, Item } from '../types'
 
 const MAX_KEY_LENGTH = 48
+
+/** What a draft reads from: the editor's item store. */
+export interface ItemSource {
+  get(id: string): Item | undefined
+  itemsOn(date: ISODate): Item[]
+}
 
 /**
  * A draft over the item store. Operations read the *rendered* structure (so orphans
@@ -17,7 +22,7 @@ export class Tx {
   private outlines = new Map<ISODate, Row[]>()
 
   constructor(
-    private readonly store: ItemStore,
+    private readonly store: ItemSource,
     readonly now = Date.now()
   ) {}
 

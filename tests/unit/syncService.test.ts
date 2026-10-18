@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import { MemorySyncServer } from '../../src/main/sync/memoryServer'
+import { MemorySyncServer } from '../../src/shared/sync/memoryServer'
 import { SyncService, type SyncClient } from '../../src/main/sync/service'
-import type { Repository } from '../../src/main/repository'
+import type { Repository } from '../../src/shared/repository'
 import type { SyncState } from '../../src/shared/types'
 import { memoryRepo, newItem } from './helpers'
 

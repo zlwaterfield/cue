@@ -13,7 +13,7 @@ two Postgres functions.** Item-level last-write-wins, ordered by hybrid logical 
 | Option | Verdict |
 | --- | --- |
 | Supabase / Postgres | ✅ Chosen. Auth, TLS, row-level security, backups, and account deletion are provided. The sync logic is ~100 lines of SQL. Works the same for Electron and any mobile stack. |
-| Small custom server | Viable fallback using the identical protocol (the reference server is `src/main/sync/memoryServer.ts`), but means running and securing a service. |
+| Small custom server | Viable fallback using the identical protocol (the reference server is `src/shared/sync/memoryServer.ts`), but means running and securing a service. |
 | CloudKit | Apple-only and awkward from Electron (CKSyncEngine is native-only). Reconsider only if Cue becomes a native Apple-only app. |
 | Firebase | Document model and opaque conflict behavior; harder to reason about tombstones and ordering. |
 | CRDT framework (Automerge, Yjs) | More machinery than plain text lines need. Revisit only if character-level merging of concurrent edits to the *same line* becomes important. |
@@ -32,7 +32,7 @@ two Postgres functions.** Item-level last-write-wins, ordered by hybrid logical 
 
 - **Data model.** Items have UUIDv7 ids minted on-device; pages are identified by their ISO
   date, so two devices "creating" the same day never duplicate it. Every write is stamped with
-  a hybrid-logical-clock version (`src/main/hlc.ts`) that compares as a plain string, never
+  a hybrid-logical-clock version (`src/shared/hlc.ts`) that compares as a plain string, never
   goes backwards, and never ties across devices. Deletions are tombstones.
 - **Outbox.** Each local write upserts `outbox(item_id, version)` in the same transaction as
   the item, whether sync is on or not. Push sends the *current* row, so repeated edits
@@ -42,7 +42,7 @@ two Postgres functions.** Item-level last-write-wins, ordered by hybrid logical 
   Applying the same batch twice, or an old backup, is a no-op. Imported backups use the same
   path and are queued for upload.
 
-### The engine (`src/main/sync/engine.ts`)
+### The engine (`src/shared/sync/engine.ts`)
 
 - **Single flight.** One run at a time: push the outbox in batches of 500, then pull if needed.
   Triggers that arrive during a run share one follow-up run.
@@ -199,6 +199,29 @@ npx supabase stop
 
 ## Mobile
 
-A mobile app implements the same three pieces: an SQLite store with the same columns and
-outbox, the HLC, and `applyRemote` semantics. The protocol is plain JSON over HTTPS, so a
-native SwiftUI client and a React Native client are equally viable.
+The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outbox and HLC
+(`src/shared/repository.ts`, `src/shared/hlc.ts`), the engine and the Supabase transport
+(`src/shared/sync/`). Its database is expo-sqlite with the same schema and migrations
+(`src/shared/sqlite.ts`). Only the lifecycle differs:
+
+- **Sync is required.** There's no local-only mode. The phone signs in before showing
+  anything, and its database is a local copy of the account. Signing out checks that
+  nothing is left unsent, then removes the notes and outbox from the phone, but keeps the
+  device id and clock (`Repository.clearNotes`). Signing in to a different account than
+  the one the database holds starts from empty. If the server ends the session, the notes
+  stay until someone signs in again, so unsent edits aren't lost.
+- **Faster pushes.** 450 ms after typing pauses (2 s at most), as soon as focus leaves a
+  line, and when the app leaves the screen. That last push runs inside a short iOS
+  background task (`modules/cue-native`), so it finishes before the app is suspended.
+- **Pull on return.** Realtime hints don't reach a suspended app, so coming back to the
+  foreground pulls immediately, and the realtime channel reconnects on its own.
+  The session refresh timer runs only in the foreground (`SupabaseSync.setForeground`).
+- **The session lives in the Keychain**, readable only on this device, after first unlock.
+  A fresh install clears any session a previous install left there.
+- **The first download** of a large account runs in the background while today's page
+  shows. Five years of notes (36,994 items) took about 4 s against the local server in a
+  development build. The header says "Getting your notes…" until it's done.
+
+The end-to-end flows in `mobile/e2e` test sync against the local stack. One has another
+device sign in to the same account over HTTP and call `sync_push`, then checks that the
+phone shows the line within 3 s without a refresh.

@@ -1,0 +1,12 @@
+# Start from nothing: no database, no session. With METRO set (a development build),
+# load the JavaScript from that Metro server; a release build runs its own bundle.
+appId: app.cue
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow:
+    when:
+      true: ${typeof METRO !== 'undefined' && METRO}
+    commands:
+      - openLink: "exp+cue://?__expo_url=${encodeURIComponent(METRO)}&__expo_disable_fab=1&__expo_disable_auto_launch=1&__expo_disable_onboarding=1"

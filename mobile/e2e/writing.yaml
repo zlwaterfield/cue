@@ -1,0 +1,74 @@
+# Writing on the phone: Return, Markdown shortcuts, the toolbar's type buttons, indent,
+# and Backspace unwinding formatting, nesting, then the line itself.
+appId: app.cue
+name: Writing
+---
+- runFlow: subflows/launch.yaml
+- runScript: scripts/today.js
+- runScript:
+    file: scripts/email.js
+    env:
+      PREFIX: writing
+- runFlow:
+    file: subflows/sign-in.yaml
+    env:
+      EMAIL: ${output.email}
+
+# Typing into the blank line makes it a line; Return continues with the same type.
+- tapOn:
+    id: ${'new-line-' + output.today}
+- inputText: "Plan the week"
+- pressKey: Enter
+- inputText: "- Draft agenda"
+- pressKey: Enter
+- inputText: "Share with Sam"
+- assertVisible:
+    id: "0/text:Plan the week"
+- assertVisible:
+    id: "0/bullet:Draft agenda"
+- assertVisible:
+    id: "0/bullet:Share with Sam"
+
+# The toolbar: indent, then the type buttons (tapping the lit one returns to text).
+- tapOn:
+    id: tool-indent
+- assertVisible:
+    id: "1/bullet:Share with Sam"
+- tapOn:
+    id: tool-todo
+- assertVisible:
+    id: "1/todo:Share with Sam"
+- tapOn:
+    id: tool-todo
+- assertVisible:
+    id: "1/text:Share with Sam"
+- tapOn:
+    id: tool-bullet
+- assertVisible:
+    id: "1/bullet:Share with Sam"
+
+# Return on an empty item steps out: first the indent, then the bullet.
+- pressKey: Enter
+- pressKey: Enter
+- pressKey: Enter
+- inputText: "[] Book flights"
+- assertVisible:
+    id: "0/todo:Book flights"
+
+# Backspace at the start of an empty to-do: drop the box, then join the line above.
+- pressKey: Enter
+- eraseText: 1
+- eraseText: 1
+- assertNotVisible:
+    id: "0/todo:"
+- assertNotVisible:
+    id: "0/text:"
+- inputText: " today"
+- assertVisible:
+    id: "0/todo:Book flights today"
+
+# Undo, from the toolbar.
+- tapOn:
+    id: tool-undo
+- assertVisible:
+    id: "0/todo:Book flights"

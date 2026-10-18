@@ -1,0 +1,22 @@
+# Sign in with an emailed code (local Supabase; the code is read from Mailpit).
+appId: app.cue
+---
+- extendedWaitUntil:
+    visible: "Sign in to sync your notes"
+    timeout: 30000
+- tapOn:
+    id: "email"
+- inputText: ${EMAIL}
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the code we sent to"
+    timeout: 15000
+- runScript:
+    file: ../scripts/sign-in-code.js
+    env:
+      EMAIL: ${EMAIL}
+- inputText: ${output.code}
+- extendedWaitUntil:
+    visible:
+      id: "day-title"
+    timeout: 20000

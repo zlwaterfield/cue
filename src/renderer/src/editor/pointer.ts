@@ -5,7 +5,7 @@ import { backend } from '../data/backend'
 import { controller, ghostId } from './controller'
 import { offsetWithin, rangeFromPoint } from './dom'
 import { linkAt } from './highlights'
-import * as ops from './ops'
+import * as ops from '@shared/editor/ops'
 
 /**
  * Pointer interactions: drag-and-drop of items (with children, across days) and
