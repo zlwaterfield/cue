@@ -63,6 +63,25 @@ describe('ItemStore.applyExternal (changes from another device)', () => {
     await flushTimers()
     expect(store.get('a')?.text).toBe('mine wins')
   })
+
+  it('tells onExternal listeners about the records it applied, and only those', async () => {
+    const { store, saves } = await setup()
+    const applied: string[][] = []
+    store.onExternal((items) => applied.push(items.map((i) => `${i.id}:${i.text}:${i.deleted}`)))
+    const other = newItem({ id: 'b', date: DAY, text: 'other' })
+
+    store.commit([{ ...base, text: 'typing here' }])
+    store.applyExternal([remote('skipped while pending', '0000000005-0000-phone'), { ...other, deleted: true }])
+    expect(applied).toEqual([['b:other:true']])
+
+    // A record that raced an in-flight save is reported once the save decides it.
+    await flushTimers()
+    store.applyExternal([remote('phone wins', '0000000009-0000-phone')])
+    expect(applied).toHaveLength(1)
+    saves[0].resolve([{ id: 'a', version: '0000000007-0000-mac' }])
+    await flushTimers()
+    expect(applied).toEqual([['b:other:true'], ['a:phone wins:false']])
+  })
 })
 
 describe('ItemStore.reset (an account signs out of the phone)', () => {

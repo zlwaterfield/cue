@@ -7,7 +7,7 @@ import { Tx } from '@shared/editor/tx'
 import { revert, UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
 import { uuidv7 } from '@shared/ids'
 import { parseMarkdownLines } from '@shared/markdown'
-import type { ISODate, ItemType } from '@shared/types'
+import type { ISODate, Item, ItemType } from '@shared/types'
 import { itemStore, sync } from '../core/app'
 import { dismissToast, showToast, ui } from '../core/ui'
 import { DayLayout } from './layout'
@@ -77,6 +77,7 @@ export class Editor {
 
   constructor() {
     itemStore.onReset(() => this.reset())
+    itemStore.onExternal((applied) => this.onExternal(applied))
   }
 
   /**
@@ -161,6 +162,14 @@ export class Editor {
 
   unregister(id: string, input: TextInputInstance | null): void {
     if (this.inputs.get(id) === input) this.inputs.delete(id)
+  }
+
+  /** The line being edited is gone from the page: stop editing it. */
+  private leave(id: string, next: string | null = null): void {
+    this.undo.seal()
+    this.stripped.delete(id)
+    if (this.pending?.id === id) this.pending = null
+    ui.set({ focusedId: next })
   }
 
   /** Put the caret in a line once it's rendered (it may have just been created). */
@@ -286,6 +295,33 @@ export class Editor {
   private announce(message: string): void {
     showToast(message, { undo: true })
     this.toastEntry = this.undo.top()
+  }
+
+  /**
+   * Lines changed on another device. If the one being edited was deleted, or moved off this
+   * page, the keyboard goes (there's nothing left to type into) and a toast says why; a
+   * deletion can be undone from it, which brings the line back everywhere.
+   */
+  private onExternal(applied: Item[]): void {
+    const id = ui.get().focusedId
+    const record = id ? applied.find((item) => item.id === id) : undefined
+    if (!id || !record || itemStore.get(id)?.date === ui.get().date) return
+    const caret = this.carets.get(id) ?? { start: record.text.length, end: record.text.length }
+    this.leave(id)
+    Keyboard.dismiss()
+    if (record.deleted) {
+      this.undo.record({
+        label: 'Delete',
+        changes: [{ before: { ...record, deleted: false }, after: record }],
+        selectionBefore: { kind: 'text', id, ...caret },
+        selectionAfter: { kind: 'none' },
+        at: Date.now()
+      })
+      this.announce('Deleted on another device')
+    } else {
+      const label = friendlyDate(record.date, ui.get().today).replace(/^(Today|Tomorrow|Yesterday)$/, (m) => m.toLowerCase())
+      showToast(`Moved to ${label} on another device`)
+    }
   }
 
   /* ============================================================ Typing */

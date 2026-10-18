@@ -151,6 +151,7 @@ export class ItemStore {
   private dateListeners = new Map<ISODate, Set<Listener>>()
   /** Records from elsewhere that arrived while a local save of the same item was in flight. */
   private racing = new Map<string, Item>()
+  private externalListeners = new Set<(applied: Item[]) => void>()
   private resetListeners = new Set<Listener>()
   readonly persistence: PersistenceQueue
 
@@ -208,6 +209,16 @@ export class ItemStore {
       set!.delete(listener)
       if (!set!.size) this.dateListeners.delete(date)
     }
+  }
+
+  /**
+   * Called with the records from elsewhere that were actually applied (tombstones
+   * included), after subscribers have been told, so an editor can notice that the line
+   * it's on was deleted or moved by another device.
+   */
+  onExternal(listener: (applied: Item[]) => void): () => void {
+    this.externalListeners.add(listener)
+    return () => this.externalListeners.delete(listener)
   }
 
   /** Called after `reset()`, so anything that refers to the forgotten items can forget them too. */
@@ -287,7 +298,7 @@ export class ItemStore {
       if (this.persistence.isInflight(item.id)) this.racing.set(item.id, item)
       else apply.push(item)
     }
-    this.ingest(apply)
+    this.ingestExternal(apply)
   }
 
   private settleRaces(batch: Item[], versions: Map<string, string>): void {
@@ -301,7 +312,12 @@ export class ItemStore {
       const stored = versions.get(id)
       if (!this.persistence.isPending(id) && (!stored || stored < remote.version)) apply.push(remote)
     }
-    this.ingest(apply)
+    this.ingestExternal(apply)
+  }
+
+  private ingestExternal(items: Item[]): void {
+    this.ingest(items)
+    if (items.length) for (const l of this.externalListeners) l(items)
   }
 
   /** Forget everything in memory, e.g. when an account signs out and its notes leave the device. */

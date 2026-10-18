@@ -3,7 +3,7 @@ import { COMMANDS_BY_ID } from '@shared/commands'
 import { uuidv7 } from '@shared/ids'
 import { addDays, friendlyDate, nextWeekday, startOfWeek, todayISO, weekViewDates } from '@shared/dates'
 import { linesToMarkdown, parseMarkdownLines, type LineSpec } from '@shared/markdown'
-import type { ISODate, ItemType, Settings } from '@shared/types'
+import type { ISODate, Item, ItemType, Settings } from '@shared/types'
 import { backend } from '../data/backend'
 import { itemStore } from '../store/items'
 import { syncState } from '../store/sync'
@@ -1131,8 +1131,59 @@ class EditorController {
     })
     window.addEventListener('focus', () => this.checkToday())
     backend.onCommand((id) => this.execute(id, 'menu'))
-    backend.onItemsChanged((items) => itemStore.applyExternal(items))
+    backend.onItemsChanged((items) => this.applyExternal(items))
     setInterval(() => this.checkToday(), 30_000)
+  }
+
+  /** Records written elsewhere (sync, import). They may take away the line being edited. */
+  private applyExternal(items: Item[]): void {
+    // The line being edited, or the one an open sheet will return to.
+    const editing = this.snapshotText()
+    const inLine = !!editing && document.activeElement === this.els.get(editing.id)
+    const focus = inLine || ui.get().overlay ? editing : null
+    const order = focus ? this.navOrder() : []
+    flushSync(() => {
+      itemStore.applyExternal(items)
+    })
+    if (focus && !this.isVisible(focus.id)) this.focusLost(focus, order, items)
+    // Moved to another day on screen: the caret goes with it.
+    else if (focus && inLine && document.activeElement !== this.els.get(focus.id)) this.focusText(focus.id, focus.start, focus.end)
+    // Lines arriving above the caret move it without any selection change.
+    refreshCaret()
+  }
+
+  /**
+   * The line being edited was deleted, or moved off screen, elsewhere. The caret goes to
+   * the end of the nearest line above it that's still here (else the start of the next one),
+   * so the next key doesn't land nowhere, and a toast says what happened.
+   */
+  private focusLost(focus: CaretMemo, order: string[], items: Item[]): void {
+    // With a sheet open, closing it puts the caret somewhere sensible by itself.
+    if (!ui.get().overlay) {
+      const at = order.indexOf(focus.id)
+      const above = order.slice(0, Math.max(at, 0)).reverse().find((id) => this.isVisible(id))
+      const below = at === -1 ? undefined : order.slice(at + 1).find((id) => this.isVisible(id))
+      if (above) this.focusEnd(above)
+      else if (below) this.focusText(below, 0)
+      else this.focusDefault()
+    }
+    const record = items.find((item) => item.id === focus.id)
+    if (!record) return
+    if (record.deleted) {
+      // Undo (here or in the toast) brings it back everywhere: a newer write wins.
+      this.undo.record({
+        label: 'Delete',
+        changes: [{ before: { ...record, deleted: false }, after: record }],
+        selectionBefore: { kind: 'text', ...focus },
+        selectionAfter: this.snapshot(),
+        at: Date.now()
+      })
+      showToast('Deleted on another device', { undo: true })
+      this.toastEntry = this.undo.top()
+    } else {
+      const label = friendlyDate(record.date, ui.get().today).replace(/^(Today|Tomorrow|Yesterday)$/, (m) => m.toLowerCase())
+      showToast(`Moved to ${label} on another device`)
+    }
   }
 
   /** Keep "today" correct when the app stays open past midnight. */

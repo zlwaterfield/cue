@@ -3,7 +3,7 @@ import { createServer, type AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { signInCode, syncServer, testEmail } from '../syncServer'
-import { caret, focusedText, launch, lines, outline, today } from './app'
+import { caret, focusedText, launch, lines, outline, today, typeLines } from './app'
 
 test('sync is off until you turn it on, and Cue works the same', async () => {
   // A configured server that is never contacted: nothing happens until sign-in.
@@ -112,6 +112,30 @@ test.describe('with a sync server', () => {
     await a.page.keyboard.press('Escape')
     expect(await outline(a.page, day)).toBe(expected)
 
+    await Promise.all([a.app.close(), b.app.close()])
+  })
+
+  test('the line you’re on is deleted on the other Mac: the caret moves up, and Undo brings it back', async () => {
+    const email = testEmail('doomed')
+    const [a, b] = await Promise.all([launch(undefined, env()), launch(undefined, env())])
+    const day = await today(a.page)
+    await typeLines(a.page, 'Keep', 'Doomed')
+    await turnOnSync(a.page, email)
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    await turnOnSync(b.page, email)
+    await expect.poll(() => outline(b.page, day)).toBe(lines('Keep', 'Doomed'))
+    expect(await focusedText(a.page)).toBe('Doomed')
+
+    await b.page.locator(`.day[data-day="${day}"] .row .text`, { hasText: 'Doomed' }).click()
+    await b.page.keyboard.press('Meta+Shift+Backspace')
+    await expect.poll(() => outline(a.page, day)).toBe('Keep')
+    expect(await focusedText(a.page)).toBe('Keep')
+    expect(await caret(a.page)).toBe('Keep'.length)
+    await expect(a.page.locator('.toast')).toContainText('Deleted on another device')
+
+    await a.page.locator('.toast').getByRole('button', { name: /Undo/ }).click()
+    await expect.poll(() => outline(a.page, day)).toBe(lines('Keep', 'Doomed'))
+    await expect.poll(() => outline(b.page, day)).toBe(lines('Keep', 'Doomed'))
     await Promise.all([a.app.close(), b.app.close()])
   })
 

@@ -93,6 +93,10 @@ the same path an import uses, with one rule: **an edit in progress always wins.*
 - If a save of that line is already in flight, the version the database stored decides: the
   remote copy is shown only if it's newer than what was saved.
 - When a line changes while it has focus but you're not typing, the caret stays where it was.
+- When the line you're on is deleted, or moved off screen, on another device, the Mac puts
+  the caret at the end of the line above and the iPhone puts the keyboard away. A toast says
+  "Deleted on another device" (with Undo, which brings the line back everywhere) or "Moved
+  to … on another device".
 - Undo reverses only what your action changed, so it never takes back another device's
   newer edit (see [ARCHITECTURE.md](ARCHITECTURE.md#undo)).
 
