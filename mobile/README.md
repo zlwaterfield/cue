@@ -34,11 +34,11 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 | --- | --- |
 | Tap a line | Edit it, with the caret where your finger landed |
 | Tap a bullet | Make it a to-do |
-| Tap a box | Complete or reopen |
+| Tap a box | Complete or reopen (the whole marker column takes the tap, the margin beside it too) |
 | Swipe right | Text or bullet → to-do → done (and back) |
 | Swipe left | Move to tomorrow (Undo in the toast); keep going to delete |
-| Long-press, then drag | Reorder, taking children along. Drag sideways to nest or un-nest, one level at a time, within what the outline allows |
-| Toolbar above the keyboard | ☐ to-do and • bullet (tap the lit one for plain text), outdent, indent, undo, move to another day, hide the keyboard |
+| Long-press, then drag | Reorder, taking children along. Drag sideways to nest or un-nest, one level at a time, within what the outline allows. A finger already moving sideways is a swipe, not a lift |
+| Toolbar floating above the keyboard | ☐ to-do and • bullet (tap the lit one for plain text), outdent, indent, undo, move to another day, hide the keyboard |
 | Type `- ` / `[] ` / `[x] ` | Bullet, to-do, done to-do, as on the Mac |
 | Return / Backspace | The Mac's rules: Return continues the list; on an empty item it steps out, then drops the marker. Backspace at the start drops the marker, then the indent, then joins the line above |
 
@@ -53,6 +53,14 @@ VoiceOver reads lines in the day's order.
   and their views stay in the order they were created. Reordering a line, whether by drag,
   move, or another device, never removes a text view from the window. Removing one would
   end editing and drop the keyboard. Moves animate as a side effect.
+- **Lines only do work when they move.** Each line watches the layout, the drag and the
+  swipe on the UI thread and animates only when its own target changes, so a wrap, a
+  Return or a drag frame touches the lines that actually move. Markers are plain views at
+  rest; a change pops in once with a layout animation.
+- **Heights come from the text views.** iOS doesn't shrink a text view whose text is
+  replaced with something shorter, so a line whose text got shorter without typing (Return
+  mid-paragraph, an edit from another device) remounts its input once it isn't being
+  edited, and measures again.
 - **Touches.** A line that isn't being edited takes touches as a whole
   (`pointerEvents="box-only"`), so long press and swipes are free. A tap is passed to a small
   native module (`modules/cue-native`) that focuses the line with the caret at the touched
@@ -121,6 +129,7 @@ simulator, against the local sync server:
 
 - **writing**: Return, Markdown shortcuts, toolbar types and indent, Backspace, undo
 - **touch**: marker taps, swipes, the undo toast, and drag to reorder and to nest
+- **search**: results as you type, "No matches", and opening a result
 - **sync**: a line from the phone reaches the account, and a line pushed by another device
   appears on the phone within 3 s with no refresh
 - **account**: sign out removes the phone's copy; signing back in brings it back
