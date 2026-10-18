@@ -12,7 +12,7 @@ import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { colors, metrics, useColors } from '../ui/theme'
 import { editor } from './controller'
-import { beginDrag, drag, dragTop, resetDrag, updateDrag } from './drag'
+import { beginDrag, drag, dragTop, resetDrag, scrollState, updateDrag } from './drag'
 import { useItem } from './hooks'
 import { Marker } from './Marker'
 import { swipe, SWIPE_ACT, SWIPE_DELETE_FRACTION, type SwipeKind } from './Swipe'
@@ -293,7 +293,13 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
   return (
     <Animated.View
       style={[styles.row, position]}
-      onLayout={(e) => layout.measure(id, e.nativeEvent.layout.height)}
+      onLayout={(e) => {
+        const height = e.nativeEvent.layout.height
+        layout.measure(id, height)
+        // A line that wraps as it's typed stays clear of the keyboard and the toolbar on it
+        // (iOS only keeps the caret above the keyboard), once the new layout is in.
+        if (focused && height < scrollState.value.viewportHeight / 2) requestAnimationFrame(() => editor.scroller?.reveal(date, id))
+      }}
     >
       <View style={[styles.line, { paddingLeft: metrics.gutter + depth * metrics.indent }]}>
         {flash ? <Glow at={flash} /> : null}
