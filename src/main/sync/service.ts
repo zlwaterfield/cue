@@ -44,6 +44,12 @@ const SESSION_PREFIX = 'sync_session:'
 const STALE_AFTER = 60_000
 /** Ask the auth server about a refused session at most this often. */
 const CHECK_EVERY = 30_000
+/**
+ * On launch and coming back, ask whether the session still stands, at most this often.
+ * Pulls succeed for a deleted account (there's just nothing new), so a Mac that only
+ * reads would otherwise keep saying "Synced just now".
+ */
+const VERIFY_EVERY = 30 * 60_000
 
 const ENDED_MESSAGES: Record<SessionEnd, string> = {
   expired: 'Your sync session ended. Sign in again to keep syncing.',
@@ -58,6 +64,7 @@ export class SyncService {
   private message: string | null = null
   private ended: Ended | null
   private checkedAt = 0
+  private verifiedAt = 0
   private shownPending = 0
 
   constructor(
@@ -75,6 +82,7 @@ export class SyncService {
     if (!stored || !this.options.config) return
     try {
       await this.begin(stored)
+      this.verifySession()
     } catch (error) {
       console.error('Sync failed to start', error)
     }
@@ -118,6 +126,7 @@ export class SyncService {
     if (!engine) return
     const stale = !engine.lastSyncedAt || Date.now() - engine.lastSyncedAt > STALE_AFTER
     if (stale || engine.status === 'offline' || engine.status === 'error') void engine.sync().catch(() => {})
+    if (stale) this.verifySession()
   }
 
   /** Signed in, online as far as we know, and holding changes the server doesn't have. */
@@ -239,6 +248,15 @@ export class SyncService {
     if (Date.now() - this.checkedAt < CHECK_EVERY) return
     this.checkedAt = Date.now()
     void client.checkSession(reason).catch((error) => console.error('Couldn’t check the sync session', error))
+  }
+
+  /** Ask the auth server whether the session still stands, at most every `VERIFY_EVERY`. */
+  private verifySession(): void {
+    if (!this.engine || Date.now() - this.verifiedAt < VERIFY_EVERY) return
+    this.verifiedAt = Date.now()
+    void this.loaded()
+      .then((client) => client?.checkSession('expired'))
+      .catch((error) => console.error('Couldn’t check the sync session', error))
   }
 
   /** Load the Supabase client on first use (once, however many calls race to it). */

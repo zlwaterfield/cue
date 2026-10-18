@@ -46,6 +46,12 @@ const CURSOR = 'sync_cursor'
 const TIMING = { debounce: 450, maxWait: 2000 }
 /** Ask the auth server about a refused session at most this often. */
 const CHECK_EVERY = 30_000
+/**
+ * On launch and coming back, ask whether the session still stands, at most this often.
+ * Pulls succeed for a deleted account (there's just nothing new), so a phone that only
+ * reads would otherwise keep saying "Synced just now".
+ */
+const VERIFY_EVERY = 30 * 60_000
 /** When the server ends the session, sign-in shows once typing has paused this long. */
 const TYPING_PAUSE = 1000
 
@@ -89,6 +95,7 @@ export class MobileSync {
   /** This engine began on an empty copy (cursor 0): its first sync is the download. */
   private joining = false
   private checkedAt = 0
+  private verifiedAt = 0
   private lastEdit = 0
   private signInTimer: ReturnType<typeof setTimeout> | null = null
   private appState = (AppState.currentState ?? 'active') as AppStateStatus
@@ -130,7 +137,13 @@ export class MobileSync {
     // the first screen is up.
     this.account = account
     this.emit({ phase: 'signedIn' })
-    requestAnimationFrame(() => setTimeout(() => this.account === account && this.begin(account), 0))
+    requestAnimationFrame(() =>
+      setTimeout(() => {
+        if (this.account !== account) return
+        this.begin(account)
+        this.verifySession()
+      }, 0)
+    )
   }
 
   /* ------------------------------------------------------------ Triggers */
@@ -170,7 +183,10 @@ export class MobileSync {
     if (next === 'active') {
       this.client?.setForeground(true)
       // Hints sent while suspended were missed, and the socket is reconnecting: pull now.
-      if (previous !== 'active') void this.engine?.sync().catch(() => {})
+      if (previous !== 'active') {
+        void this.engine?.sync().catch(() => {})
+        this.verifySession()
+      }
       return
     }
     if (previous === 'active') void this.pushBeforeSuspend()
@@ -308,6 +324,14 @@ export class MobileSync {
     if (Date.now() - this.checkedAt < CHECK_EVERY) return
     this.checkedAt = Date.now()
     void client.checkSession(reason).catch((error) => console.warn('Couldn’t check the sync session', error))
+  }
+
+  /** Ask the auth server whether the session still stands, at most every `VERIFY_EVERY`. */
+  private verifySession(): void {
+    const client = this.client
+    if (!client || !this.engine || Date.now() - this.verifiedAt < VERIFY_EVERY) return
+    this.verifiedAt = Date.now()
+    void client.checkSession('expired').catch((error) => console.warn('Couldn’t check the sync session', error))
   }
 
   /**

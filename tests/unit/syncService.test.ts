@@ -134,6 +134,45 @@ describe('SyncService', () => {
     expect(setup(repo, server).service.state().needsSignIn).toBe(false)
   })
 
+  it('asks whether the session still stands on launch and coming back, at most every 30 minutes', async () => {
+    // Pulls succeed for a deleted account, so a Mac that only reads has to ask.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      const { repo, server, service, client } = setup()
+      const away = (minutes: number): void => void vi.setSystemTime(Date.now() + minutes * 60_000)
+      await service.verifyCode('me@example.com', '1')
+      await vi.waitFor(() => expect(service.state().status).toBe('idle'))
+      service.resume() // back within a minute: nothing to pull, nothing to ask
+      expect(client.checkSession).not.toHaveBeenCalled()
+
+      away(2)
+      service.resume()
+      await vi.waitFor(() => expect(client.checkSession).toHaveBeenCalledTimes(1))
+      expect(client.checkSession).toHaveBeenCalledWith('expired')
+      for (const minutes of [2, 10, 15]) {
+        await vi.waitFor(() => expect(service.state().status).toBe('idle'))
+        away(minutes)
+        service.resume()
+      }
+      expect(client.checkSession).toHaveBeenCalledTimes(1)
+      away(4) // 31 minutes since it last asked
+      service.resume()
+      await vi.waitFor(() => expect(client.checkSession).toHaveBeenCalledTimes(2))
+
+      // A launch asks at once; signed out, nothing asks.
+      const restarted = setup(repo, server)
+      await restarted.service.start()
+      await vi.waitFor(() => expect(restarted.client.checkSession).toHaveBeenCalledTimes(1))
+      await restarted.service.signOut()
+      away(60)
+      restarted.service.resume()
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      expect(restarted.client.checkSession).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('shows Off at once when sync is turned off, even with a request hanging', async () => {
     const { repo, service, client, states } = setup()
     await service.verifyCode('me@example.com', '1')

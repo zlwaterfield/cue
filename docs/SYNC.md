@@ -125,6 +125,10 @@ the same path an import uses, with one rule: **an edit in progress always wins.*
   sign in again) or "Your account was deleted on another device. Notes on this Mac stay
   here." That survives a restart until someone signs in again or turns sync off. Signing
   back in to the same account sends only what changed.
+- **A Mac that only reads** never has a push refused, and pulls succeed for a deleted
+  account (there's just nothing new). So on launch, and when the Mac wakes or Cue comes to
+  the front after a minute away, the service also runs `checkSession`, at most every 30
+  minutes.
 
 ### UI
 
@@ -262,6 +266,8 @@ The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outb
   device." The notes stay until someone signs in again, so unsent edits aren't lost.
   `MobileSync.unsentFromPreviousAccount()` counts the edits a different account would
   remove, and sign-in says so before it sends a code ("Some changes haven’t synced").
+  Like the Mac, the phone also runs `checkSession` on launch and on coming back to the
+  foreground, at most every 30 minutes, so a phone that only reads finds out too.
 - **Faster pushes.** 450 ms after typing pauses (2 s at most), at once for any other edit,
   as soon as focus leaves a line, and when the app leaves the screen. That last push runs
   inside a short iOS background task (`modules/cue-native`), so it finishes before the app
@@ -281,4 +287,7 @@ The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outb
 
 The end-to-end flows in `mobile/e2e` test sync against the local stack. One has another
 device sign in to the same account over HTTP and call `sync_push`, then checks that the
-phone shows the line within 3 s without a refresh.
+phone shows the line within 3 s without a refresh. Another (`account-deleted`) has it
+delete the account: the phone signs out with the reason at its next push, warns before a
+sign-in that would remove the unsent line, and, for a phone that only reads, notices on
+coming back to the foreground.

@@ -1,0 +1,96 @@
+# The account is deleted on another device. A phone that writes finds out at its next
+# push; one that only reads finds out when it comes back to the foreground. Either way it
+# says why it signed out, and warns before a sign-in could remove changes that never
+# reached the account. Also: an address that can't be one gets the Mac's words.
+appId: app.cue
+name: Account deleted
+---
+- runFlow: subflows/launch.yaml
+- runScript: scripts/today.js
+- extendedWaitUntil:
+    visible: "Sign in to sync your notes"
+    timeout: 30000
+- tapOn:
+    id: "email"
+- inputText: "not-an-email"
+- tapOn: "Send Code"
+- assertVisible: "That doesn’t look like an email address."
+- eraseText: 80
+
+- runScript:
+    file: scripts/email.js
+    env:
+      PREFIX: deleted-a
+- runFlow:
+    file: subflows/sign-in.yaml
+    env:
+      EMAIL: ${output.email}
+- runScript:
+    file: scripts/delete-from-another-device.js
+    env:
+      EMAIL: ${output.email}
+      SUPABASE_KEY: ${SUPABASE_KEY}
+
+# Writing after the deletion: the push is refused, the server confirms, and once typing
+# pauses the phone signs out with the reason. The line stays on the phone, unsent.
+- tapOn:
+    id: ${'new-line-' + output.today}
+- inputText: "Written after it was deleted"
+- tapOn:
+    id: tool-hide
+- extendedWaitUntil:
+    visible: "Your account was deleted on another device."
+    timeout: 15000
+# The email field has focus already. Send goes from the keyboard.
+- inputText: ${output.email}
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "Some changes haven’t synced"
+    timeout: 5000
+- assertVisible: "1 change on this iPhone hasn’t reached your account. Signing in to a different account, or to one that was deleted, removes it."
+- tapOn: "Cancel"
+- assertVisible: "Your account was deleted on another device."
+- assertNotVisible: "Enter the code we sent to"
+
+# The line is still there after a relaunch. Continuing to a different account starts
+# it from empty.
+- launchApp
+- extendedWaitUntil:
+    visible: "Sign in to sync your notes"
+    timeout: 15000
+- runScript:
+    file: scripts/email.js
+    env:
+      PREFIX: deleted-b
+- inputText: ${output.email}
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "Some changes haven’t synced"
+    timeout: 5000
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "Enter the code we sent to"
+    timeout: 15000
+- runScript:
+    file: scripts/sign-in-code.js
+    env:
+      EMAIL: ${output.email}
+- inputText: ${output.code}
+- extendedWaitUntil:
+    visible:
+      id: "day-title"
+    timeout: 20000
+- assertNotVisible: "Written after it was deleted"
+
+# A phone that only reads: deleted elsewhere, it finds out when it comes back.
+- runScript:
+    file: scripts/delete-from-another-device.js
+    env:
+      EMAIL: ${output.email}
+      SUPABASE_KEY: ${SUPABASE_KEY}
+- pressKey: Home
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Your account was deleted on another device."
+    timeout: 15000
