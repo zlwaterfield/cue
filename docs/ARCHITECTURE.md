@@ -112,6 +112,11 @@ and structural actions). Undo and redo are *new writes* with new versions, which
 keeps them correct under sync. Undoing a move to Friday brings the item back and puts
 the caret where it was, navigating if needed.
 
+Undo reverses only what the action changed, field group by field group (place, type,
+text, completion, deletion), and only where the item still holds what the action left
+(`revert`). A newer edit from another device stays, a line deleted elsewhere stays
+deleted, and an undo with nothing left to do says "Already changed on another device".
+
 ## Keyboard and menus
 
 `shared/commands.ts` is the single source for command titles and shortcuts. The

@@ -93,6 +93,8 @@ the same path an import uses, with one rule: **an edit in progress always wins.*
 - If a save of that line is already in flight, the version the database stored decides: the
   remote copy is shown only if it's newer than what was saved.
 - When a line changes while it has focus but you're not typing, the caret stays where it was.
+- Undo reverses only what your action changed, so it never takes back another device's
+  newer edit (see [ARCHITECTURE.md](ARCHITECTURE.md#undo)).
 
 ### The service (`src/main/sync/service.ts`)
 

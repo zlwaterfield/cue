@@ -14,7 +14,7 @@ import { flash } from './highlights'
 import { commandFor, isMac } from './keys'
 import * as ops from '@shared/editor/ops'
 import { Tx } from '@shared/editor/tx'
-import { UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
+import { revert, UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
 
 /**
  * The editor controller: owns focus, caret movement across items, block selection,
@@ -299,20 +299,27 @@ class EditorController {
     const entry = this.undo.popUndo()
     if (!entry) return
     dismissToast()
-    flushSync(() => {
-      itemStore.commit(entry.changes.map((c) => (c.before ? c.before : { ...c.after, deleted: true })))
-    })
-    this.restore(entry.selectionBefore)
-    refreshCaret()
+    this.replay(entry, 'undo')
   }
 
   redoAction(): void {
     const entry = this.undo.popRedo()
     if (!entry) return
+    this.replay(entry, 'redo')
+  }
+
+  /** Reverse (or redo) only what the entry changed, leaving newer edits from other devices alone. */
+  private replay(entry: UndoEntry, direction: 'undo' | 'redo'): void {
+    const records = revert(entry.changes, direction, itemStore)
+    if (!records.length) {
+      showToast('Already changed on another device')
+      return
+    }
     flushSync(() => {
-      itemStore.commit(entry.changes.map((c) => c.after))
+      itemStore.commit(records)
     })
-    this.restore(entry.selectionAfter)
+    // Lands only on a line that's still there.
+    this.restore(direction === 'undo' ? entry.selectionBefore : entry.selectionAfter)
     refreshCaret()
   }
 

@@ -4,7 +4,7 @@ import { addDays, friendlyDate, todayISO } from '@shared/dates'
 import * as ops from '@shared/editor/ops'
 import { dropTarget, subtreeEnd } from '@shared/editor/geometry'
 import { Tx } from '@shared/editor/tx'
-import { UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
+import { revert, UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
 import { uuidv7 } from '@shared/ids'
 import { parseMarkdownLines } from '@shared/markdown'
 import type { ISODate, ItemType } from '@shared/types'
@@ -232,15 +232,25 @@ export class Editor {
     const entry = this.undo.popUndo()
     if (!entry) return
     dismissToast()
-    itemStore.commit(entry.changes.map((c) => (c.before ? c.before : { ...c.after, deleted: true })))
-    this.restore(entry.selectionBefore)
+    this.replay(entry, 'undo')
   }
 
   redoAction(): void {
     const entry = this.undo.popRedo()
     if (!entry) return
-    itemStore.commit(entry.changes.map((c) => c.after))
-    this.restore(entry.selectionAfter)
+    this.replay(entry, 'redo')
+  }
+
+  /** Reverse (or redo) only what the entry changed, leaving newer edits from other devices alone. */
+  private replay(entry: UndoEntry, direction: 'undo' | 'redo'): void {
+    const records = revert(entry.changes, direction, itemStore)
+    if (!records.length) {
+      showToast('Already changed on another device')
+      return
+    }
+    itemStore.commit(records)
+    // Lands only on a line that's still there.
+    this.restore(direction === 'undo' ? entry.selectionBefore : entry.selectionAfter)
   }
 
   /** The toast's Undo: only undoes the action it announced. */
