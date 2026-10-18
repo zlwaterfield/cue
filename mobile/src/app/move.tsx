@@ -8,6 +8,7 @@ import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
 import { useItem } from '../editor/hooks'
 import { DatePicker } from '../ui/Calendar'
+import { SheetTitle } from '../ui/Sheet'
 import { metrics, useColors } from '../ui/theme'
 
 /** Move a line (and its children) to another day: the usual choices first, then any date. */
@@ -36,7 +37,7 @@ export default function MoveSheet() {
 
   return (
     <ScrollView contentContainerStyle={styles.sheet} keyboardShouldPersistTaps="handled">
-      <Text style={[styles.title, { color: c.text }]}>Move to…</Text>
+      <SheetTitle title="Move to…" />
       <Text style={[styles.subject, { color: c.text2 }]} numberOfLines={2}>
         {item.text.trim() || 'Empty line'} · now on {friendlyDate(item.date, today).replace(/^(Today|Tomorrow|Yesterday)$/, (m) => m.toLowerCase())}
       </Text>
@@ -47,10 +48,13 @@ export default function MoveSheet() {
             onPress={() => move(choice.date)}
             style={({ pressed }) => [styles.choice, i > 0 && { borderTopColor: c.line, borderTopWidth: StyleSheet.hairlineWidth }, pressed && { backgroundColor: c.bgHover }]}
             accessibilityRole="button"
+            accessibilityLabel={`${choice.label}, ${choice.detail}`}
           >
-            <SymbolView name={choice.icon} size={18} tintColor={c.text2} />
+            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <SymbolView name={choice.icon} size={18} tintColor={c.text2} />
+            </View>
             <Text style={[styles.choiceLabel, { color: c.text }]}>{choice.label}</Text>
-            <Text style={[styles.choiceDetail, { color: c.text3 }]}>{choice.detail}</Text>
+            <Text style={[styles.choiceDetail, { color: c.text2 }]}>{choice.detail}</Text>
           </Pressable>
         ))}
       </View>
@@ -64,10 +68,6 @@ const styles = StyleSheet.create({
     padding: metrics.gutter,
     paddingTop: 22,
     gap: 14
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700'
   },
   subject: {
     fontSize: 15,

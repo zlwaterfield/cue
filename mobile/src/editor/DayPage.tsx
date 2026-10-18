@@ -17,7 +17,7 @@ import { ui } from '../core/ui'
 import { metrics, useColors } from '../ui/theme'
 import { editor } from './controller'
 import { drag, scrollState, updateDrag } from './drag'
-import { TOOLBAR_HEIGHT } from './Toolbar'
+import { TOOLBAR_SPACE } from './Toolbar'
 import { useOutline } from './hooks'
 import { Row } from './Row'
 import { SwipeUnderlay } from './Swipe'
@@ -120,7 +120,7 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
         const s = scrollState.value
         const keyboard = Keyboard.metrics()
         // Above the keyboard and the toolbar riding on it.
-        const keyboardTop = keyboard ? keyboard.screenY - TOOLBAR_HEIGHT : s.viewportTop + s.viewportHeight
+        const keyboardTop = keyboard ? keyboard.screenY - TOOLBAR_SPACE : s.viewportTop + s.viewportHeight
         const visible = Math.min(s.viewportHeight, keyboardTop - s.viewportTop)
         const top = contentTop.current + frame.top
         const bottom = top + frame.height

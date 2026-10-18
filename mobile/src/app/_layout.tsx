@@ -21,7 +21,6 @@ export default function RootLayout() {
   const sheet = {
     presentation: 'formSheet' as const,
     sheetGrabberVisible: true,
-    sheetCornerRadius: 22,
     contentStyle: { backgroundColor: c.bgElevated }
   }
   return (

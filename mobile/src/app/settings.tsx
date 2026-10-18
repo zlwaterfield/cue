@@ -8,6 +8,7 @@ import { sync, updateSettings } from '../core/app'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { lockup } from '../ui/lockup'
+import { SheetTitle } from '../ui/Sheet'
 import { metrics, useColors } from '../ui/theme'
 
 function syncedLabel(at: number | null, now: number): string {
@@ -88,6 +89,8 @@ export default function SettingsSheet() {
 
   return (
     <ScrollView contentContainerStyle={styles.sheet}>
+      <SheetTitle title="Settings" />
+
       <Section title="Account">
         <Row label={state.email ?? ''} />
         <Row label={status} muted action={syncing ? 'Syncing…' : 'Sync Now'} onPress={syncNow} />
@@ -118,12 +121,15 @@ export default function SettingsSheet() {
 
       <Section>
         <Row label="Sign Out" action="" onPress={signOut} />
+      </Section>
+
+      <Section footnote="Deletes your account and its notes from the sync server.">
         <Row label="Delete Account…" action="" onPress={deleteAccount} />
       </Section>
 
       <View style={styles.about}>
         <SvgXml xml={lockup(c.text3)} width={56} height={28} />
-        <Text style={[styles.version, { color: c.text3 }]}>
+        <Text style={[styles.version, { color: c.text2 }]}>
           Version {Constants.expoConfig?.version ?? '0.1.0'} · alpha. Your notes sync across your devices.
         </Text>
       </View>
@@ -131,11 +137,11 @@ export default function SettingsSheet() {
   )
 }
 
-function Section({ title, children }: { title?: string; children: React.ReactNode }) {
+function Section({ title, footnote, children }: { title?: string; footnote?: string; children: React.ReactNode }) {
   const c = useColors()
   return (
     <View style={styles.section}>
-      {title && <Text style={[styles.sectionTitle, { color: c.text3 }]}>{title}</Text>}
+      {title && <Text style={[styles.sectionTitle, { color: c.text2 }]}>{title}</Text>}
       <View style={[styles.group, { backgroundColor: c.bgSubtle }]}>
         {Children.toArray(children).map((child, i) => (
           <View key={i}>
@@ -144,6 +150,7 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
           </View>
         ))}
       </View>
+      {footnote && <Text style={[styles.footnote, { color: c.text2 }]}>{footnote}</Text>}
     </View>
   )
 }
@@ -199,7 +206,7 @@ function Segmented<T extends string | number>({
 const styles = StyleSheet.create({
   sheet: {
     padding: metrics.gutter,
-    paddingTop: 26,
+    paddingTop: 22,
     gap: 22
   },
   section: {
@@ -215,6 +222,10 @@ const styles = StyleSheet.create({
   group: {
     borderRadius: 12,
     overflow: 'hidden'
+  },
+  footnote: {
+    fontSize: 13,
+    marginHorizontal: 4
   },
   separator: {
     height: StyleSheet.hairlineWidth,
