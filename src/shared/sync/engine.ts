@@ -1,5 +1,5 @@
-import type { Item } from '../../shared/types'
 import type { Repository } from '../repository'
+import type { Item } from '../types'
 
 /**
  * The client half of the sync protocol (docs/SYNC.md): push the outbox, then pull
@@ -67,16 +67,19 @@ const DEFAULT_TIMING: EngineTiming = {
 
 const CURSOR = 'sync_cursor'
 
-const yieldToEventLoop = (): Promise<void> => new Promise((resolve) => setImmediate(resolve))
+type Timer = ReturnType<typeof setTimeout>
+
+const yieldToEventLoop = (): Promise<void> =>
+  new Promise((resolve) => (typeof setImmediate === 'function' ? setImmediate(resolve) : setTimeout(resolve, 0)))
 
 export class SyncEngine {
   private readonly timing: EngineTiming
   private active: Promise<void> | null = null
   private next: Promise<void> | null = null
-  private pushTimer: NodeJS.Timeout | null = null
+  private pushTimer: Timer | null = null
   private burstStartedAt: number | null = null
-  private retryTimer: NodeJS.Timeout | null = null
-  private pollTimer: NodeJS.Timeout | null = null
+  private retryTimer: Timer | null = null
+  private pollTimer: Timer | null = null
   private needsPull = true
   private hintSeq = 0
   private failures = 0

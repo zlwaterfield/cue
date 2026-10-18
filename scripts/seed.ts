@@ -8,7 +8,7 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { openDatabase } from '../src/main/db'
-import { Repository } from '../src/main/repository'
+import { Repository } from '../src/shared/repository'
 import { addDays, todayISO } from '../src/shared/dates'
 import { uuidv7 } from '../src/shared/ids'
 import type { Item, ItemType } from '../src/shared/types'

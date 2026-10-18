@@ -7,9 +7,9 @@ import type { ExportResult, ImportResult, Item, Settings, ThemePreference } from
 import { openDatabase } from './db'
 import { buildMenu } from './menu'
 import { backupJSON, exportMarkdown, importJSON, readText, runDailyBackup } from './portability'
-import { Repository } from './repository'
+import { Repository } from '../shared/repository'
 import { SyncService } from './sync/service'
-import type { SyncConfig } from './sync/supabase'
+import type { SyncConfig } from '../shared/sync/supabase'
 
 // Tests and power users can point Cue at a different data directory. Unpackaged
 // development builds use their own directory so they never touch real notes.

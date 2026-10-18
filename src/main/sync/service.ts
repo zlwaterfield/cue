@@ -1,7 +1,7 @@
+import type { Repository } from '../../shared/repository'
+import { OfflineError, SyncEngine, type SyncTransport } from '../../shared/sync/engine'
+import type { Account, SessionStore, SupabaseSync, SyncConfig } from '../../shared/sync/supabase'
 import type { Item, SyncResult, SyncState } from '../../shared/types'
-import type { Repository } from '../repository'
-import { OfflineError, SyncEngine, type SyncTransport } from './engine'
-import type { Account, SessionStore, SupabaseSync, SyncConfig } from './supabase'
 
 /**
  * Sync's lifecycle and the state the UI shows. Sync is off by default. Until someone
@@ -183,7 +183,7 @@ export class SyncService {
   private connect(): Promise<SyncClient> {
     const config = this.options.config
     if (!config) return Promise.reject(new Error('Sync isn’t available in this build.'))
-    const connect = this.options.connect ?? (async (c, s) => new (await import('./supabase')).SupabaseSync(c, s))
+    const connect = this.options.connect ?? (async (c, s) => new (await import('../../shared/sync/supabase')).SupabaseSync(c, s))
     if (!this.client) {
       this.client = connect(config, this.sessionStore()).then((client) => {
         // The server ended the session (signed out everywhere, or account deleted elsewhere).

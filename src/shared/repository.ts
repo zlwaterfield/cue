@@ -1,15 +1,13 @@
-import type { DatabaseSync, StatementSync } from 'node:sqlite'
-import { randomBytes } from 'node:crypto'
-import { isISODate } from '../shared/dates'
-import { fold, searchTerms } from '../shared/text'
-import { DEFAULT_SETTINGS, ITEM_TYPES, type ISODate, type Item, type SearchResult, type Settings } from '../shared/types'
-import { transaction } from './db'
+import { isISODate } from './dates'
 import { HybridLogicalClock, parseVersion } from './hlc'
+import { transaction, type SqlDatabase, type SqlStatement } from './sqlite'
+import { fold, searchTerms } from './text'
+import { DEFAULT_SETTINGS, ITEM_TYPES, type ISODate, type Item, type SearchResult, type Settings } from './types'
 
 /**
- * The storage boundary. The renderer never touches SQL; it reads and writes whole
- * item records through this repository (via IPC). Everything a future sync service
- * needs lives here:
+ * The storage boundary. The editor never touches SQL; it reads and writes whole
+ * item records through this repository (over IPC on the Mac, directly on iPhone).
+ * Everything sync needs lives here:
  *
  *  - every local write is stamped with a hybrid-logical-clock `version`
  *  - every local write is recorded in the `outbox` in the same transaction
@@ -54,6 +52,14 @@ function toItem(row: ItemRow): Item {
 }
 
 export class ValidationError extends Error {}
+
+/** 64 random bits in base 36: the HLC node id that keeps this device's versions unique. */
+function newDeviceId(): string {
+  const bytes = new Uint8Array(8)
+  globalThis.crypto.getRandomValues(bytes)
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
+  return BigInt('0x' + hex).toString(36).padStart(13, '0')
+}
 
 /** Normalize and validate a record arriving from the renderer, an import, or a peer. */
 export function validateItem(input: unknown): Item {
@@ -107,21 +113,21 @@ export class Repository {
   private readonly hlc: HybridLogicalClock
   private readonly clock: () => number
   private readonly stmts: {
-    get: StatementSync
-    upsert: StatementSync
-    outboxPut: StatementSync
-    outboxDelete: StatementSync
-    outboxAck: StatementSync
-    outboxCount: StatementSync
-    metaGet: StatementSync
-    metaPut: StatementSync
-    metaDelete: StatementSync
-    range: StatementSync
-    dates: StatementSync
+    get: SqlStatement
+    upsert: SqlStatement
+    outboxPut: SqlStatement
+    outboxDelete: SqlStatement
+    outboxAck: SqlStatement
+    outboxCount: SqlStatement
+    metaGet: SqlStatement
+    metaPut: SqlStatement
+    metaDelete: SqlStatement
+    range: SqlStatement
+    dates: SqlStatement
   }
 
   constructor(
-    private readonly db: DatabaseSync,
+    private readonly db: SqlDatabase,
     options: RepositoryOptions = {}
   ) {
     this.clock = options.clock ?? Date.now
@@ -162,7 +168,7 @@ export class Repository {
 
     let deviceId = this.getMeta('device_id')
     if (!deviceId) {
-      deviceId = BigInt('0x' + randomBytes(8).toString('hex')).toString(36).padStart(13, '0')
+      deviceId = newDeviceId()
       this.setMeta('device_id', deviceId)
     }
     this.deviceId = deviceId
@@ -348,6 +354,18 @@ export class Repository {
     this.db.exec(
       'INSERT INTO outbox (item_id, version) SELECT id, version FROM items WHERE true ON CONFLICT (item_id) DO UPDATE SET version = excluded.version'
     )
+  }
+
+  /**
+   * Remove every note and pending change, keeping this device's identity (its id and clock)
+   * so anything it writes later still sorts after everything it wrote before. The iPhone
+   * app does this when an account signs out, because there the notes belong to the account.
+   */
+  clearNotes(): void {
+    transaction(this.db, () => {
+      this.db.exec('DELETE FROM items')
+      this.db.exec('DELETE FROM outbox')
+    })
   }
 
   private write(item: Item): void {

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SyncEngine, type EngineTiming } from '../../src/main/sync/engine'
-import { MemorySyncServer } from '../../src/main/sync/memoryServer'
-import type { Repository } from '../../src/main/repository'
+import { SyncEngine, type EngineTiming } from '../../src/shared/sync/engine'
+import { MemorySyncServer } from '../../src/shared/sync/memoryServer'
+import type { Repository } from '../../src/shared/repository'
 import type { Item } from '../../src/shared/types'
 import { memoryRepo, newItem } from './helpers'
 

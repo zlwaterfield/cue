@@ -4,23 +4,34 @@
 ┌──────────────────────── Electron main process ────────────────────────┐
 │  index.ts      window, lifecycle, IPC, dialogs, context menu          │
 │  menu.ts       native menu generated from shared/commands.ts          │
-│  repository.ts the storage boundary (validation, versions, outbox)    │
-│  db.ts         SQLite (node:sqlite) + migrations, WAL, synchronous=FULL│
-│  hlc.ts        hybrid logical clock                                    │
-│  sync/         optional Supabase sync: engine, service, transport     │
+│  db.ts         SQLite (node:sqlite), WAL, synchronous=FULL             │
+│  sync/service  optional sync: account, lifecycle, Keychain session    │
 │  portability.ts Markdown/JSON export, JSON import, daily backups       │
 └──────────────▲─────────────────────────────────────────────────────────┘
                │ narrow, typed IPC (preload/index.ts → window.cue)
 ┌──────────────┴──────────────── Renderer (React) ───────────────────────┐
-│  store/items.ts   in-memory items for loaded days + write-behind queue │
 │  editor/controller.ts  focus, keys, selection, undo, every command     │
-│  editor/ops.ts    structural operations (pure functions over a draft)  │
-│  editor/tx.ts     draft transaction over the store                     │
 │  editor/ItemRow, DaySection   rendering                                │
 │  ui/              palette, sheets, header, toast                       │
 └────────────────────────────────────────────────────────────────────────┘
-          shared/  types, dates, date parsing, outline, markdown, commands
+
+ shared/ (also the iPhone app's core; see mobile/README.md)
+   types, dates, date parsing, outline, markdown, commands
+   sqlite.ts       schema + migrations, for node:sqlite and expo-sqlite alike
+   repository.ts   the storage boundary (validation, versions, outbox)
+   hlc.ts          hybrid logical clock
+   sync/           engine, Supabase transport, in-memory reference server
+   itemStore.ts    in-memory items for loaded days + write-behind queue
+   editor/ops.ts   structural operations (pure functions over a draft)
+   editor/tx.ts    draft transaction over the store
+   editor/undo.ts  application-level undo
+   editor/geometry.ts  drop placement for touch drag and drop
 ```
+
+The Mac app and the iPhone app share everything about the data and how it changes: the
+model, storage, merge rules, sync, and every editing operation. Each app adds only its
+platform: Electron, IPC and contenteditable on the Mac; touch, the keyboard and the iOS
+lifecycle on the phone ([mobile/README.md](../mobile/README.md)).
 
 ## Decisions
 
@@ -77,7 +88,7 @@ sign in. See [SYNC.md](SYNC.md).
 
 - Edits apply to the in-memory store synchronously, so typing never waits.
 - The write-behind queue coalesces per item and flushes within 40 ms
-  (`store/items.ts`). Failures retry with backoff and surface a quiet "Couldn't
+  (`shared/itemStore.ts`). Failures retry with backoff and surface a quiet "Couldn't
   save" notice; nothing is dropped.
 - When the window unloads (quit, close, reload), a synchronous IPC flushes whatever
   remains.
@@ -90,7 +101,7 @@ sign in. See [SYNC.md](SYNC.md).
 
 ## Undo
 
-`editor/undo.ts`. Every action is one entry of before/after item copies plus the
+`shared/editor/undo.ts`. Every action is one entry of before/after item copies plus the
 selection on each side. Typing coalesces into runs (split by pauses, focus changes,
 and structural actions). Undo and redo are *new writes* with new versions, which
 keeps them correct under sync. Undoing a move to Friday brings the item back and puts

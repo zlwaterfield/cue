@@ -1,4 +1,4 @@
-import type { ISODate, Item } from '@shared/types'
+import type { ISODate, Item } from '../types'
 
 /**
  * Application-level undo. Every user action — typing, completion, conversion,

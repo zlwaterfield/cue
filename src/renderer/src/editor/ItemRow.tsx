@@ -4,7 +4,7 @@ import { controller } from './controller'
 import { getOffsets, setOffsets } from './dom'
 import { updateLinks } from './highlights'
 import { useIsSelected, useItem } from './hooks'
-import * as ops from './ops'
+import * as ops from '@shared/editor/ops'
 import { beginItemDrag, beginTextPointer } from './pointer'
 
 /**

@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { openDatabase } from '../../src/main/db'
 import { backupJSON, importJSON } from '../../src/main/portability'
-import { Repository } from '../../src/main/repository'
+import { Repository } from '../../src/shared/repository'
 import { memoryRepo, newItem, tempDir } from './helpers'
 
 describe('Repository', () => {
@@ -29,6 +29,19 @@ describe('Repository', () => {
     expect(pending[0].text).toBe('changed')
     repo.acknowledge([{ id: a.id, version: pending[0].version }])
     expect(repo.pendingChanges()).toHaveLength(0)
+  })
+
+  it('clears every note and pending change, but keeps the device and its clock', () => {
+    const repo = memoryRepo()
+    const a = newItem()
+    const [saved] = repo.saveItems([a])
+    repo.clearNotes()
+    expect(repo.get(a.id)).toBeNull()
+    expect(repo.pendingCount()).toBe(0)
+    expect(repo.search('hello')).toHaveLength(0)
+    // Anything written afterwards still sorts after what this device wrote before.
+    const [next] = repo.saveItems([newItem()])
+    expect(next.version > saved.version).toBe(true)
   })
 
   it('keeps tombstones instead of deleting rows', () => {

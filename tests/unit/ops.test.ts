@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { generateNKeysBetween } from 'fractional-indexing'
 import type { Backend } from '../../src/renderer/src/data/backend'
-import * as ops from '../../src/renderer/src/editor/ops'
-import { Tx } from '../../src/renderer/src/editor/tx'
-import { ItemStore } from '../../src/renderer/src/store/items'
+import * as ops from '../../src/shared/editor/ops'
+import { Tx } from '../../src/shared/editor/tx'
+import { ItemStore } from '../../src/shared/itemStore'
 import type { Item, ItemType } from '../../src/shared/types'
 
 const DAY = '2026-10-17'

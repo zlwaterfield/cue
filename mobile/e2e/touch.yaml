@@ -1,0 +1,82 @@
+# Touch: tap a bullet to make it a to-do and a box to check it, swipe right to advance a
+# line (to-do, then done), swipe left to send it to tomorrow (with Undo), and long-press
+# to drag: up and down to reorder, sideways to nest.
+#
+# The drag steps use screen positions measured on an iPhone 17 Pro.
+appId: app.cue
+name: Touch
+---
+- runFlow: subflows/launch.yaml
+- runScript: scripts/today.js
+- runScript:
+    file: scripts/email.js
+    env:
+      PREFIX: touch
+- runFlow:
+    file: subflows/sign-in.yaml
+    env:
+      EMAIL: ${output.email}
+
+- tapOn:
+    id: ${'new-line-' + output.today}
+- inputText: "Alpha"
+- pressKey: Enter
+- inputText: "- Bravo"
+- pressKey: Enter
+- inputText: "Charlie"
+- tapOn:
+    id: tool-hide
+
+# Tap the bullet: it becomes a to-do. Tap the box: done.
+- tapOn:
+    point: "6%,36%"
+- assertVisible:
+    id: "0/todo:Bravo"
+- tapOn:
+    point: "6%,36%"
+- assertVisible:
+    id: "0/todo-done:Bravo"
+
+# Swipe right: text becomes a to-do, then a to-do is completed.
+- swipe:
+    from:
+      id: "0/text:Alpha"
+    direction: RIGHT
+- assertVisible:
+    id: "0/todo:Alpha"
+- swipe:
+    from:
+      id: "0/todo:Alpha"
+    direction: RIGHT
+- assertVisible:
+    id: "0/todo-done:Alpha"
+
+# Swipe left: tomorrow. The toast's Undo brings it back.
+- swipe:
+    from:
+      id: "0/bullet:Charlie"
+    direction: LEFT
+- assertVisible: "Moved to tomorrow"
+- assertNotVisible:
+    id: "0/bullet:Charlie"
+- tapOn: "Undo"
+- assertVisible:
+    id: "0/bullet:Charlie"
+
+# Long-press Charlie and drag it to the top.
+- swipe:
+    start: "50%,40%"
+    end: "50%,30%"
+    duration: 1500
+- assertVisible:
+    id: "0/bullet:Charlie"
+    above:
+      id: "0/todo-done:Alpha"
+
+# Long-press Bravo (now last) and drag it right: it nests under Alpha.
+- swipe:
+    start: "50%,40%"
+    end: "64%,40%"
+    duration: 1500
+- assertVisible:
+    id: "1/todo-done:Bravo"

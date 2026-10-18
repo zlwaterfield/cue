@@ -1,5 +1,5 @@
-import type { LineSpec } from '@shared/markdown'
-import type { ISODate, ItemType } from '@shared/types'
+import type { LineSpec } from '../markdown'
+import type { ISODate, ItemType } from '../types'
 import type { Tx } from './tx'
 
 /**

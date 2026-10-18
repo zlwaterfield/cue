@@ -1,0 +1,69 @@
+# Sync both ways, quickly: a line written on the phone reaches the account, and a line
+# written on another device appears on the phone within a couple of seconds, with no
+# refresh (a realtime hint, then a pull).
+appId: app.cue
+name: Sync
+---
+- runFlow: subflows/launch.yaml
+- runScript: scripts/today.js
+- runScript:
+    file: scripts/email.js
+    env:
+      PREFIX: sync
+- runFlow:
+    file: subflows/sign-in.yaml
+    env:
+      EMAIL: ${output.email}
+
+- tapOn:
+    id: ${'new-line-' + output.today}
+- inputText: "Written on the phone"
+- tapOn:
+    id: tool-hide
+
+- runScript:
+    file: scripts/push-from-another-device.js
+    env:
+      EMAIL: ${output.email}
+      TODAY: ${output.today}
+      TEXT: "Written on the Mac"
+      SUPABASE_KEY: ${SUPABASE_KEY}
+- extendedWaitUntil:
+    visible:
+      id: "0/todo:Written on the Mac"
+    timeout: 3000
+
+# Typing is never interrupted: while a line is being edited, another device adds a
+# line above it. The edited line moves down, keeps the keyboard, and takes the next keys.
+- tapOn:
+    id: "0/text:Written on the phone"
+- inputText: " while"
+- runScript:
+    file: scripts/push-from-another-device.js
+    env:
+      EMAIL: ${output.email}
+      TODAY: ${output.today}
+      TEXT: "Added above meanwhile"
+      POSITION: "Zz"
+      SUPABASE_KEY: ${SUPABASE_KEY}
+- extendedWaitUntil:
+    visible:
+      id: "0/todo:Added above meanwhile"
+    timeout: 3000
+- inputText: " typing"
+- assertVisible:
+    id: "0/text:Written on the phone while typing"
+    below:
+      id: "0/todo:Added above meanwhile"
+- assertVisible:
+    id: tool-hide
+
+# Done with the line: it's sent right away. The other device reads the account back.
+- tapOn:
+    id: tool-hide
+- runScript:
+    file: scripts/pull-from-another-device.js
+    env:
+      TEXT: "Written on the phone while typing"
+      SUPABASE_KEY: ${SUPABASE_KEY}
+- assertTrue: ${output.found}

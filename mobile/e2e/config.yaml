@@ -1,0 +1,5 @@
+# Maestro workspace: end-to-end flows that drive the real app on a simulator.
+# See ../README.md for running them against the local sync server.
+flows:
+  - "*.yaml"
+  - "!subflows/*"

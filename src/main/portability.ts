@@ -4,7 +4,7 @@ import type { DatabaseSync } from 'node:sqlite'
 import { todayISO } from '../shared/dates'
 import { dayToMarkdown } from '../shared/markdown'
 import type { Item } from '../shared/types'
-import type { Repository } from './repository'
+import type { Repository } from '../shared/repository'
 
 /** Export, import, and automatic backups. Users are never locked in. */
 

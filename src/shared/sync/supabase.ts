@@ -1,21 +1,24 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import type { Item } from '../../shared/types'
+import type { Item } from '../types'
 import { OfflineError, type PullResult, type PushResult, type SyncTransport } from './engine'
 
 /**
  * Everything that talks to Supabase: email sign-in, the push/pull transport, and
- * realtime hints. This module is loaded only once someone turns sync on, so a
- * signed-out Cue never loads it or touches the network.
+ * realtime hints. The Mac app loads this module only once someone turns sync on, so a
+ * signed-out Cue for Mac never loads it or touches the network.
  */
 
 export interface SyncConfig {
   url: string
   key: string
-  /** HTTP client; the app passes Electron's `net.fetch` (Chromium's network stack). */
+  /** HTTP client; the Mac app passes Electron's `net.fetch` (Chromium's network stack). */
   fetch?: typeof fetch
 }
 
-/** Where the auth session lives (SQLite meta, encrypted with the macOS Keychain). */
+/**
+ * Where the auth session lives: SQLite meta encrypted with the Keychain on the Mac,
+ * the Keychain itself on iPhone.
+ */
 export interface SessionStore {
   get(key: string): string | null
   set(key: string, value: string): void
@@ -70,7 +73,16 @@ export class SupabaseSync implements SyncTransport {
     })
   }
 
-  /** Sign out on this Mac only; other devices stay signed in. */
+  /**
+   * Keep the session fresh only while the app is on screen. React Native timers don't run
+   * in the background, so the iPhone app pauses refreshing there and resumes on return.
+   */
+  setForeground(foreground: boolean): void {
+    if (foreground) void this.client.auth.startAutoRefresh()
+    else void this.client.auth.stopAutoRefresh()
+  }
+
+  /** Sign out on this device only; other devices stay signed in. */
   async signOut(): Promise<void> {
     await this.client.auth.signOut({ scope: 'local' })
   }

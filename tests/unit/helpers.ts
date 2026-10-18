@@ -2,7 +2,7 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openDatabase } from '../../src/main/db'
-import { Repository } from '../../src/main/repository'
+import { Repository } from '../../src/shared/repository'
 import { uuidv7 } from '../../src/shared/ids'
 import type { Item } from '../../src/shared/types'
 
