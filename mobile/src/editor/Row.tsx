@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useRef } from 'react'
 import { StyleSheet, TextInput, View, useWindowDimensions, type TextInputInstance } from 'react-native'
 import { GestureDetector, useCompetingGestures, usePanGesture, useTapGesture } from 'react-native-gesture-handler'
-import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated'
+import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
@@ -10,7 +10,7 @@ import type { ISODate } from '@shared/types'
 import { focusAt } from '../../modules/cue-native'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
-import { metrics, useColors } from '../ui/theme'
+import { colors, metrics, useColors } from '../ui/theme'
 import { editor } from './controller'
 import { beginDrag, drag, dragTop, resetDrag, updateDrag } from './drag'
 import { useItem } from './hooks'
@@ -18,6 +18,8 @@ import { Marker } from './Marker'
 import { swipe, SWIPE_ACT, SWIPE_DELETE_FRACTION, type SwipeKind } from './Swipe'
 
 const LIFT_DELAY = 260
+/** Where a line not in its day's layout waits, out of sight. */
+const HIDDEN = -10_000
 
 function placeholderFor(date: ISODate, today: ISODate): string {
   const delta = diffDays(today, date)
@@ -113,36 +115,52 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
 
   /* ------------------------------------------------------------ Position */
 
-  const position = useAnimatedStyle(() => {
-    const g = geometry.value
-    const index = g.index[id]
-    if (index === undefined) return { opacity: 0, transform: [{ translateY: -10_000 }] }
-    const d = drag.value
-    if (d.active && d.date === date) {
-      const at = dragTop(d, g, index)!
-      if (at.lifted) {
-        return {
-          opacity: 1,
-          zIndex: 10,
-          shadowOpacity: withTiming(0.16, { duration: 120 }),
-          transform: [{ translateY: at.top }, { translateX: withSpring(at.x, { damping: 22, stiffness: 320 }) }, { scale: withTiming(1.02, { duration: 120 }) }]
-        }
+  // Each line keeps its own offsets and animates only when its own target changes, so a
+  // wrap, a Return or a drag frame moves the lines that move and leaves the rest alone.
+  const y = useSharedValue(layout.frameOf(id)?.top ?? HIDDEN)
+  const lift = useSharedValue(0)
+  const x = useSharedValue(0)
+  const sx = useSharedValue(0)
+
+  useAnimatedReaction(
+    () => {
+      const g = geometry.value
+      const index = g.index[id]
+      const d = drag.value
+      const swiped = swipe.id.value === id
+      const swipeX = swiped ? swipe.x.value : 0
+      if (index === undefined) return { top: HIDDEN, lifted: false, liftX: 0, ms: 0, swiped, swipeX }
+      if (d.active && d.date === date) {
+        const at = dragTop(d, g, index)!
+        return { top: at.top, lifted: at.lifted, liftX: at.x, ms: 160, swiped, swipeX }
       }
-      return { opacity: 1, zIndex: 0, shadowOpacity: 0, transform: [{ translateY: withTiming(at.top, { duration: 160 }) }, { translateX: 0 }, { scale: 1 }] }
+      return { top: g.tops[index], lifted: false, liftX: 0, ms: g.animate ? 200 : 0, swiped, swipeX }
+    },
+    (next, prev) => {
+      if (next.top !== prev?.top) {
+        // A lifted line follows the finger; a line arriving or leaving doesn't fly in.
+        const jump = !prev || next.lifted || !next.ms || next.top === HIDDEN || prev.top === HIDDEN
+        y.value = jump ? next.top : withTiming(next.top, { duration: next.ms })
+      }
+      if (next.lifted !== (prev?.lifted ?? false)) lift.value = withTiming(next.lifted ? 1 : 0, { duration: next.lifted ? 120 : 160 })
+      if (next.liftX !== (prev?.liftX ?? 0)) x.value = next.lifted ? withSpring(next.liftX, { damping: 22, stiffness: 320 }) : withTiming(next.liftX, { duration: 160 })
+      // Swiping slides the whole line over the page's swipe underlay; when another line
+      // takes the swipe, this one eases home.
+      if (next.swipeX !== (prev?.swipeX ?? 0)) sx.value = next.swiped || !prev?.swiped ? next.swipeX : withTiming(0, { duration: 160 })
     }
-    const top = g.tops[index]
-    return {
-      opacity: 1,
-      zIndex: 0,
-      shadowOpacity: withTiming(0, { duration: 160 }),
-      transform: [
-        { translateY: g.animate ? withTiming(top, { duration: 200 }) : top },
-        // Swiping slides the whole line over the page's swipe underlay.
-        { translateX: swipe.id.value === id ? swipe.x.value : withTiming(0, { duration: 160 }) },
-        { scale: withTiming(1, { duration: 160 }) }
-      ]
-    }
-  })
+  )
+
+  // In dark, a lifted line takes the raised surface and a deeper shadow to stand off the page.
+  const raised = c.bgElevated
+  const page = c.bg
+  const shadow = c === colors.dark ? 0.5 : 0.16
+  const position = useAnimatedStyle(() => ({
+    opacity: y.value === HIDDEN ? 0 : 1,
+    zIndex: lift.value > 0 ? 10 : 0,
+    backgroundColor: lift.value > 0 ? raised : page,
+    shadowOpacity: shadow * lift.value,
+    transform: [{ translateY: y.value }, { translateX: lift.value > 0 ? x.value : sx.value }, { scale: 1 + 0.02 * lift.value }]
+  }))
 
   /* --------------------------------------------------------------- Drag */
 
@@ -257,7 +275,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
 
   return (
     <Animated.View
-      style={[styles.row, { backgroundColor: c.bg, shadowColor: '#000' }, position]}
+      style={[styles.row, position]}
       onLayout={(e) => layout.measure(id, e.nativeEvent.layout.height)}
     >
       <View style={[styles.line, { paddingLeft: metrics.gutter + depth * metrics.indent }]}>
@@ -326,6 +344,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 14,
     shadowOpacity: 0
