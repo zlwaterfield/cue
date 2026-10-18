@@ -113,26 +113,28 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
     [id]
   )
 
-  // iOS doesn't shrink a text view whose text is replaced with something shorter (Return
-  // in the middle of a paragraph, an edit from another device), and the row would keep
-  // the old height. Typing shrinks it fine. So when the text got shorter without typing,
-  // the input is remounted once it isn't being edited, and measures itself again.
+  // React Native measures a text input with the text it had before an edit that wasn't
+  // typed into it (Return in the middle of a paragraph, Undo, an edit from another device),
+  // so the row would keep its old height. Typing measures fine. After such an edit the
+  // input is laid out once more, straight away, which measures the new text.
   const text = item?.text ?? ''
   const typed = useRef(text)
-  const [generation, setGeneration] = useState(0)
+  const [remeasure, setRemeasure] = useState(false)
   useLayoutEffect(() => {
-    if (text.length >= typed.current.length) typed.current = text
-    else if (!focused) {
-      typed.current = text
-      setGeneration((g) => g + 1)
-    }
-  }, [text, focused])
+    if (text === typed.current) return
+    typed.current = text
+    setRemeasure((r) => !r)
+  }, [text])
 
   /* ------------------------------------------------------------ Position */
 
   // Each line keeps its own offsets and animates only when its own target changes, so a
   // wrap, a Return or a drag frame moves the lines that move and leaves the rest alone.
   const y = useSharedValue(layout.frameOf(id)?.top ?? HIDDEN)
+  // A line new to the page (Return, a paste, another device) shows once the UI thread has
+  // placed it, in the same frame as the lines it pushes down. Shown as it mounts, it would
+  // cover the line below until they move.
+  const placed = useSharedValue(!layout.open)
   const lift = useSharedValue(0)
   const x = useSharedValue(0)
   const sx = useSharedValue(0)
@@ -152,6 +154,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
       return { top: g.tops[index], lifted: false, liftX: 0, ms: g.animate ? 200 : 0, swiped, swipeX }
     },
     (next, prev) => {
+      if (!prev) placed.value = true
       if (next.top !== prev?.top) {
         // A lifted line follows the finger; a line arriving or leaving doesn't fly in.
         const jump = !prev || next.lifted || !next.ms || next.top === HIDDEN || prev.top === HIDDEN
@@ -170,7 +173,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
   const page = c.bg
   const shadow = c === colors.dark ? 0.5 : 0.16
   const position = useAnimatedStyle(() => ({
-    opacity: y.value === HIDDEN ? 0 : 1,
+    opacity: y.value === HIDDEN || !placed.value ? 0 : 1,
     zIndex: lift.value > 0 ? 10 : 0,
     backgroundColor: lift.value > 0 ? raised : page,
     shadowOpacity: shadow * lift.value,
@@ -317,7 +320,6 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
               which it must be to take focus.) */}
           <View style={styles.body} collapsable={false} pointerEvents={focused ? 'auto' : 'box-only'}>
             <TextInput
-              key={generation}
               ref={setRef}
               value={text}
               onChangeText={(value) => {
@@ -338,7 +340,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
               placeholderTextColor={c.text3}
               selectionColor={c.accent}
               autoCapitalize="sentences"
-              style={[styles.text, { color: done ? c.text3 : c.text }, done && styles.done]}
+              style={[styles.text, { color: done ? c.text3 : c.text }, done && styles.done, remeasure && styles.remeasure]}
               nativeID={`line-${id}`}
               // For end-to-end tests: depth, type and text, e.g. "1/todo-done:Book flights".
               testID={ghost ? `new-line-${date}` : `${depth}/${item.type}${done ? '-done' : ''}:${item.text}`}
@@ -407,5 +409,9 @@ const styles = StyleSheet.create({
   },
   done: {
     textDecorationLine: 'line-through'
+  },
+  // Changes nothing on screen; a changed style is what makes React Native lay it out again.
+  remeasure: {
+    maxHeight: 100_000
   }
 })

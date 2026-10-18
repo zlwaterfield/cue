@@ -60,6 +60,11 @@ export class DayLayout {
     }
   }
 
+  /** The day is on screen, laid out. Lines that mount now are new to the page. */
+  get open(): boolean {
+    return this.unsubscribe !== null
+  }
+
   /** The next refresh is a move: slide lines to their new places. */
   animateNextChange(): void {
     this.animateNext = true

@@ -55,12 +55,14 @@ VoiceOver reads lines in the day's order.
   end editing and drop the keyboard. Moves animate as a side effect.
 - **Lines only do work when they move.** Each line watches the layout, the drag and the
   swipe on the UI thread and animates only when its own target changes, so a wrap, a
-  Return or a drag frame touches the lines that actually move. Markers are plain views at
-  rest; a change pops in once with a layout animation.
-- **Heights come from the text views.** iOS doesn't shrink a text view whose text is
-  replaced with something shorter, so a line whose text got shorter without typing (Return
-  mid-paragraph, an edit from another device) remounts its input once it isn't being
-  edited, and measures again.
+  Return or a drag frame touches the lines that actually move. A line new to the page
+  (Return, a paste, another device) shows once it's placed there, in the same frame as the
+  lines it pushes down, so it never covers the line below. Markers are plain views at rest;
+  a change pops in once with a layout animation.
+- **Heights come from the text views.** React Native measures a text input with the text
+  it had before an edit that wasn't typed into it (Return mid-paragraph, Undo, an edit from
+  another device), so after such an edit the input is laid out once more, in the same
+  frame, and measures the new text.
 - **Touches.** A line that isn't being edited takes touches as a whole
   (`pointerEvents="box-only"`), so long press and swipes are free. A tap is passed to a small
   native module (`modules/cue-native`) that focuses the line with the caret at the touched
