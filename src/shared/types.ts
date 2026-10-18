@@ -75,11 +75,55 @@ export interface ImportResult {
   error?: string
 }
 
+/**
+ * Sync as the UI sees it. Sync is off until someone signs in, and Cue works the same
+ * either way; the only difference is whether changes also go to the server.
+ */
+export interface SyncState {
+  /** False when this build has no sync server configured. Sync isn't offered at all. */
+  available: boolean
+  /** The signed-in account. Null means sync is off. */
+  email: string | null
+  status: 'off' | 'idle' | 'syncing' | 'offline' | 'error'
+  /** Last time a sync finished, this session. */
+  lastSyncedAt: number | null
+  /** Local changes not yet uploaded. */
+  pending: number
+  /** Why sync stopped or failed, in words a person can act on. */
+  message: string | null
+}
+
+export const SYNC_OFF: SyncState = {
+  available: false,
+  email: null,
+  status: 'off',
+  lastSyncedAt: null,
+  pending: 0,
+  message: null
+}
+
+export type SyncResult = { ok: true } | { ok: false; error: string }
+
+export interface SyncBridge {
+  getState(): Promise<SyncState>
+  onState(callback: (state: SyncState) => void): () => void
+  /** Email a sign-in code. */
+  sendCode(email: string): Promise<SyncResult>
+  /** Finish signing in; sync starts right away. */
+  verifyCode(email: string, code: string): Promise<SyncResult>
+  syncNow(): Promise<SyncResult>
+  /** Stop syncing on this Mac. Notes stay here. */
+  signOut(): Promise<void>
+  /** Asks for confirmation, then deletes the account and its server copy. Notes stay here. */
+  deleteAccount(): Promise<SyncResult | null>
+}
+
 /** The API the preload script exposes to the renderer as `window.cue`. */
 export interface CueBridge {
   platform: string
   loadDates(dates: ISODate[]): Promise<Item[]>
-  saveItems(items: Item[]): Promise<void>
+  /** Resolves with the version stored for each item that changed. */
+  saveItems(items: Item[]): Promise<Array<Pick<Item, 'id' | 'version'>>>
   /** Synchronous save used while the window is closing so nothing is lost. */
   saveItemsSync(items: Item[]): void
   search(query: string, limit?: number): Promise<SearchResult[]>
@@ -97,6 +141,7 @@ export interface CueBridge {
   markInteractive(): void
   /** Commands invoked from the native menu. Returns an unsubscribe function. */
   onCommand(callback: (commandId: string) => void): () => void
-  /** Items changed outside the renderer (import, future sync). */
+  /** Items changed outside the renderer (import, sync). */
   onItemsChanged(callback: (items: Item[]) => void): () => void
+  sync: SyncBridge
 }

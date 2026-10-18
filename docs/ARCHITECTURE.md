@@ -7,7 +7,7 @@
 │  repository.ts the storage boundary (validation, versions, outbox)    │
 │  db.ts         SQLite (node:sqlite) + migrations, WAL, synchronous=FULL│
 │  hlc.ts        hybrid logical clock                                    │
-│  sync/         sync engine + reference server (not wired to a backend) │
+│  sync/         optional Supabase sync: engine, service, transport     │
 │  portability.ts Markdown/JSON export, JSON import, daily backups       │
 └──────────────▲─────────────────────────────────────────────────────────┘
                │ narrow, typed IPC (preload/index.ts → window.cue)
@@ -69,8 +69,9 @@ The renderer can only call the methods in `CueBridge` (`shared/types.ts`):
 `loadDates`, `saveItems`, `search`, `datesWithItems`, settings, export and import. It
 never sees SQL, versions, or the outbox. `Repository` validates every record,
 stamps versions, writes the outbox in the same transaction, and skips no-op writes.
-A sync adapter plugs into the repository (`pendingChanges`, `acknowledge`,
-`applyRemote`) without touching the editor. See [SYNC.md](SYNC.md).
+Sync plugs into the repository (`pendingChanges`, `acknowledge`, `applyRemote`) from the
+main process and never touches the editor. It's off by default and loads nothing until you
+sign in. See [SYNC.md](SYNC.md).
 
 ## Saving and durability
 

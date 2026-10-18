@@ -9,6 +9,7 @@
   "license": "MIT",
   "devDependencies": {
     "@playwright/test": "^1.64.1",
+    "@supabase/supabase-js": "^2.118.0",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -30,6 +31,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:e2e": "electron-vite build && playwright test",
+    "test:sync": "vitest run tests/integration && electron-vite build && playwright test tests/e2e/sync.spec.ts",
     "package": "electron-vite build && electron-builder --mac --dir",
     "dist": "electron-vite build && electron-builder --mac",
     "seed": "node scripts/run-ts.mjs scripts/seed.ts",

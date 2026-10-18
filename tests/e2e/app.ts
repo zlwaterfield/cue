@@ -13,10 +13,10 @@ export function freshDataDir(): string {
   return mkdtempSync(join(tmpdir(), 'cue-e2e-'))
 }
 
-export async function launch(dataDir = freshDataDir()): Promise<Cue> {
+export async function launch(dataDir = freshDataDir(), env: Record<string, string> = {}): Promise<Cue> {
   const app = await electron.launch({
     args: ['.'],
-    env: { ...process.env, CUE_USER_DATA: dataDir, CUE_E2E: '1' }
+    env: { ...process.env, CUE_USER_DATA: dataDir, CUE_E2E: '1', ...env }
   })
   const page = await app.firstWindow()
   page.on('pageerror', (error) => {

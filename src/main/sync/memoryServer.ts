@@ -1,51 +1,72 @@
 import type { Item } from '../../shared/types'
-import type { PullResult, PushResult, SyncTransport } from './engine'
+import { OfflineError, type PullResult, type PushResult, type SyncTransport } from './engine'
 
 /**
- * Reference implementation of the server half of the sync protocol, in memory.
- * A production server (docs/SYNC.md) implements exactly this logic over Postgres:
+ * The server half of the sync protocol, in memory, for tests. It mirrors
+ * `sync_push` and `sync_pull` in supabase/migrations exactly:
  *
  *  - one row per item, replaced only by a strictly newer version (LWW)
- *  - a monotonically increasing sequence number per accepted write
- *  - pull(cursor) returns current rows whose sequence is greater than the cursor
+ *  - every accepted write gets the next sequence number
+ *  - pull(since) returns current rows whose sequence is greater than `since`
  */
 export class MemorySyncServer {
   private rows = new Map<string, { record: Item; seq: number }>()
   private seq = 0
+  private listeners = new Set<(seq: number) => void>()
   online = true
+  requests = 0
 
   transport(): SyncTransport {
     return {
-      push: async (_deviceId, records) => this.push(records),
-      pull: async (cursor, limit) => this.pull(cursor, limit)
+      push: async (records) => this.push(records),
+      pull: async (since, limit) => this.pull(since, limit)
     }
   }
 
+  /** Realtime hints: called with the latest seq after every push that changed something. */
+  subscribe(listener: (seq: number) => void): () => void {
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
+  }
+
   push(records: Item[]): PushResult {
-    if (!this.online) throw new Error('network unavailable')
-    const accepted: PushResult['accepted'] = []
+    this.request()
+    const before = this.seq
     for (const record of records) {
       const existing = this.rows.get(record.id)
       if (!existing || record.version > existing.record.version) {
         this.seq += 1
         this.rows.set(record.id, { record: { ...record }, seq: this.seq })
       }
-      // Accepted either way: the server now holds this version or a newer one.
-      accepted.push({ id: record.id, version: record.version })
     }
-    return { accepted }
+    const after = this.seq
+    if (after > before) for (const listener of this.listeners) listener(after)
+    return { before, after }
   }
 
-  pull(cursor: string | null, limit: number): PullResult {
-    if (!this.online) throw new Error('network unavailable')
-    const after = cursor ? Number(cursor) : 0
-    const changed = [...this.rows.values()].filter((r) => r.seq > after).sort((a, b) => a.seq - b.seq)
+  pull(since: number, limit: number): PullResult {
+    this.request()
+    const changed = [...this.rows.values()].filter((r) => r.seq > since).sort((a, b) => a.seq - b.seq)
     const page = changed.slice(0, limit)
-    const last = page.length ? page[page.length - 1].seq : after
-    return { records: page.map((r) => ({ ...r.record })), cursor: String(last), hasMore: changed.length > limit }
+    return {
+      records: page.map((r) => ({ ...r.record })),
+      cursor: page.length ? page[page.length - 1].seq : since,
+      hasMore: changed.length > limit
+    }
+  }
+
+  /** Forget everything, as if restored from an empty backup. */
+  reset(): void {
+    this.rows.clear()
+    this.seq = 0
   }
 
   snapshot(): Item[] {
     return [...this.rows.values()].map((r) => r.record)
+  }
+
+  private request(): void {
+    this.requests += 1
+    if (!this.online) throw new OfflineError('network unavailable')
   }
 }

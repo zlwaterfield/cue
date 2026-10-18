@@ -12,7 +12,7 @@ const NEXT = '2026-10-18'
 function stubBackend(seed: Item[]): Backend {
   return {
     loadDates: async (dates: string[]) => seed.filter((i) => dates.includes(i.date)),
-    saveItems: async () => {},
+    saveItems: async () => [],
     saveItemsSync: () => {}
   } as unknown as Backend
 }

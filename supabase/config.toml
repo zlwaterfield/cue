@@ -1,0 +1,60 @@
+# Local Supabase stack for developing and testing Cue sync:
+#
+#   npx supabase start -x studio,storage-api,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor
+#
+# A hosted project uses the same migrations (docs/SYNC.md). Anything not set here
+# uses the CLI's defaults.
+project_id = "cue"
+
+[api]
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public"]
+
+[db]
+port = 54322
+major_version = 17
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = false
+
+# Sign-in codes land here locally: http://127.0.0.1:54324
+[local_smtp]
+enabled = true
+port = 54324
+
+[storage]
+enabled = false
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+enabled = false
+
+[auth]
+site_url = "http://127.0.0.1:54321"
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+max_frequency = "1s"
+otp_length = 6
+otp_expiry = 900
+
+# Cue signs in with a six-digit code typed into the app, not a link, so both
+# emails a new or returning user can receive show the code.
+[auth.email.template.magic_link]
+subject = "Your Cue sign-in code"
+content_path = "./supabase/templates/sign-in-code.html"
+
+[auth.email.template.confirmation]
+subject = "Your Cue sign-in code"
+content_path = "./supabase/templates/sign-in-code.html"

@@ -87,6 +87,17 @@ Cue 0.1 is a working macOS app (Apple silicon). Here is everything it does right
 - Export everything as Markdown (one file per day) or as a full JSON backup. Importing a JSON
   backup merges safely: it never duplicates items or brings deleted ones back.
 
+**Sync (optional)**
+
+- Off by default. Cue works fully on one Mac, with no account and no network.
+- Turn it on in Settings with your email and a six-digit code, and your notes stay on every
+  device signed in to the same account. An edit appears on your other Mac about a second after
+  you stop typing.
+- It runs entirely in the background and never interrupts typing. Offline edits sync when
+  you're back online, and a line you're editing is never replaced underneath you.
+- Turning it off keeps every note on your Mac. You can delete your account and its server copy
+  from Settings.
+
 **Feel**
 
 - A single calm column, hanging bullets and checkboxes, and system typography, in monochrome
@@ -220,9 +231,10 @@ first time you run `pnpm dev`). They keep their data separate from the packaged 
   of truth, and undo and redo are handled by the app rather than the browser.
 - **Storage:** the main process owns SQLite behind a narrow, typed interface. The window never
   sees SQL.
-- **Sync-ready data model:** every item has a stable UUIDv7 id, a hybrid-logical-clock version
-  and a tombstone flag for deletions. Local changes queue in an outbox written in the same
-  transaction, so sync can be added without touching the editor.
+- **Sync:** every item has a stable UUIDv7 id, a hybrid-logical-clock version and a tombstone
+  flag for deletions. Local changes queue in an outbox written in the same transaction. An
+  optional Supabase backend (Postgres, Auth, Realtime) syncs items newest-edit-wins, from the
+  main process, without touching the editor.
 
 More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SYNC.md](docs/SYNC.md) and
 [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md). The brand (logo, app icon, color tokens, usage guide,
@@ -245,14 +257,12 @@ performance budgets, and the brand ([docs/brand](docs/brand)).
 - Polish from real-world use: collapsing nested items, an optional `/` menu for line types, and
   Intel and universal builds.
 
-**Then: sync and accounts**
-- Sync across Macs, designed in [docs/SYNC.md](docs/SYNC.md): Supabase (Postgres plus auth),
-  a small push/pull protocol, and newest-edit-wins per item. The client half (versions,
-  tombstones, outbox and merge) is already built and tested against a reference server.
-- Sign in with Apple and email, a quiet sync-status indicator, and a clear way to delete your
-  account and data.
-- Per-field merging, so that completing a to-do on one device and editing its text on another
-  both survive.
+**In progress: sync and accounts**
+- Done: optional sync across Macs ([docs/SYNC.md](docs/SYNC.md)) on Supabase, with a small
+  push/pull protocol, newest-edit-wins per item, realtime updates, email sign-in, a quiet
+  status indicator and account deletion.
+- Next: Sign in with Apple, and per-field merging, so that completing a to-do on one device
+  and editing its text on another both survive.
 
 **After that: mobile**
 - An iPhone app on the same data model and sync protocol. It ships only once sync has proven
@@ -274,6 +284,7 @@ issue first.
 ```sh
 pnpm test         # unit tests: dates, outline, storage, sync, every editor operation
 pnpm test:e2e     # end-to-end tests that drive the real app
+pnpm test:sync    # sync against a real Supabase (see docs/SYNC.md)
 pnpm typecheck
 pnpm bench        # performance against the budgets
 ```

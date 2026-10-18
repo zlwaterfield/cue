@@ -25,7 +25,7 @@ function command(id: string, label?: string): MenuItemConstructorOptions {
 
 const separator: MenuItemConstructorOptions = { type: 'separator' }
 
-export function buildMenu(options: { isDev: boolean }): Menu {
+export function buildMenu(options: { isDev: boolean; syncAvailable: boolean }): Menu {
   const template: MenuItemConstructorOptions[] = [
     {
       label: app.name,
@@ -53,6 +53,7 @@ export function buildMenu(options: { isDev: boolean }): Menu {
         command('import.json'),
         separator,
         command('app.revealData'),
+        ...(options.syncAvailable ? [command('sync.now', 'Sync Now')] : []),
         separator,
         { role: 'close' }
       ]

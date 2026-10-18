@@ -65,7 +65,8 @@ export function importJSON(repo: Repository, json: string): { applied: Item[]; s
     throw new Error('That backup was made by a newer version of Cue.')
   }
   // Same merge path as sync: newer versions win, so importing is idempotent and safe.
-  return repo.applyRemote(parsed.items)
+  // Imported records are uploaded like local edits if sync is on.
+  return repo.applyRemote(parsed.items, { upload: true })
 }
 
 /** One consistent snapshot per day in `<dir>`, keeping the most recent `keep`. */

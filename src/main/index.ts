@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, screen, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net, powerMonitor, safeStorage, screen, shell } from 'electron'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
@@ -8,6 +8,8 @@ import { openDatabase } from './db'
 import { buildMenu } from './menu'
 import { backupJSON, exportMarkdown, importJSON, readText, runDailyBackup } from './portability'
 import { Repository } from './repository'
+import { SyncService } from './sync/service'
+import type { SyncConfig } from './sync/supabase'
 
 // Tests and power users can point Cue at a different data directory. Unpackaged
 // development builds use their own directory so they never touch real notes.
@@ -22,6 +24,7 @@ const DARK_BG = '#18181a'
 
 let db: DatabaseSync
 let repo: Repository
+let sync: SyncService
 let mainWindow: BrowserWindow | null = null
 let quitting = false
 
@@ -44,9 +47,16 @@ function start(): void {
   db = openDatabase(join(dataDir, 'cue.sqlite'))
   repo = new Repository(db)
   applyTheme(repo.getSettings().theme)
+  sync = new SyncService(repo, {
+    config: syncConfig(),
+    // Tests can't answer a Keychain prompt, so they keep the session unencrypted.
+    cipher: isTest ? undefined : keychainCipher,
+    onState: (state) => broadcast('sync:state', state),
+    onRemoteChanges: (items) => broadcast('items:changed', items)
+  })
 
   registerIpc()
-  Menu.setApplicationMenu(buildMenu({ isDev }))
+  Menu.setApplicationMenu(buildMenu({ isDev, syncAvailable: sync.state().available }))
   createWindow()
 
   // A consistent snapshot per day, kept for two weeks, off the startup path.
@@ -63,6 +73,26 @@ function start(): void {
   app.on('activate', () => {
     if (!mainWindow) createWindow()
   })
+  // Catch up when the Mac wakes or Cue comes back to the front.
+  powerMonitor.on('resume', () => sync.resume())
+  app.on('browser-window-focus', () => sync.resume())
+}
+
+/**
+ * The sync server for this build: baked in at build time (`CUE_SUPABASE_URL` and
+ * `CUE_SUPABASE_KEY`, see docs/SYNC.md), or set in the environment for development and
+ * tests. Without one, Cue doesn't offer sync at all.
+ */
+function syncConfig(): SyncConfig | null {
+  const url = process.env.CUE_SUPABASE_URL || __CUE_SUPABASE_URL__
+  const key = process.env.CUE_SUPABASE_KEY || __CUE_SUPABASE_KEY__
+  // Chromium's network stack, so sync follows the Mac's proxy and certificate settings.
+  return url && key ? { url, key, fetch: (input, init) => net.fetch(input instanceof URL ? input.href : input, init) } : null
+}
+
+const keychainCipher = {
+  encrypt: (text: string) => safeStorage.encryptString(text).toString('base64'),
+  decrypt: (data: string) => safeStorage.decryptString(Buffer.from(data, 'base64'))
 }
 
 function applyTheme(theme: ThemePreference): void {
@@ -187,11 +217,13 @@ function broadcast(channel: string, payload: unknown): void {
 function registerIpc(): void {
   ipcMain.handle('items:load', (_e, dates: string[]) => repo.loadDates(dates))
   ipcMain.handle('items:save', (_e, items: Item[]) => {
-    repo.saveItems(items)
+    const saved = repo.saveItems(items)
+    if (saved.length) sync.localChange()
+    return saved.map(({ id, version }) => ({ id, version }))
   })
   ipcMain.on('items:saveSync', (event, items: Item[]) => {
     try {
-      repo.saveItems(items)
+      if (repo.saveItems(items).length) sync.localChange()
       event.returnValue = true
     } catch (error) {
       console.error('Synchronous save failed', error)
@@ -255,11 +287,32 @@ function registerIpc(): void {
     if (result.canceled || !result.filePaths[0]) return { ok: false }
     try {
       const { applied, skipped } = importJSON(repo, readText(result.filePaths[0]))
-      if (applied.length) broadcast('items:changed', applied)
+      if (applied.length) {
+        broadcast('items:changed', applied)
+        sync.localChange()
+      }
       return { ok: true, applied: applied.length, skipped }
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : String(error) }
     }
+  })
+
+  ipcMain.handle('sync:state', () => sync.state())
+  ipcMain.handle('sync:sendCode', (_e, email: string) => sync.sendCode(String(email)))
+  ipcMain.handle('sync:verifyCode', (_e, email: string, code: string) => sync.verifyCode(String(email), String(code)))
+  ipcMain.handle('sync:now', () => sync.syncNow())
+  ipcMain.handle('sync:signOut', () => sync.signOut())
+  ipcMain.handle('sync:deleteAccount', async () => {
+    const win = BrowserWindow.getFocusedWindow() ?? mainWindow
+    const { response } = await dialog.showMessageBox(win!, {
+      type: 'warning',
+      message: 'Delete your sync account?',
+      detail: 'Your notes are removed from the sync server and your other devices stop syncing. Notes on this Mac stay here.',
+      buttons: ['Delete Account', 'Cancel'],
+      defaultId: 1,
+      cancelId: 1
+    })
+    return response === 0 ? sync.deleteAccount() : null
   })
 
   ipcMain.handle('app:revealData', () => {
@@ -270,8 +323,10 @@ function registerIpc(): void {
   ipcMain.handle('shell:openExternal', (_e, url: string) => {
     if (/^(https?|mailto):/i.test(url)) return shell.openExternal(url)
   })
-  // `pnpm bench` measures launch → first editable screen from this signal.
   ipcMain.on('app:interactive', () => {
+    // Sync starts once the first screen is up, so it never competes with launch.
+    void sync.start()
+    // `pnpm bench` measures launch → first editable screen from this signal.
     if (process.env.CUE_BENCH !== '1') return
     process.stdout.write(`CUE_INTERACTIVE ${Date.now()}\n`)
     // Settled memory across all of Cue's processes, a few seconds after launch.
@@ -282,8 +337,16 @@ function registerIpc(): void {
   })
 }
 
-app.on('before-quit', () => {
+let finalSync = false
+app.on('before-quit', (event) => {
   quitting = true
+  // Give the last edits a moment to reach the server, so they're on your other devices
+  // even if you quit right after typing. Typing has paused by the time you press ⌘Q, so
+  // the editor has already saved them.
+  if (finalSync || !sync?.hasUnsentChanges()) return
+  finalSync = true
+  event.preventDefault()
+  void sync.flush(2000).finally(() => app.quit())
 })
 
 app.on('window-all-closed', () => {
