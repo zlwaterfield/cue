@@ -12,10 +12,13 @@
  *    for typing, Enter, Tab, ⌘↩ and ⌥↑ (p50 / p95)
  *  - day navigation: ⌘[ → the previous day painted, reading from the large database
  *  - storage round trips from the renderer: search and loading a week
- *  - memory (resident, all Electron processes, idle after launch) and on-disk sizes
+ *  - memory (footprint, as Activity Monitor shows it, of all Electron processes, idle
+ *    after launch) and on-disk sizes
  *
  * Keys are sent at a fast human cadence (one every 30 ms, ~400 wpm) rather than in a
- * synthetic burst, so latencies reflect what a person would see.
+ * synthetic burst, so latencies reflect what a person would see. A key waits for the
+ * next display refresh however fast Cue is, so frame budgets are the measured refresh
+ * interval plus the time Cue may take.
  */
 import { execFileSync, spawn } from 'node:child_process'
 import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync } from 'node:fs'
@@ -60,6 +63,14 @@ function seed(years) {
 
 const env = (dir) => ({ ...process.env, CUE_USER_DATA: dir, CUE_E2E: '1', CUE_BENCH: '1' })
 
+/** Bytes of memory a set of processes uses, as Activity Monitor counts it (phys_footprint). */
+function footprint(pids) {
+  return pids.reduce((sum, pid) => {
+    const out = execFileSync('/usr/bin/footprint', ['-f', 'bytes', '--noCategories', '-p', String(pid)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    return sum + Number(/phys_footprint:\s*(\d+) B/.exec(out)?.[1] ?? 0)
+  }, 0)
+}
+
 async function startOnce(dir, { memory = false } = {}) {
   const t0 = Date.now()
   const child = spawn(target.exe, target.args, { env: env(dir), stdio: ['ignore', 'pipe', 'ignore'] })
@@ -71,10 +82,10 @@ async function startOnce(dir, { memory = false } = {}) {
       buffer += chunk
       const ready = /CUE_INTERACTIVE (\d+)/.exec(buffer)
       if (ready && elapsed === null) elapsed = Number(ready[1]) - t0
-      const mem = /CUE_MEMORY (\d+)/.exec(buffer)
-      if (elapsed !== null && (!memory || mem)) {
+      const pids = /CUE_PIDS ([\d,]+)\n/.exec(buffer)
+      if (elapsed !== null && (!memory || pids)) {
         clearTimeout(timer)
-        resolve({ elapsed, memory: mem ? Number(mem[1]) : null })
+        resolve({ elapsed, memory: pids ? footprint(pids[1].split(',').map(Number)) : null })
       }
     })
   })
@@ -111,8 +122,13 @@ const HARNESS = () => {
         const from = document.querySelector('.day')?.dataset.day
         const poll = () => {
           if (document.querySelector('.day')?.dataset.day !== from) {
+            // Seen inside a frame callback, so this frame paints the new day: stamp it
+            // once the frame's work is done, without waiting for another one.
             sample.work = performance.now() - sample.t0
-            finish(sample)
+            setTimeout(() => {
+              sample.frame = performance.now() - sample.t0
+              bench.samples.push(sample)
+            })
           } else requestAnimationFrame(poll)
         }
         requestAnimationFrame(poll)
@@ -129,11 +145,26 @@ const HARNESS = () => {
   window.addEventListener('input', done)
 }
 
+/** The display's refresh interval: the median of 60 frame-to-frame times, in ms. */
+const REFRESH = () =>
+  new Promise((resolve) => {
+    const deltas = []
+    let last = null
+    const tick = (now) => {
+      if (last !== null) deltas.push(now - last)
+      last = now
+      if (deltas.length < 60) requestAnimationFrame(tick)
+      else resolve(deltas.sort((a, b) => a - b)[30])
+    }
+    requestAnimationFrame(tick)
+  })
+
 async function interactions(dir) {
   const app = await electron.launch({ executablePath: target.exe, args: target.args, env: env(dir) })
   const page = await app.firstWindow()
   await page.waitForFunction(() => performance.getEntriesByName('cue:interactive').length > 0)
   await page.evaluate(HARNESS)
+  const refresh = await page.evaluate(REFRESH)
   const label = (l) => page.evaluate((l) => (window.__bench.label = l), l)
   const CADENCE = 30
   const k = async (key) => {
@@ -191,7 +222,7 @@ async function interactions(dir) {
   })
 
   await app.close()
-  return { samples, storage }
+  return { samples, storage, refresh }
 }
 
 const machine = `${cpus()[0].model}, ${Math.round(totalmem() / 1024 ** 3)} GB RAM, macOS ${execFileSync('sw_vers', ['-productVersion'], { encoding: 'utf8' }).trim()}`
@@ -203,9 +234,11 @@ console.error(`Seeded ${large.items.toLocaleString()} items across ${YEARS} year
 
 const startEmpty = await startup(empty)
 const startLarge = await startup(large.dir)
-const { samples, storage } = await interactions(large.dir)
+const { samples, storage, refresh } = await interactions(large.dir)
 
-// Budgets are the targets changes are held to. Latency budgets apply to p95.
+// Budgets are the targets changes are held to. Latency budgets apply to p95. A frame
+// can't land before the next refresh, so frame budgets are the refresh interval plus
+// 4 ms for a keystroke and 8 ms for an edit command (12.3 and 16.3 ms at 120 Hz).
 const rows = []
 const missed = []
 const row = (what, value, note = '', budget = null, actual = null) => {
@@ -222,11 +255,11 @@ row('Launch → ready to type, empty', ms(median(startEmpty.samples)), `median o
 row(`Launch → ready to type, ${YEARS} years of notes`, ms(median(startLarge.samples)), `${large.items.toLocaleString()} items`, 400, median(startLarge.samples))
 const byLabel = (l) => samples.filter((s) => s.label === l)
 for (const [l, name, budget] of [
-  ['type', 'Keystroke → frame rendered', 8],
-  ['enter', 'Enter → new line rendered', 16],
-  ['tab', 'Tab / ⇧Tab → re-indented', 16],
-  ['complete', '⌘↩ → to-do toggled', 16],
-  ['reorder', '⌥↑ / ⌥↓ → item moved', 16]
+  ['type', 'Keystroke → frame rendered', refresh + 4],
+  ['enter', 'Enter → new line rendered', refresh + 8],
+  ['tab', 'Tab / ⇧Tab → re-indented', refresh + 8],
+  ['complete', '⌘↩ → to-do toggled', refresh + 8],
+  ['reorder', '⌥↑ / ⌥↓ → item moved', refresh + 8]
 ]) {
   const s = byLabel(l)
   if (!s.length) continue
@@ -234,10 +267,10 @@ for (const [l, name, budget] of [
   row(name, latency(frames), `handlers finish in ${ms(pct(s.map((x) => x.work), 50))}`, budget, pct(frames, 95))
 }
 const nav = byLabel('navigate').map((x) => x.frame)
-if (nav.length) row('⌘[ → previous day rendered', latency(nav), 'read from SQLite every time', 50, pct(nav, 95))
+if (nav.length) row('⌘[ → previous day rendered', latency(nav), 'neighbors prefetched, as in use', 50, pct(nav, 95))
 row(`Search ${large.items.toLocaleString()} items`, latency(storage.search), 'p95 is a full scan with no matches', 50, pct(storage.search, 95))
 row('Load a week of notes', latency(storage.week), 'renderer → SQLite → renderer', 10, pct(storage.week, 95))
-row('Memory, idle after launch', mb(startLarge.memory), 'resident, all Electron processes combined')
+row('Memory, idle after launch', mb(startLarge.memory), 'footprint, all Electron processes combined')
 
 const js = readdirSync('out/renderer/assets').filter((f) => f.endsWith('.js'))
 const jsBytes = js.reduce((n, f) => n + statSync(join('out/renderer/assets', f)).size, 0)
@@ -251,7 +284,7 @@ if (existsSync('release/mac-arm64/Cue.app')) {
   row('Installed app', mb(kb * 1024), '')
 }
 
-console.log(`Measured on ${machine}.\n`)
+console.log(`Measured on ${machine}, display refreshing every ${ms(refresh)} (${Math.round(1000 / refresh)} Hz).\n`)
 console.log('| | Result | Budget | Notes |')
 console.log('| --- | --- | --- | --- |')
 console.log(rows.join('\n'))

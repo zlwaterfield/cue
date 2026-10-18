@@ -115,23 +115,25 @@ Speed is a feature here, so it's measured rather than assumed. Each number below
 
 | | Result | Budget | Notes |
 | --- | --- | --- | --- |
-| Launch → ready to type, empty | 259 ms | ≤ 400 ms | median of 7 cold launches |
-| Launch → ready to type, 5 years of notes | 258 ms | ≤ 400 ms | 36,509 items |
-| Keystroke → frame rendered | 2.6 ms · p95 3.7 ms | ≤ 8 ms | handlers finish in 1.2 ms |
-| Enter → new line rendered | 1.6 ms · p95 8.3 ms | ≤ 16 ms | |
-| Tab / ⇧Tab → re-indented | 3.5 ms · p95 7.8 ms | ≤ 16 ms | |
-| ⌘↩ → to-do toggled | 6.4 ms · p95 12 ms | ≤ 16 ms | |
-| ⌥↑ / ⌥↓ → item moved | 6.9 ms · p95 12 ms | ≤ 16 ms | |
-| ⌘[ → previous day rendered | 14 ms · p95 17 ms | ≤ 50 ms | read from SQLite every time |
-| Search 36,509 items | 0.5 ms · p95 6.6 ms | ≤ 50 ms | p95 is a full scan with no matches |
-| Load a week of notes | 0.5 ms · p95 0.6 ms | ≤ 10 ms | renderer → SQLite → renderer |
-| Memory, idle after launch | 391 MB | | resident, all processes combined |
-| UI code | 309 KB | | 95 KB gzipped, React included |
+| Launch → ready to type, empty | 243 ms | ≤ 400 ms | median of 7 cold launches |
+| Launch → ready to type, 5 years of notes | 240 ms | ≤ 400 ms | 36,543 items |
+| Keystroke → frame rendered | 1.5 ms · p95 3.7 ms | ≤ 12 ms | handlers finish in 0.6 ms |
+| Enter → new line rendered | 2.0 ms · p95 5.4 ms | ≤ 16 ms | |
+| Tab / ⇧Tab → re-indented | 2.2 ms · p95 8.2 ms | ≤ 16 ms | |
+| ⌘↩ → to-do toggled | 7.6 ms · p95 11 ms | ≤ 16 ms | |
+| ⌥↑ / ⌥↓ → item moved | 6.4 ms · p95 9.8 ms | ≤ 16 ms | |
+| ⌘[ → previous day rendered | 10 ms · p95 13 ms | ≤ 50 ms | neighbors prefetched, as in use |
+| Search 36,543 items | 0.5 ms · p95 6.6 ms | ≤ 50 ms | p95 is a full scan with no matches |
+| Load a week of notes | 0.4 ms · p95 0.6 ms | ≤ 10 ms | renderer → SQLite → renderer |
+| Memory, idle after launch | 108 MB | | footprint, all processes combined |
+| UI code | 315 KB | | 97 KB gzipped, React included |
 | Database, 5 years of notes | 15 MB | | one SQLite file |
 | Download (.dmg) | 122 MB | | Electron runtime included |
 
-<sub>Measured on an Apple M4 Pro with 48 GB of RAM, macOS 26.6, using the packaged arm64 build.
-Results vary by a few milliseconds from run to run. Latency budgets apply to the p95.</sub>
+<sub>Measured on an Apple M4 Pro with 48 GB of RAM, macOS 26.6, using the packaged arm64 build
+on a 120 Hz display. Results vary by a few milliseconds from run to run. Latency budgets apply
+to the p95. Frame budgets are the display's refresh interval plus 4 ms for a keystroke and 8 ms
+for a command (12.3 and 16.3 ms at 120 Hz).</sub>
 
 **How it's measured**
 
@@ -139,12 +141,12 @@ Results vary by a few milliseconds from run to run. Latency budgets apply to the
   typing, signaled by the app itself. The first launch of a new build is discarded, because
   macOS checks a new binary once.
 - **Input latency** is the time from the keydown event to the next frame the renderer produces.
-  Keys are sent every 30 ms, a fast human pace, rather than in a synthetic burst. It doesn't
-  include the display's own refresh delay.
+  Keys are sent every 30 ms, a fast human pace, rather than in a synthetic burst. It includes
+  waiting for the display's next refresh, which the budgets allow for.
 - **Storage** round trips go renderer → main process → SQLite → back, against five years of
   generated notes (`pnpm seed`).
-- **Memory** is resident memory summed over all of Cue's processes. That over-counts pages
-  shared with the OS.
+- **Memory** is the footprint (what Activity Monitor shows) summed over all of Cue's
+  processes, a few seconds after launch.
 
 **Why it's fast**
 

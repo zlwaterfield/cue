@@ -20,6 +20,8 @@ else if (!app.isPackaged) app.setPath('userData', join(app.getPath('appData'), '
 const isDev = !app.isPackaged && !!process.env.ELECTRON_RENDERER_URL
 // Automated tests show the window without stealing focus from the person at the Mac.
 const isTest = process.env.CUE_E2E === '1'
+// `pnpm bench` (scripts/bench.mjs) reads timings and memory from stdout.
+const isBench = process.env.CUE_BENCH === '1'
 const LIGHT_BG = '#ffffff'
 const DARK_BG = '#18181a'
 
@@ -42,7 +44,8 @@ if (!app.requestSingleInstanceLock()) {
 
 function start(): void {
   // Unpackaged builds run inside Electron's bundle; show Cue's icon in the Dock anyway.
-  if (!app.isPackaged && process.platform === 'darwin') app.dock?.setIcon(join(app.getAppPath(), 'build/icon.png'))
+  // Not while benchmarking: it's on the launch path, and packaged builds never pay for it.
+  if (!app.isPackaged && !isBench && process.platform === 'darwin') app.dock?.setIcon(join(app.getAppPath(), 'build/icon.png'))
   const dataDir = app.getPath('userData')
   mkdirSync(dataDir, { recursive: true })
   db = openDatabase(join(dataDir, 'cue.sqlite'))
@@ -337,13 +340,10 @@ function registerIpc(): void {
     // Sync starts once the first screen is up, so it never competes with launch.
     void sync.start()
     // `pnpm bench` measures launch → first editable screen from this signal.
-    if (process.env.CUE_BENCH !== '1') return
+    if (!isBench) return
     process.stdout.write(`CUE_INTERACTIVE ${Date.now()}\n`)
-    // Settled memory across all of Cue's processes, a few seconds after launch.
-    setTimeout(() => {
-      const bytes = app.getAppMetrics().reduce((n, m) => n + m.memory.workingSetSize, 0) * 1024
-      process.stdout.write(`CUE_MEMORY ${bytes}\n`)
-    }, 3000)
+    // Cue's processes a few seconds after launch; the bench reads their settled memory.
+    setTimeout(() => process.stdout.write(`CUE_PIDS ${app.getAppMetrics().map((m) => m.pid).join(',')}\n`), 3000)
   })
 }
 
