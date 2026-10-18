@@ -1,19 +1,22 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { StyleSheet, TextInput, View, useWindowDimensions, type TextInputInstance } from 'react-native'
+import { Linking, StyleSheet, TextInput, View, useWindowDimensions, type TextInputInstance } from 'react-native'
 import { GestureDetector, useCompetingGestures, usePanGesture, useTapGesture } from 'react-native-gesture-handler'
 import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { diffDays } from '@shared/dates'
+import { soleLink } from '@shared/links'
 import type { ISODate } from '@shared/types'
 import { focusAt } from '../../modules/cue-native'
 import { useStore } from '../core/store'
-import { ui } from '../core/ui'
+import { itemStore } from '../core/app'
+import { showToast, ui } from '../core/ui'
 import { colors, metrics, useColors } from '../ui/theme'
 import { editor } from './controller'
 import { beginDrag, drag, dragTop, resetDrag, scrollState, updateDrag } from './drag'
 import { useItem } from './hooks'
+import { LinkLine } from './LinkLine'
 import { Marker } from './Marker'
 import { swipe, SWIPE_ACT, SWIPE_DELETE_FRACTION, SWIPE_HOME, type SwipeKind } from './Swipe'
 
@@ -46,15 +49,24 @@ const ACCESSIBILITY_ACTIONS = {
   done: [{ name: 'advance', label: 'Reopen' }, ...LINE_ACTIONS],
   other: [{ name: 'advance', label: 'Make a to-do' }, ...LINE_ACTIONS]
 }
+const LINK_ACTIONS = [{ name: 'open', label: 'Open link' }, { name: 'edit', label: 'Edit link' }]
 
 function onAccessibilityAction(id: string, action: string): void {
-  if (action === 'advance') editor.advance(id)
+  const link = soleLink(itemStore.get(id)?.text ?? '')
+  if (action === 'open' && link) void openLink(link)
+  else if (action === 'edit') editor.focus(id, itemStore.get(id)?.text.length ?? 0)
+  else if (action === 'advance') editor.advance(id)
   else if (action === 'bullet') editor.toggleType(id, 'bullet')
   else if (action === 'tomorrow') void editor.moveToTomorrow(id)
   else if (action === 'move') router.push({ pathname: '/move', params: { id } })
   else if (action === 'indent') editor.indent(id)
   else if (action === 'outdent') editor.outdent(id)
   else if (action === 'delete') editor.remove(id)
+}
+
+/** Links open where iOS sends them: a post in X, a video in YouTube, anything else in Safari. */
+function openLink(url: string): Promise<void> {
+  return Linking.openURL(url).catch(() => showToast('Couldn’t open that link'))
 }
 
 // Worklets can only call back into JavaScript through plain module-level functions.
@@ -89,6 +101,9 @@ const dropped = (date: ISODate, id: string, index: number, depth: number): void 
  *  - tap the text: edit there            - tap a bullet: make it a to-do
  *  - tap a box: complete / reopen        - long press: lift, then drag (sideways nests)
  *  - swipe right: to-do, then done       - swipe left: tomorrow; further: delete
+ *
+ * A line that is only a link shows its page instead (`LinkLine`) while it isn't being
+ * edited. Tapping the page opens it; tapping the space beside it edits the link.
  */
 export const Row = memo(function Row({ id, date, depth, empty }: { id: string; date: ISODate; depth: number; empty?: boolean }) {
   const item = useItem(id)
@@ -103,6 +118,8 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
   const done = item?.type === 'todo' && item.done
   const flash = useStore(ui, (s) => (s.flash?.id === id ? s.flash.at : 0))
   const kind: SwipeKind = item?.type !== 'todo' ? 0 : done ? 2 : 1
+  const link = item && !focused ? soleLink(item.text) : null
+  const linkWidth = useRef(0)
 
   const setRef = useCallback(
     (el: TextInputInstance | null) => {
@@ -275,6 +292,12 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
         editor.focus(id, 0)
         return
       }
+      if (link) {
+        // The page opens; the space beside it (or under a short title) edits the link.
+        if (e.x <= linkWidth.current + 8) void openLink(link)
+        else editor.focus(id, item?.text.length ?? 0)
+        return
+      }
       const fallback = (): void => editor.focus(id, item?.text.length ?? 0)
       void focusAt(input.current, e.absoluteX, e.absoluteY).then((offset) => {
         if (offset >= 0) editor.onSelection(id, { start: offset, end: offset })
@@ -340,15 +363,18 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
               placeholderTextColor={c.text3}
               selectionColor={c.accent}
               autoCapitalize="sentences"
-              style={[styles.text, { color: done ? c.text3 : c.text }, done && styles.done, remeasure && styles.remeasure]}
+              style={[styles.text, { color: done ? c.text3 : c.text }, done && styles.done, remeasure && styles.remeasure, link && styles.behind]}
               nativeID={`line-${id}`}
               // For end-to-end tests: depth, type and text, e.g. "1/todo-done:Book flights".
               testID={ghost ? `new-line-${date}` : `${depth}/${item.type}${done ? '-done' : ''}:${item.text}`}
               accessibilityLabel={ghost ? 'New line' : item.type === 'todo' ? (done ? 'Completed to-do' : 'To-do') : item.type === 'bullet' ? 'Bullet' : 'Text'}
               // What the marker, swipes and drag do, for VoiceOver's actions rotor.
-              accessibilityActions={ghost ? undefined : ACCESSIBILITY_ACTIONS[item.type === 'todo' ? (done ? 'done' : 'todo') : 'other']}
+              accessibilityActions={
+                ghost ? undefined : [...(link ? LINK_ACTIONS : []), ...ACCESSIBILITY_ACTIONS[item.type === 'todo' ? (done ? 'done' : 'todo') : 'other']]
+              }
               onAccessibilityAction={(e) => onAccessibilityAction(id, e.nativeEvent.actionName)}
             />
+            {link ? <LinkLine url={link} done={!!done} onWidth={(w) => (linkWidth.current = w)} /> : null}
           </View>
         </GestureDetector>
       </View>
@@ -409,6 +435,15 @@ const styles = StyleSheet.create({
   },
   done: {
     textDecorationLine: 'line-through'
+  },
+  // A link line shows its page; the link's text input waits behind it, out of the layout,
+  // ready to be edited.
+  behind: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    opacity: 0
   },
   // Changes nothing on screen; a changed style is what makes React Native lay it out again.
   remeasure: {

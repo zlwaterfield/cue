@@ -37,6 +37,7 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 | | |
 | --- | --- |
 | Tap a line | Edit it, with the caret where your finger landed |
+| Tap a link line | Open the page (in its app: a post in X, a video in YouTube). Tap the space beside it to edit the link |
 | Tap a bullet | Make it a to-do |
 | Tap a box | Complete or reopen (the whole marker column takes the tap, the margin beside it too) |
 | Swipe right | Text or bullet → to-do → done (and back) |
@@ -48,6 +49,23 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 
 Every swipe and marker action is also in VoiceOver's actions rotor on each line, and
 VoiceOver reads lines in the day's order.
+
+## Links and the share sheet
+
+- **A line that is only a link shows its page** while it isn't being edited: the site's
+  icon, the page's title and where it's from, in the line's own type, never more than two
+  lines. A post on X shows its text, its author's handle and their picture. The preview
+  comes from the page's own header (Open Graph and `<title>`, fetched the way iMessage
+  fetches previews), parsed by `../src/shared/links.ts`; no third-party service sees the
+  link. Previews are cached on the phone (`links.sqlite`), never synced, and removed on
+  sign-out. Until a page answers, or if it can't, the line shows the link's address.
+- **Cue is in the share sheet.** Share a link (or text) from Safari, X, YouTube or any
+  app, and it's added to the end of today as a new line. The extension
+  (`plugins/share-extension`) only confirms: "Added to Today", then it's gone. It can't
+  reach the notes or the sync server, so it leaves the share in the app group's inbox,
+  and Cue adds it the next time it comes to the screen; the new line glows, and syncs
+  like any other. A link shared while Cue is closed reaches the Mac once Cue is opened
+  on the phone. Shared text keeps its lines and list markers, as a paste does.
 
 ## How the editor works
 
@@ -112,6 +130,11 @@ needed for TestFlight and the App Store, and it makes the install last a year in
 4. Add your team ID to `.env.local` as `CUE_APPLE_TEAM_ID=…`. Both kinds of build read it. You'll find it in Xcode under
    Signing & Capabilities, or under Membership on developer.apple.com. If Xcode says
    `app.cue` isn't available, also set `CUE_IOS_BUNDLE_ID=` to an identifier of your own.
+   The share extension adds a second identifier (`<bundle ID>.share`) and the App Group
+   `group.<bundle ID>`, which Xcode registers on the first build with
+   `-allowProvisioningUpdates`. If your team's profile can't include App Groups, set
+   `CUE_SHARE_EXTENSION=off` there too and regenerate the project
+   (`npx expo prebuild --platform ios --clean`); Cue then builds without the share sheet.
 5. Run `npx expo run:ios --device --configuration Release` and pick the phone. Release
    builds carry their own JavaScript, so the app works away from the Mac.
 
@@ -167,9 +190,10 @@ in front of the app.
 
 ```
 src/app/        screens (Expo Router): day, sign-in, settings, search, move, calendar
-src/core/       database adapter (expo-sqlite), sync lifecycle, app state
+src/core/       database adapter (expo-sqlite), sync lifecycle, app state, link previews, share inbox
 src/editor/     the day page: layout, rows, drag, swipe, toolbar, editing controller
 src/ui/         header and week strip, calendar, toast, theme (brand tokens)
-modules/        cue-native: caret-at-touch and background time (Swift)
+modules/        cue-native: caret-at-touch, background time, the share inbox (Swift)
+plugins/        share-extension: Cue in the share sheet (config plugin and Swift)
 e2e/            Maestro flows
 ```

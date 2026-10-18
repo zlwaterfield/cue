@@ -6,6 +6,7 @@ import { isTextOnlyChange, Repository } from '@shared/repository'
 import type { SyncConfig } from '@shared/sync/supabase'
 import type { Item, Settings } from '@shared/types'
 import { openDatabase } from './db'
+import { clearLinkPreviews } from './links'
 import { MobileSync } from './sync'
 import { ui } from './ui'
 
@@ -46,6 +47,8 @@ const backend: StoreBackend = {
 }
 
 export const itemStore = new ItemStore(backend)
+// Link previews say which pages someone saved, so they leave with the notes.
+itemStore.onReset(clearLinkPreviews)
 export const sync = new MobileSync(repo, itemStore, syncConfig())
 
 /** Light, dark, or follow the system; sheets and the keyboard follow too. */
