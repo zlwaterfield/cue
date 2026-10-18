@@ -12,8 +12,8 @@ import { editor } from '../editor/controller'
 import { Marker } from '../editor/Marker'
 import { metrics, useColors } from '../ui/theme'
 
-/** After the first character, search again once typing pauses this long. */
-const SETTLE = 100
+/** After the first character, search again once typing pauses this long (the Mac palette's wait). */
+const SETTLE = 30
 
 const open = (result: SearchResult): void => {
   router.back()
@@ -52,6 +52,8 @@ export default function Search() {
   }, [query])
 
   const terms = searchTerms(found.query).join(' ')
+  // The Mac's words. Typing on from a query with no matches can't find any either.
+  const empty = !query.trim() ? 'Find anything you’ve written' : found.query && query.trim().startsWith(found.query) ? 'No matches' : null
   const renderItem = useCallback(
     ({ item }: { item: SearchResult }) => <ResultRow result={item} terms={terms} today={today} onOpen={open} />,
     [terms, today]
@@ -91,10 +93,7 @@ export default function Search() {
         windowSize={5}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        // Typing on from a query with no matches can't find any either.
-        ListEmptyComponent={
-          found.query && query.trim().startsWith(found.query) ? <Text style={[styles.empty, { color: c.text2 }]}>No matches</Text> : undefined
-        }
+        ListEmptyComponent={empty ? <Text style={[styles.empty, { color: c.text2 }]}>{empty}</Text> : undefined}
       />
     </View>
   )

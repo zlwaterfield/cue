@@ -1,5 +1,5 @@
-# Search: the first letter finds lines at once and the rest follow as you type; a query
-# with no match says so. Opening a result goes to its day.
+# Search: a prompt before typing; the first letter finds lines at once and the rest follow
+# as you type; a query with no match says so. Opening a result goes to its day.
 appId: app.cue
 name: Search
 ---
@@ -23,6 +23,7 @@ name: Search
     id: tool-hide
 
 - tapOn: "Search"
+- assertVisible: "Find anything you’ve written"
 - inputText: "plan budget"
 - extendedWaitUntil:
     visible:

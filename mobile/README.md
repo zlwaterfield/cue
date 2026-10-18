@@ -136,7 +136,8 @@ simulator, against the local sync server:
 - **writing**: the caret waiting in a new account's empty today, Return, Markdown
   shortcuts, toolbar types and indent, Backspace, undo
 - **touch**: marker taps, swipes, the undo toast, and drag to reorder and to nest
-- **search**: results as you type, "No matches", and opening a result
+- **search**: the prompt before typing, results as you type, "No matches", and opening a
+  result
 - **sync**: a line from the phone reaches the account, and a line pushed by another device
   appears on the phone within 3 s with no refresh
 - **account**: sign out removes the phone's copy; signing back in brings it back
