@@ -163,9 +163,14 @@ export class Editor {
   /* ============================================================= Focus */
 
   register(id: string, input: TextInputInstance | null): void {
-    if (input) {
-      this.inputs.set(id, input)
-      if (this.pending?.id === id) this.schedule()
+    if (!input) return
+    this.inputs.set(id, input)
+    // A line just created for the caret (Return) takes it as it mounts, like autoFocus,
+    // rather than a frame later.
+    if (this.pending?.id === id) {
+      if (this.frame) cancelAnimationFrame(this.frame)
+      this.frame = 0
+      this.apply()
     }
   }
 
@@ -206,15 +211,20 @@ export class Editor {
     if (this.frame) return
     this.frame = requestAnimationFrame(() => {
       this.frame = 0
-      const pending = this.pending
-      const input = pending && this.inputs.get(pending.id)
-      if (!pending || !input) return
-      this.pending = null
-      if (!input.isFocused()) input.focus()
-      input.setSelection(pending.start, pending.end)
-      const date = itemStore.get(pending.id)?.date ?? this.ghostDate(pending.id)
-      if (date) this.scroller?.reveal(date, pending.id)
+      this.apply()
     })
+  }
+
+  /** Focus the pending line if it's on screen (else its registration will). */
+  private apply(): void {
+    const pending = this.pending
+    const input = pending && this.inputs.get(pending.id)
+    if (!pending || !input) return
+    this.pending = null
+    if (!input.isFocused()) input.focus()
+    input.setSelection(pending.start, pending.end)
+    const date = itemStore.get(pending.id)?.date ?? this.ghostDate(pending.id)
+    if (date) this.scroller?.reveal(date, pending.id)
   }
 
   onFocus(id: string): void {
