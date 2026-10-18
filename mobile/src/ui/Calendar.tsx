@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { SymbolView } from 'expo-symbols'
 import * as Haptics from 'expo-haptics'
-import { addDays, addMonths, friendlyDate, longDate, MONTHS, parts, startOfMonth, startOfWeek } from '@shared/dates'
+import { addDays, addMonths, longDate, MONTHS, parts, relativeLabel, shortDate, startOfMonth, startOfWeek } from '@shared/dates'
 import { parseDateInput } from '@shared/dateParse'
 import type { ISODate } from '@shared/types'
 import { repo, sync } from '../core/app'
@@ -43,9 +43,11 @@ export function DatePicker({ selected, action, onPick }: { selected: ISODate; ac
           style={({ pressed }) => [styles.match, { backgroundColor: pressed ? c.bgHover : 'transparent' }]}
           accessibilityRole="button"
         >
+          {/* Like the Mac's palette: the date, and how far away it is. */}
           <Text style={[styles.matchText, { color: parsed ? c.text : c.text3 }]}>
-            {parsed ? `${action} ${friendlyDate(parsed, today)} · ${longDate(parsed)}` : 'No date matches that yet'}
+            {parsed ? `${action} ${shortDate(parsed, today)}` : 'No date matches that yet'}
           </Text>
+          {parsed && <Text style={[styles.matchHint, { color: c.text2 }]}>{relativeLabel(parsed, today)}</Text>}
         </Pressable>
       )}
       <Month selected={selected} today={today} weekStartsOn={weekStartsOn} onPick={onPick} />
@@ -137,11 +139,18 @@ const styles = StyleSheet.create({
     fontSize: 16
   },
   match: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     borderRadius: 10,
     paddingVertical: 8,
     paddingHorizontal: 4
   },
   matchText: {
+    flex: 1,
+    fontSize: 15
+  },
+  matchHint: {
     fontSize: 15
   },
   head: {

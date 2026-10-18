@@ -1,7 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { SymbolView, type SFSymbol } from 'expo-symbols'
-import { addDays, friendlyDate, nextWeekday, shortDate, startOfWeek, WEEKDAYS, weekday } from '@shared/dates'
+import { addDays, friendlyDate, nextWeekday, shortDate, startOfWeek } from '@shared/dates'
 import type { ISODate } from '@shared/types'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
@@ -24,16 +24,16 @@ export default function MoveSheet() {
     router.back()
     void editor.moveTo(item.id, date)
   }
-  const tomorrow = addDays(today, 1)
-  const weekdayNext = nextWeekday(today)
-  const nextWeek = addDays(startOfWeek(today, weekStartsOn), 7)
-  const options: Array<{ icon: SFSymbol; label: string; detail: string; date: ISODate }> = [
-    { icon: 'sun.max', label: 'Today', detail: shortDate(today), date: today },
-    { icon: 'sunrise', label: 'Tomorrow', detail: shortDate(tomorrow), date: tomorrow },
-    { icon: 'briefcase', label: 'Next weekday', detail: WEEKDAYS[weekday(weekdayNext)], date: weekdayNext },
-    { icon: 'calendar.badge.plus', label: 'Next week', detail: shortDate(nextWeek), date: nextWeek }
+  const options: Array<{ icon: SFSymbol; label: string; date: ISODate }> = [
+    { icon: 'sun.max', label: 'Today', date: today },
+    { icon: 'sunrise', label: 'Tomorrow', date: addDays(today, 1) },
+    { icon: 'briefcase', label: 'Next weekday', date: nextWeekday(today) },
+    { icon: 'calendar.badge.plus', label: 'Next week', date: addDays(startOfWeek(today, weekStartsOn), 7) }
   ]
-  const choices = options.filter((choice, i) => choice.date !== item.date && options.findIndex((other) => other.date === choice.date) === i)
+  // Each date once ("Next weekday" is often "Tomorrow"), and never the day the line is on.
+  const choices = options
+    .filter((choice, i) => choice.date !== item.date && options.findIndex((other) => other.date === choice.date) === i)
+    .map((choice) => ({ ...choice, detail: shortDate(choice.date, today) }))
 
   return (
     <ScrollView contentContainerStyle={styles.sheet} keyboardShouldPersistTaps="handled">

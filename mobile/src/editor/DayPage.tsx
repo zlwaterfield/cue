@@ -9,7 +9,7 @@ import Animated, {
   useAnimatedStyle,
   useFrameCallback
 } from 'react-native-reanimated'
-import { diffDays, monthDay, relativeDayName, weekday, WEEKDAYS } from '@shared/dates'
+import { daySubtitle, relativeDayName } from '@shared/dates'
 import type { ISODate } from '@shared/types'
 import { itemStore } from '../core/app'
 import { useStore } from '../core/store'
@@ -23,17 +23,6 @@ import { Row } from './Row'
 import { SwipeUnderlay } from './Swipe'
 
 const AnimatedScrollView = Animated.createAnimatedComponent(GestureScrollView)
-
-/**
- * Under the title: the date, said once. "Sunday, October 18" under Today, Tomorrow and
- * Yesterday; under a weekday, the date alone, and how far away it is past a week. The year
- * only when it isn't this year.
- */
-function subtitleFor(date: ISODate, today: ISODate): string {
-  const delta = diffDays(today, date)
-  if (Math.abs(delta) <= 1) return `${WEEKDAYS[weekday(date)]}, ${monthDay(date, today)}`
-  return `${monthDay(date, today)}${Math.abs(delta) < 7 ? '' : delta > 0 ? ` · in ${delta} days` : ` · ${-delta} days ago`}`
-}
 
 /** Scroll while a dragged line is held this close to the top or bottom edge. */
 const EDGE = 80
@@ -161,7 +150,7 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
   /* ---------------------------------------------------------- Rendering */
 
   const title = relativeDayName(date, today)
-  const subtitle = subtitleFor(date, today)
+  const subtitle = daySubtitle(date, today)
   const empty = rows.length === 0
   // An empty day whose notes are still on their way can't be written in yet, so nothing
   // typed now lands beside the notes about to arrive.
