@@ -205,21 +205,30 @@ functions are in [`supabase/migrations`](../supabase/migrations).
 1. Create a Supabase project and apply the migration: `npx supabase link`, then
    `npx supabase db push`. You can also paste
    `supabase/migrations/*_sync.sql` into the SQL editor.
-2. **Auth → Providers → Email**: enable it, and allow new users to sign up.
-3. **Auth → Email Templates**: edit "Magic Link" and "Confirm signup" so they show the
-   code, for example `Your Cue code is {{ .Token }}`
-   (see `supabase/templates/sign-in-code.html`). Set up custom SMTP so the emails come from your
-   domain.
-4. Build Cue with the project URL and publishable (or anon) key, from the environment or a
-   `.env.local` file:
+2. **Auth → Providers → Email**: enable it, and allow new users to sign up. Set the email
+   OTP length to 6 (the iPhone's code field takes six digits) and its expiry to 900 s.
+3. **Auth → Email Templates**: paste `supabase/templates/sign-in-code.html` into both "Magic
+   Link" and "Confirm signup", with the subject "Your Cue sign-in code". `supabase/config.toml`
+   sets them only for the local stack, and `db push` doesn't send them, so paste the file
+   again whenever it changes. Set up custom SMTP so the emails come from your domain.
+4. Build Cue with the project URL and publishable (or anon) key. Put them in
+   `.env.production.local`, at the repo root for the Mac and in `mobile/` for the iPhone:
 
    ```sh
    CUE_SUPABASE_URL=https://<project>.supabase.co
    CUE_SUPABASE_KEY=sb_publishable_…
    ```
 
-   The key is public by design; row-level security protects the data. A build without
-   these doesn't offer sync.
+   Production builds (`pnpm dist`, an Xcode Release build) read `.env.production.local`.
+   Development (`pnpm dev`, `pnpm start` in `mobile/`, a Debug build) reads
+   `.env.development.local`, so it uses the local stack below. Tests build with
+   `--mode test` and read neither. Keep these variables out of a plain `.env.local`: every
+   mode reads it, and Expo ranks it above `.env.production`. The variables can also come from
+   the environment, which wins over any file.
+
+   The key is public by design; row-level security protects the data. The files stay
+   untracked (`.env*.local`) so a build from someone else's clone doesn't use your project.
+   A build without these doesn't offer sync.
 
 ## Development and testing
 
@@ -228,9 +237,10 @@ Run a local stack in Docker. Sign-in emails land in Mailpit at http://127.0.0.1:
 ```sh
 npx supabase start -x studio,storage-api,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor
 npx supabase status    # API URL and publishable key
-export CUE_SUPABASE_URL=http://127.0.0.1:54321 CUE_SUPABASE_KEY=<publishable key>
+printf 'CUE_SUPABASE_URL=http://127.0.0.1:54321\nCUE_SUPABASE_KEY=<publishable key>\n' > .env.development.local
 pnpm dev               # sync is now offered in Settings
-pnpm test:sync         # integration + end-to-end sync tests against the local stack
+# The sync tests read the server from the environment, not from a file:
+CUE_SUPABASE_URL=http://127.0.0.1:54321 CUE_SUPABASE_KEY=<publishable key> pnpm test:sync
 npx supabase stop
 ```
 

@@ -1,4 +1,67 @@
-<h2>Your Cue sign-in code</h2>
-<p>Enter this code in Cue to turn on sync:</p>
-<p style="font-size: 28px; font-weight: 600; letter-spacing: 6px; font-family: ui-monospace, Menlo, monospace">{{ .Token }}</p>
-<p>It expires in 15 minutes. If you didn’t ask for it, you can ignore this email.</p>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>Your Cue sign-in code</title>
+<!--
+  Cue's sign-in email, used for both "Magic Link" and "Confirm signup" (docs/SYNC.md).
+  The brand kit's colors (docs/brand/tokens): Paper ground, a white page, graphite text and
+  the caret after the wordmark. Styles are inline because many mail apps drop style blocks; the
+  block below only adds dark mode and the Newsreader wordmark where a mail app allows them.
+  Mail apps without either get the light page and Georgia.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: light dark; supported-color-schemes: light dark; }
+  a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+  @media (prefers-color-scheme: dark) {
+    .ground { background: #18181A !important; }
+    .page { background: #232326 !important; border-color: #333336 !important; }
+    .text { color: #ECECEF !important; }
+    .text-2 { color: #9D9DA4 !important; }
+    .caret { background: #E6E6EA !important; }
+    .code { background: #2C2C30 !important; color: #ECECEF !important; }
+  }
+</style>
+</head>
+<body class="ground" style="margin: 0; padding: 0; background: #FAFAFB; -webkit-text-size-adjust: 100%;">
+<div style="display: none; max-height: 0; overflow: hidden; opacity: 0;">Your Cue code is {{ .Token }}. It expires in 15 minutes.</div>
+<table role="presentation" class="ground" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: #FAFAFB;">
+  <tr>
+    <td align="center" style="padding: 48px 16px;">
+      <table role="presentation" class="page" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 440px; background: #FFFFFF; border: 1px solid #EDEDEE; border-radius: 14px;">
+        <tr>
+          <td style="padding: 36px 36px 0;">
+            <div class="text" style="font-family: 'Newsreader', 'New York', ui-serif, Georgia, serif; font-size: 30px; font-weight: 500; line-height: 32px; letter-spacing: -0.6px; color: #1C1C1E;">Cue<span class="caret" style="display: inline-block; width: 2px; height: 26px; margin-left: 3px; vertical-align: -3px; border-radius: 1px; background: #2C2C31;"></span></div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 32px 36px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Helvetica, Arial, sans-serif;">
+            <h1 class="text" style="margin: 0; font-size: 20px; font-weight: 600; line-height: 26px; color: #1C1C1E;">Your sign-in code</h1>
+            <p class="text-2" style="margin: 8px 0 0; font-size: 15px; line-height: 22px; color: #6C6C72;">Enter this code in Cue to sign in and sync your notes.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 24px 36px 0;">
+            <div class="code" style="padding: 18px 2px 18px 12px; border-radius: 10px; background: #F5F5F6; text-align: center; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 34px; font-weight: 600; line-height: 40px; letter-spacing: 10px; color: #1C1C1E;">{{ .Token }}</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 24px 36px 36px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Helvetica, Arial, sans-serif;">
+            <p class="text-2" style="margin: 0; font-size: 13px; line-height: 20px; color: #6C6C72;">It expires in 15 minutes. If you didn’t ask for it, you can ignore this email.</p>
+          </td>
+        </tr>
+      </table>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 440px;">
+        <tr>
+          <td class="text-2" style="padding: 20px 36px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Helvetica, Arial, sans-serif; font-size: 12px; line-height: 18px; color: #6C6C72;">Sent to {{ .Email }} by Cue, daily notes for Mac and iPhone.</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

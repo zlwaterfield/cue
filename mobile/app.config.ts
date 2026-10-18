@@ -3,8 +3,8 @@ import type { ExpoConfig } from 'expo/config'
 /**
  * Cue for iPhone. The sync server is required here (there's no local-only mode), so a
  * build needs CUE_SUPABASE_URL and CUE_SUPABASE_KEY, the same variables the Mac app uses
- * (docs/SYNC.md). They're read from the environment or `.env.local` when Metro or a
- * build starts.
+ * (docs/SYNC.md). They're read from the environment or `.env.development.local` when Metro
+ * or a Debug build starts, and `.env.production.local` for a Release build.
  *
  * Signing for a real iPhone is personal, so it comes from there too: CUE_APPLE_TEAM_ID,
  * and CUE_IOS_BUNDLE_ID if `app.cue` isn't available to your team.
