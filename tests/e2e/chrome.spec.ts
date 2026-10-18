@@ -1,5 +1,6 @@
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { daySubtitle, longDate, MONTHS, parts, shortDate } from '../../src/shared/dates'
+import { parseDateInput } from '../../src/shared/dateParse'
+import { daySubtitle, longDate, MONTHS, parts, relativeLabel, shortDate } from '../../src/shared/dates'
 import { focusedText, launch, outline, lines, today, typeLines, type Cue } from './app'
 
 /** The window around the editor: title bar, sheets, palette, menus. */
@@ -184,10 +185,24 @@ test('Move to date never offers the day the line is already on', async () => {
   expect(labels[0]).toMatch(/^Tomorrow · /)
 })
 
+test('a typed date reads short, as on the iPhone, with how far away it is', async () => {
+  const { page } = cue
+  const date = await today(page)
+  await page.keyboard.type('renew passport')
+  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.insertText('fri')
+  const friday = parseDateInput('fri', date)!
+  const match = page.locator('.palette-item').first()
+  await expect(match.locator('.palette-title')).toHaveText(shortDate(friday, date))
+  await expect(match.locator('.palette-hint')).toHaveText(relativeLabel(friday, date))
+})
+
 test('search keeps the screen steady while it looks, and draws the editor’s markers', async () => {
   const { page } = cue
   await typeLines(page, '[x] renew the passport', 'passport photos')
   await page.keyboard.press('Meta+F')
+  // The iPhone's words, before and after typing.
+  await expect(page.getByRole('textbox', { name: 'Search all notes', exact: true })).toHaveAttribute('placeholder', 'Search all notes')
   await expect(page.locator('.palette-empty')).toHaveText('Find anything you’ve written')
   await page.evaluate(() => {
     const seen: string[] = []

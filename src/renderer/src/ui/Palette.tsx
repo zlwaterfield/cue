@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { COMMANDS, shortcutKeys, type CommandGroup } from '@shared/commands'
 import { parseDateInput } from '@shared/dateParse'
-import { addDays, friendlyDate, longDate, nextWeekday, relativeLabel, shortDate, startOfWeek } from '@shared/dates'
+import { addDays, friendlyDate, nextWeekday, relativeLabel, shortDate, startOfWeek } from '@shared/dates'
 import { matchRanges, searchTerms } from '@shared/text'
 import type { ISODate, ItemType, SearchResult } from '@shared/types'
 import { backend } from '../data/backend'
@@ -175,7 +175,7 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
             {label} <span className="muted">· {shortDate(date, today)}</span>
           </>
         ) : (
-          longDate(date)
+          shortDate(date, today)
         ),
         hint: distance(date, label ?? '', today),
         run: () => pickDate(date, action)
@@ -305,7 +305,7 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
 
   const placeholder =
     mode === 'search'
-      ? 'Search all notes…'
+      ? 'Search all notes'
       : mode === 'date'
         ? overlay.dateAction === 'move'
           ? 'Move to… try “fri”, “next mon”, “oct 31”'
