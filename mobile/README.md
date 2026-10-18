@@ -20,7 +20,8 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
   nothing is left unsent); the account keeps everything. Right after signing in, today
   and the week around it download first; an empty day whose notes haven't arrived yet says
   "Getting your notes…" and can't be written in until they do, and an empty today then
-  gets the caret.
+  gets the caret. If the app is closed mid-download, the next launch carries on and those
+  days keep waiting.
 - **Sync is quicker to send.** iOS suspends apps soon after they leave the screen, so the
   phone pushes 450 ms after typing pauses (2 s at most during continuous typing), the
   moment a line is finished (focus leaves it), and when the app goes to the background

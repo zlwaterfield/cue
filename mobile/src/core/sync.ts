@@ -41,6 +41,8 @@ const ACCOUNT = 'sync_account'
 /** The account whose notes are in this database. */
 const SYNCED_WITH = 'sync_user'
 const CURSOR = 'sync_cursor'
+/** The first download of this account to this phone hasn't finished, even across relaunches. */
+const JOINING = 'sync_joining'
 
 /** Faster than the Mac's 600 ms / 3 s: a phone is put down mid-thought. */
 const TIMING = { debounce: 450, maxWait: 2000 }
@@ -92,7 +94,7 @@ export class MobileSync {
   private readonly client: SupabaseSync | null
   private engine: SyncEngine | null = null
   private account: Account | null = null
-  /** This engine began on an empty copy (cursor 0): its first sync is the download. */
+  /** The first download hasn't finished: this engine's first sync completes it. */
   private joining = false
   private checkedAt = 0
   private verifiedAt = 0
@@ -225,6 +227,7 @@ export class MobileSync {
         // Notes left by another account (signed out by the server) leave with it.
         if (previous) this.clearLocal()
         this.repo.setMeta(CURSOR, '0')
+        this.repo.setMeta(JOINING, '1')
         this.repo.setMeta(SYNCED_WITH, account.id)
       }
       this.begin(account)
@@ -280,7 +283,10 @@ export class MobileSync {
     this.cancelSignIn()
     this.repo.setMeta(ACCOUNT, JSON.stringify(account))
     this.account = account
-    this.joining = this.repo.getMeta(CURSOR) === '0'
+    // The cursor moves on with every page, so a download cut short by a relaunch is
+    // remembered in meta. Today ± 7 days were stored before the cursor first moved.
+    const cursor = this.repo.getMeta(CURSOR)
+    this.joining = cursor === '0' || this.repo.getMeta(JOINING) === '1'
     const engine = new SyncEngine(
       this.repo,
       client,
@@ -291,6 +297,10 @@ export class MobileSync {
         },
         onStatus: (_status, error) => {
           if (this.engine !== engine) return
+          if (this.joining && engine.lastSyncedAt) {
+            this.joining = false
+            this.repo.deleteMeta(JOINING)
+          }
           this.emit({ message: error && !(error instanceof OfflineError) ? errorMessage(error) : null })
           if (error instanceof SessionError) this.checkSession(client, error.reason)
         }
@@ -304,7 +314,7 @@ export class MobileSync {
       engine.setLive(false)
     })
     engine.start()
-    this.emit({ phase: 'signedIn', recent: false, message: null })
+    this.emit({ phase: 'signedIn', recent: cursor !== '0', message: null })
   }
 
   private async end(options: { forget?: boolean } = {}): Promise<void> {
@@ -356,6 +366,7 @@ export class MobileSync {
     this.repo.clearNotes()
     this.repo.deleteMeta(SYNCED_WITH)
     this.repo.deleteMeta(CURSOR)
+    this.repo.deleteMeta(JOINING)
   }
 
   private readAccount(): Account | null {
