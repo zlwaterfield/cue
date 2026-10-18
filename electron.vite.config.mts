@@ -9,7 +9,8 @@ const shared = { '@shared': resolve(import.meta.dirname, 'src/shared') }
 
 export default defineConfig(({ mode }) => {
   // The sync server is optional. Set CUE_SUPABASE_URL and CUE_SUPABASE_KEY in the
-  // environment or in .env.local to build a Cue that offers sync (docs/SYNC.md).
+  // environment or in .env.<mode>.local to build a Cue that offers sync: `pnpm dev` is
+  // development, `pnpm dist` is production, and the e2e tests build as test (docs/SYNC.md).
   const env = { ...loadEnv(mode, import.meta.dirname, 'CUE_'), ...process.env }
   return {
     main: {

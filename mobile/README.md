@@ -87,7 +87,7 @@ server: the local Supabase stack from [docs/SYNC.md](../docs/SYNC.md) works.
 cd mobile
 pnpm install
 npx supabase status    # from the repo root: API URL and publishable key
-printf 'CUE_SUPABASE_URL=http://127.0.0.1:54321\nCUE_SUPABASE_KEY=<publishable key>\n' > .env.local
+printf 'CUE_SUPABASE_URL=http://127.0.0.1:54321\nCUE_SUPABASE_KEY=<publishable key>\n' > .env.development.local
 pnpm ios               # builds the development app and installs it on a simulator
 pnpm start             # Metro, for later runs
 ```
@@ -104,11 +104,12 @@ needed for TestFlight and the App Store, and it makes the install last a year in
    "Personal Team".
 2. On the iPhone, turn on Settings → Privacy & Security → Developer Mode, then connect it
    to the Mac.
-3. Point `.env.local` at a sync server the phone can reach. That's your hosted Supabase
-   project, which is also what your Mac should use, so they share notes. For the local
-   stack, use your Mac's network address (`http://192.168.x.x:54321`) instead of
-   `127.0.0.1`.
-4. Add your team ID to `.env.local` as `CUE_APPLE_TEAM_ID=…`. You'll find it in Xcode under
+3. Put your hosted Supabase project in `.env.production.local`. That's the project your
+   Mac's production build uses too, so they share notes. Release builds read this file and
+   Debug builds read `.env.development.local` (docs/SYNC.md). A Debug build on the phone
+   can't reach `127.0.0.1`, so for the local stack use your Mac's network address
+   (`http://192.168.x.x:54321`).
+4. Add your team ID to `.env.local` as `CUE_APPLE_TEAM_ID=…`. Both kinds of build read it. You'll find it in Xcode under
    Signing & Capabilities, or under Membership on developer.apple.com. If Xcode says
    `app.cue` isn't available, also set `CUE_IOS_BUNDLE_ID=` to an identifier of your own.
 5. Run `npx expo run:ios --device --configuration Release` and pick the phone. Release
@@ -118,7 +119,9 @@ The first time, iOS asks you to trust the developer under Settings → General �
 Device Management.
 
 `app.config.ts` reads `CUE_SUPABASE_URL` and `CUE_SUPABASE_KEY` when Metro or a build
-starts. A build without them shows the sign-in screen with "This build of Cue has no sync
+starts, from `.env.development.local` for Metro and Debug builds and from
+`.env.production.local` for Release builds. Keep them out of `.env.local`, which Expo ranks
+above `.env.production`. A build without them shows the sign-in screen with "This build of Cue has no sync
 server."
 
 Checks:
