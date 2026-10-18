@@ -274,13 +274,14 @@ describe('Regression', () => {
 })
 
 describe('Sync artifacts', () => {
-  /** Two devices inserted at the same spot concurrently: A and B share one key. */
-  async function tied(): Promise<void> {
-    await setup('A\nB')
-    store.commit([{ ...store.get('B')!, position: store.get('A')!.position }])
+  /** Devices inserted at the same spot concurrently: the twins (A and B) share the last one's key. */
+  async function tied(outline = 'A\nB', twins = ['A', 'B']): Promise<void> {
+    await setup(outline)
+    const { position } = store.get(twins[twins.length - 1])!
+    store.commit(twins.slice(0, -1).map((id) => ({ ...store.get(id)!, position })))
   }
 
-  it('never re-keys tied siblings: a line placed into the tie goes after it', async () => {
+  it('places a new line into a tie after it, writing nothing else', async () => {
     await tied()
     const tx = new Tx(store)
     const created = tx.create({ date: DAY, text: 'new' })
@@ -307,6 +308,40 @@ describe('Sync artifacts', () => {
     expect(tx.netChanges().filter((c) => c.before).map((c) => c.after.id)).toEqual([])
     store.commit(tx.netChanges().map((c) => c.after))
     expect(render(store)).toBe('A\nB\n')
+  })
+
+  /** The lines a draft writes, by id. */
+  function written(fn: (tx: Tx) => unknown): string[] {
+    const tx = new Tx(store)
+    fn(tx)
+    store.commit(tx.netChanges().map((c) => c.after))
+    return tx.netChanges().map((c) => c.after.id)
+  }
+
+  it('moves a line up into a tie, re-keying only the twin after the slot', async () => {
+    await tied('A\nB\nC')
+    // C's fresh key happens to be the one it had; A, before the slot, keeps its key.
+    expect(written((tx) => ops.moveVertical(tx, ['C'], -1))).toEqual(['B'])
+    expect(render(store)).toBe('A\nC\nB')
+  })
+
+  it('drops a line into a tie exactly where asked', async () => {
+    await tied('A\nB\nC')
+    expect(written((tx) => ops.dropAt(tx, ['C'], DAY, null, 'A'))).toEqual(['B'])
+    expect(render(store)).toBe('A\nC\nB')
+  })
+
+  it('moves the line above a tie down one row, between the twins', async () => {
+    await tied('X\nA\nB\nC')
+    expect(written((tx) => ops.moveVertical(tx, ['X'], 1))).toEqual(['X', 'B'])
+    expect(render(store)).toBe('A\nX\nB\nC')
+  })
+
+  it('drops after the first of three twins, writing only the two after it', async () => {
+    await tied('A\nB\nD\nC', ['A', 'B', 'D'])
+    expect(render(store)).toBe('A\nB\nD\nC')
+    expect(written((tx) => ops.dropAt(tx, ['C'], DAY, null, 'A'))).toEqual(['B', 'D'])
+    expect(render(store)).toBe('A\nC\nB\nD')
   })
 })
 

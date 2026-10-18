@@ -168,14 +168,18 @@ export class Tx {
   /**
    * Position `ids` (in order) under `parentId` on `date`, directly after sibling
    * `after` — `null` for first, `'end'` for last. Generates fractional keys between
-   * the neighbors and writes only the lines being placed. Siblings that share a key
-   * (possible after concurrent offline edits) keep it, because rewriting a sibling
-   * would overwrite whatever another device is changing in it; only keys grown too
-   * long (or unreadable) re-space the whole list.
+   * the neighbors and writes only the lines being placed. Siblings can share a key
+   * (after concurrent offline edits), and rewriting one would overwrite whatever another
+   * device is changing in it. So new lines (Return, paste) go after a tied run and write
+   * nothing else, while moving existing lines into a tie also gives fresh keys to the
+   * twins after the slot, so the move lands exactly where asked. Only keys grown too long
+   * (or unreadable) re-space the whole list.
    */
   place(ids: string[], date: ISODate, parentId: string | null, after: string | null | 'end'): void {
     if (!ids.length) return
     const moving = new Set(ids)
+    // Lines that existed before this draft are being moved; Return and paste create new ones.
+    const isMove = ids.every((id) => this.store.get(id))
     const siblingsNow = (): Item[] => this.children(parentId, date).filter((s) => !moving.has(s.id))
     let siblings = siblingsNow()
     const indexFor = (list: Item[]): number => {
@@ -184,25 +188,29 @@ export class Tx {
       const at = list.findIndex((s) => s.id === after)
       return at === -1 ? list.length : at + 1
     }
-    const keysFor = (list: Item[]): string[] => {
-      let index = indexFor(list)
+    const keysFor = (list: Item[]): { keys: string[]; tied: Item[] } => {
+      const index = indexFor(list)
       const prev = index > 0 ? list[index - 1].position : null
-      // Siblings tied with `prev` keep their keys; the new lines go after the tied run.
-      while (prev !== null && index < list.length && list[index].position <= prev) index++
-      const next = index < list.length ? list[index].position : null
-      return generateNKeysBetween(prev, next, ids.length)
+      // The siblings after the slot that are tied with `prev`.
+      let end = index
+      while (prev !== null && end < list.length && list[end].position <= prev) end++
+      const next = end < list.length ? list[end].position : null
+      const tied = isMove ? list.slice(index, end) : []
+      return { keys: generateNKeysBetween(prev, next, ids.length + tied.length), tied }
     }
-    let keys: string[]
+    let placed: { keys: string[]; tied: Item[] }
     try {
-      keys = keysFor(siblings)
+      placed = keysFor(siblings)
       // Repeated inserts into one gap lengthen keys; re-space before they grow unwieldy.
-      if (keys.some((k) => k.length > MAX_KEY_LENGTH)) throw new Error('long key')
+      if (placed.keys.some((k) => k.length > MAX_KEY_LENGTH)) throw new Error('long key')
     } catch {
       this.rekey(siblings)
       siblings = siblingsNow()
-      keys = keysFor(siblings)
+      placed = keysFor(siblings)
     }
+    const { keys, tied } = placed
     ids.forEach((id, i) => this.update(id, { date, parentId, position: keys[i] }))
+    tied.forEach((s, i) => this.update(s.id, { position: keys[ids.length + i] }))
   }
 
   private rekey(siblings: Item[]): void {
