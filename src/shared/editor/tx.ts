@@ -166,8 +166,10 @@ export class Tx {
   /**
    * Position `ids` (in order) under `parentId` on `date`, directly after sibling
    * `after` — `null` for first, `'end'` for last. Generates fractional keys between
-   * the neighbors; if neighbors collide (possible after concurrent offline edits)
-   * the sibling list is re-keyed first.
+   * the neighbors and writes only the lines being placed. Siblings that share a key
+   * (possible after concurrent offline edits) keep it, because rewriting a sibling
+   * would overwrite whatever another device is changing in it; only keys grown too
+   * long (or unreadable) re-space the whole list.
    */
   place(ids: string[], date: ISODate, parentId: string | null, after: string | null | 'end'): void {
     if (!ids.length) return
@@ -181,10 +183,11 @@ export class Tx {
       return at === -1 ? list.length : at + 1
     }
     const keysFor = (list: Item[]): string[] => {
-      const index = indexFor(list)
+      let index = indexFor(list)
       const prev = index > 0 ? list[index - 1].position : null
+      // Siblings tied with `prev` keep their keys; the new lines go after the tied run.
+      while (prev !== null && index < list.length && list[index].position <= prev) index++
       const next = index < list.length ? list[index].position : null
-      if (prev !== null && next !== null && prev >= next) throw new Error('collision')
       return generateNKeysBetween(prev, next, ids.length)
     }
     let keys: string[]

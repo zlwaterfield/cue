@@ -272,16 +272,38 @@ describe('Regression', () => {
 })
 
 describe('Sync artifacts', () => {
-  it('re-keys colliding sibling positions before inserting between them', async () => {
-    await setup('a\nb')
-    // Simulate two devices that inserted at the same spot concurrently.
-    const a = store.get('a')!
-    store.commit([{ ...store.get('b')!, position: a.position }])
-    run((tx) => ops.splitAt(tx, 'a', 1))
-    const rows = store.outline(DAY).map((r) => store.get(r.id)!)
-    expect(rows.map((r) => r.text)).toEqual(['a', '', 'b'])
-    const positions = rows.map((r) => r.position)
-    expect([...positions].sort()).toEqual(positions)
-    expect(new Set(positions).size).toBe(3)
+  /** Two devices inserted at the same spot concurrently: A and B share one key. */
+  async function tied(): Promise<void> {
+    await setup('A\nB')
+    store.commit([{ ...store.get('B')!, position: store.get('A')!.position }])
+  }
+
+  it('never re-keys tied siblings: a line placed into the tie goes after it', async () => {
+    await tied()
+    const tx = new Tx(store)
+    const created = tx.create({ date: DAY, text: 'new' })
+    tx.place([created.id], DAY, null, 'A')
+    // Only the new line is written, so concurrent edits to A and B can't be overwritten.
+    expect(tx.netChanges().map((c) => c.after.id)).toEqual([created.id])
+    store.commit(tx.netChanges().map((c) => c.after))
+    expect(render(store)).toBe('A\nB\nnew')
+  })
+
+  it('moves a tied sibling by writing only that line', async () => {
+    await tied()
+    const tx = new Tx(store)
+    tx.place(['B'], DAY, null, null)
+    expect(tx.netChanges().map((c) => c.after.id)).toEqual(['B'])
+    store.commit(tx.netChanges().map((c) => c.after))
+    expect(render(store)).toBe('B\nA')
+  })
+
+  it('splits a tied line without touching its twin', async () => {
+    await tied()
+    const tx = new Tx(store)
+    ops.splitAt(tx, 'A', 1)
+    expect(tx.netChanges().filter((c) => c.before).map((c) => c.after.id)).toEqual([])
+    store.commit(tx.netChanges().map((c) => c.after))
+    expect(render(store)).toBe('A\nB\n')
   })
 })

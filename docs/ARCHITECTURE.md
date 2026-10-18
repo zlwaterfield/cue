@@ -70,7 +70,9 @@ and ⌘Z right after reverts just the formatting.
 See `src/shared/types.ts`. Items carry `id, date, parentId, position, type, text,
 done, createdAt, updatedAt, deleted, version`. Order among siblings is a fractional
 index (`position`) with the id as a tiebreaker, so inserting never rewrites
-neighbors and concurrent inserts can't collide destructively.
+neighbors and concurrent inserts can't collide destructively. Siblings that end up with
+the same key (two devices inserting at one spot offline) keep it: a line placed among
+them goes after the tied run, so nothing another device is editing gets rewritten.
 
 The outline for a day is derived, never stored (`shared/outline.ts`). Derivation is
 total: orphaned items render at the top level and parent cycles are broken.
