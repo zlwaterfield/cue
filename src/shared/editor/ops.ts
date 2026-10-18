@@ -1,3 +1,4 @@
+import { generateNKeysBetween } from 'fractional-indexing'
 import type { LineSpec } from '../markdown'
 import type { ISODate, ItemType } from '../types'
 import type { Tx } from './tx'
@@ -198,19 +199,19 @@ export function moveToDate(tx: Tx, ids: string[], date: ISODate): string[] {
 export function dropAt(tx: Tx, ids: string[], date: ISODate, parentId: string | null, after: string | null | 'end'): boolean {
   const roots = tx.roots(ids)
   if (!roots.length) return false
-  const moving = new Set(roots.flatMap((r) => tx.subtreeIds(r)))
+  const subtrees = roots.map((r) => tx.subtreeIds(r))
+  const moving = new Set(subtrees.flat())
   if (parentId && moving.has(parentId)) return false
-  for (const root of roots) {
-    for (const id of tx.subtreeIds(root)) if (id !== root) tx.update(id, { date })
-  }
+  // Children follow their root to the new day; place() moves the roots themselves.
+  for (const subtree of subtrees) for (const id of subtree.slice(1)) tx.update(id, { date })
   tx.place(roots, date, parentId, after)
   return true
 }
 
 export function remove(tx: Tx, ids: string[]): void {
-  for (const root of tx.roots(ids)) {
-    for (const id of tx.subtreeIds(root)) tx.update(id, { deleted: true })
-  }
+  // Read the whole selection first: each deletion changes the outline.
+  const doomed = new Set(tx.roots(ids).flatMap((root) => tx.subtreeIds(root)))
+  for (const id of doomed) tx.update(id, { deleted: true })
 }
 
 export function setType(tx: Tx, ids: string[], type: ItemType): void {
@@ -240,7 +241,10 @@ export function toggleTodo(tx: Tx, ids: string[]): void {
 /**
  * Lay out parsed lines as items. Depth-0 lines become siblings placed after
  * `anchor` (or at `start` of `parent` when anchor is null, or the end when 'end');
- * deeper lines nest under the line above them. Returns the created ids.
+ * deeper lines nest under the line above them. Returns the created ids, in order.
+ *
+ * Lines are created first and then placed one run of siblings at a time, so a long
+ * paste reads the outline a few times rather than once per line.
  */
 function placeLines(
   tx: Tx,
@@ -251,17 +255,27 @@ function placeLines(
   stack: string[] = []
 ): string[] {
   const created: string[] = []
-  let first = true
+  const runs = new Map<string | null, { after: string | null | 'end'; ids: string[] }>([[parent, { after: stack[0] ?? anchor, ids: [] }]])
   for (const line of lines) {
     const depth = Math.min(line.depth, stack.length)
     const parentId = depth === 0 ? parent : stack[depth - 1]
-    const after: string | null | 'end' = stack[depth] ?? (depth === 0 ? (first ? anchor : 'end') : null)
-    const item = tx.create({ date, type: line.type, done: line.type === 'todo' && line.done, text: line.text })
-    tx.place([item.id], date, parentId, after)
+    let run = runs.get(parentId)
+    // A line nested under one that existed before the paste goes in as its first child.
+    if (!run) runs.set(parentId, (run = { after: stack[depth] ?? null, ids: [] }))
+    const item = tx.create({ date, parentId, type: line.type, done: line.type === 'todo' && line.done, text: line.text })
+    run.ids.push(item.id)
     stack[depth] = item.id
     stack.length = depth + 1
     created.push(item.id)
-    first = false
+  }
+  const fresh = new Set(created)
+  for (const [parentId, { after, ids }] of runs) {
+    if (!ids.length) continue
+    if (parentId && fresh.has(parentId)) {
+      // A line created by this paste has no other children: number its run directly.
+      const keys = generateNKeysBetween(null, null, ids.length)
+      ids.forEach((id, i) => tx.update(id, { position: keys[i] }))
+    } else tx.place(ids, date, parentId, after)
   }
   return created
 }

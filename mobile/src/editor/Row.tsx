@@ -1,7 +1,7 @@
-import { memo, useCallback, useEffect, useRef } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { StyleSheet, TextInput, View, useWindowDimensions, type TextInputInstance } from 'react-native'
 import { GestureDetector, useCompetingGestures, usePanGesture, useTapGesture } from 'react-native-gesture-handler'
-import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated'
+import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
@@ -10,14 +10,16 @@ import type { ISODate } from '@shared/types'
 import { focusAt } from '../../modules/cue-native'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
-import { metrics, useColors } from '../ui/theme'
+import { colors, metrics, useColors } from '../ui/theme'
 import { editor } from './controller'
-import { beginDrag, drag, dragTop, resetDrag, updateDrag } from './drag'
+import { beginDrag, drag, dragTop, resetDrag, scrollState, updateDrag } from './drag'
 import { useItem } from './hooks'
 import { Marker } from './Marker'
-import { swipe, SWIPE_ACT, SWIPE_DELETE_FRACTION, type SwipeKind } from './Swipe'
+import { swipe, SWIPE_ACT, SWIPE_DELETE_FRACTION, SWIPE_HOME, type SwipeKind } from './Swipe'
 
-const LIFT_DELAY = 260
+const LIFT_DELAY = 340
+/** Where a line not in its day's layout waits, out of sight. */
+const HIDDEN = -10_000
 
 function placeholderFor(date: ISODate, today: ISODate): string {
   const delta = diffDays(today, date)
@@ -111,38 +113,72 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
     [id]
   )
 
+  // React Native measures a text input with the text it had before an edit that wasn't
+  // typed into it (Return in the middle of a paragraph, Undo, an edit from another device),
+  // so the row would keep its old height. Typing measures fine. After such an edit the
+  // input is laid out once more, straight away, which measures the new text.
+  const text = item?.text ?? ''
+  const typed = useRef(text)
+  const [remeasure, setRemeasure] = useState(false)
+  useLayoutEffect(() => {
+    if (text === typed.current) return
+    typed.current = text
+    setRemeasure((r) => !r)
+  }, [text])
+
   /* ------------------------------------------------------------ Position */
 
-  const position = useAnimatedStyle(() => {
-    const g = geometry.value
-    const index = g.index[id]
-    if (index === undefined) return { opacity: 0, transform: [{ translateY: -10_000 }] }
-    const d = drag.value
-    if (d.active && d.date === date) {
-      const at = dragTop(d, g, index)!
-      if (at.lifted) {
-        return {
-          opacity: 1,
-          zIndex: 10,
-          shadowOpacity: withTiming(0.16, { duration: 120 }),
-          transform: [{ translateY: at.top }, { translateX: withSpring(at.x, { damping: 22, stiffness: 320 }) }, { scale: withTiming(1.02, { duration: 120 }) }]
-        }
+  // Each line keeps its own offsets and animates only when its own target changes, so a
+  // wrap, a Return or a drag frame moves the lines that move and leaves the rest alone.
+  const y = useSharedValue(layout.frameOf(id)?.top ?? HIDDEN)
+  // A line new to the page (Return, a paste, another device) shows once the UI thread has
+  // placed it, in the same frame as the lines it pushes down. Shown as it mounts, it would
+  // cover the line below until they move.
+  const placed = useSharedValue(!layout.open)
+  const lift = useSharedValue(0)
+  const x = useSharedValue(0)
+  const sx = useSharedValue(0)
+
+  useAnimatedReaction(
+    () => {
+      const g = geometry.value
+      const index = g.index[id]
+      const d = drag.value
+      const swiped = swipe.id.value === id
+      const swipeX = swiped ? swipe.x.value : 0
+      if (index === undefined) return { top: HIDDEN, lifted: false, liftX: 0, ms: 0, swiped, swipeX }
+      if (d.active && d.date === date) {
+        const at = dragTop(d, g, index)!
+        return { top: at.top, lifted: at.lifted, liftX: at.x, ms: 160, swiped, swipeX }
       }
-      return { opacity: 1, zIndex: 0, shadowOpacity: 0, transform: [{ translateY: withTiming(at.top, { duration: 160 }) }, { translateX: 0 }, { scale: 1 }] }
+      return { top: g.tops[index], lifted: false, liftX: 0, ms: g.animate ? 200 : 0, swiped, swipeX }
+    },
+    (next, prev) => {
+      if (!prev) placed.value = true
+      if (next.top !== prev?.top) {
+        // A lifted line follows the finger; a line arriving or leaving doesn't fly in.
+        const jump = !prev || next.lifted || !next.ms || next.top === HIDDEN || prev.top === HIDDEN
+        y.value = jump ? next.top : withTiming(next.top, { duration: next.ms })
+      }
+      if (next.lifted !== (prev?.lifted ?? false)) lift.value = withTiming(next.lifted ? 1 : 0, { duration: next.lifted ? 120 : 160 })
+      if (next.liftX !== (prev?.liftX ?? 0)) x.value = next.lifted ? withSpring(next.liftX, { damping: 22, stiffness: 320 }) : withTiming(next.liftX, { duration: 160 })
+      // Swiping slides the whole line over the page's swipe underlay; when another line
+      // takes the swipe, this one eases home.
+      if (next.swipeX !== (prev?.swipeX ?? 0)) sx.value = next.swiped || !prev?.swiped ? next.swipeX : withTiming(0, { duration: 160 })
     }
-    const top = g.tops[index]
-    return {
-      opacity: 1,
-      zIndex: 0,
-      shadowOpacity: withTiming(0, { duration: 160 }),
-      transform: [
-        { translateY: g.animate ? withTiming(top, { duration: 200 }) : top },
-        // Swiping slides the whole line over the page's swipe underlay.
-        { translateX: swipe.id.value === id ? swipe.x.value : withTiming(0, { duration: 160 }) },
-        { scale: withTiming(1, { duration: 160 }) }
-      ]
-    }
-  })
+  )
+
+  // In dark, a lifted line takes the raised surface and a deeper shadow to stand off the page.
+  const raised = c.bgElevated
+  const page = c.bg
+  const shadow = c === colors.dark ? 0.5 : 0.16
+  const position = useAnimatedStyle(() => ({
+    opacity: y.value === HIDDEN || !placed.value ? 0 : 1,
+    zIndex: lift.value > 0 ? 10 : 0,
+    backgroundColor: lift.value > 0 ? raised : page,
+    shadowOpacity: shadow * lift.value,
+    transform: [{ translateY: y.value }, { translateX: lift.value > 0 ? x.value : sx.value }, { scale: 1 + 0.02 * lift.value }]
+  }))
 
   /* --------------------------------------------------------------- Drag */
 
@@ -175,9 +211,11 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
     onFinalize: liftEnd
   })
   // The line being edited lifts only by its marker: a long press on its text belongs to
-  // the caret and the loupe.
+  // the caret and the loupe. A finger already moving sideways is a swipe, however slowly
+  // it started: the lift gives way after 8 pt sideways (a long press alone allows 10).
   const bodyLift = usePanGesture({
     activateAfterLongPress: LIFT_DELAY,
+    failOffsetX: [-8, 8],
     enabled: !ghost && !focused,
     onActivate: liftStart,
     onUpdate: liftMove,
@@ -215,13 +253,13 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
       const x = swipe.x.value
       if (x >= SWIPE_ACT) {
         scheduleOnRN(advance, id)
-        swipe.x.value = withSpring(0, { damping: 20, stiffness: 260 })
+        swipe.x.value = withSpring(0, SWIPE_HOME)
       } else if (x <= -deleteAt) {
         swipe.x.value = withTiming(-width, { duration: 160 }, () => scheduleOnRN(remove, id))
       } else if (x <= -SWIPE_ACT) {
         swipe.x.value = withTiming(-width, { duration: 160 }, () => scheduleOnRN(toTomorrow, id))
       } else {
-        swipe.x.value = withSpring(0, { damping: 20, stiffness: 260 })
+        swipe.x.value = withSpring(0, SWIPE_HOME)
       }
     }
   })
@@ -257,11 +295,18 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
 
   return (
     <Animated.View
-      style={[styles.row, { backgroundColor: c.bg, shadowColor: '#000' }, position]}
-      onLayout={(e) => layout.measure(id, e.nativeEvent.layout.height)}
+      style={[styles.row, position]}
+      onLayout={(e) => {
+        const height = e.nativeEvent.layout.height
+        layout.measure(id, height)
+        // A line that wraps as it's typed stays clear of the keyboard and the toolbar on it
+        // (iOS only keeps the caret above the keyboard), once the new layout is in.
+        if (focused && height < scrollState.value.viewportHeight / 2) requestAnimationFrame(() => editor.scroller?.reveal(date, id))
+      }}
     >
       <View style={[styles.line, { paddingLeft: metrics.gutter + depth * metrics.indent }]}>
         {flash ? <Glow at={flash} /> : null}
+        {/* The whole marker column takes the tap, the gutter to its left included. */}
         <GestureDetector gesture={markerGesture}>
           <View style={styles.markerHit} collapsable={false}>
             <Marker type={item?.type ?? 'text'} done={!!done} />
@@ -276,8 +321,11 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
           <View style={styles.body} collapsable={false} pointerEvents={focused ? 'auto' : 'box-only'}>
             <TextInput
               ref={setRef}
-              value={item?.text ?? ''}
-              onChangeText={(text) => editor.onChangeText(id, date, text)}
+              value={text}
+              onChangeText={(value) => {
+                typed.current = value
+                editor.onChangeText(id, date, value)
+              }}
               onSelectionChange={(e) => editor.onSelection(id, e.nativeEvent.selection)}
               onSubmitEditing={() => editor.onSubmit(id)}
               onKeyPress={(e) => {
@@ -292,7 +340,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
               placeholderTextColor={c.text3}
               selectionColor={c.accent}
               autoCapitalize="sentences"
-              style={[styles.text, { color: done ? c.text3 : c.text }, done && styles.done]}
+              style={[styles.text, { color: done ? c.text3 : c.text }, done && styles.done, remeasure && styles.remeasure]}
               nativeID={`line-${id}`}
               // For end-to-end tests: depth, type and text, e.g. "1/todo-done:Book flights".
               testID={ghost ? `new-line-${date}` : `${depth}/${item.type}${done ? '-done' : ''}:${item.text}`}
@@ -326,6 +374,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 14,
     shadowOpacity: 0
@@ -341,7 +390,9 @@ const styles = StyleSheet.create({
     borderRadius: 8
   },
   markerHit: {
-    width: metrics.marker
+    width: metrics.gutter + metrics.marker,
+    marginLeft: -metrics.gutter,
+    paddingLeft: metrics.gutter
   },
   body: {
     flex: 1,
@@ -358,5 +409,9 @@ const styles = StyleSheet.create({
   },
   done: {
     textDecorationLine: 'line-through'
+  },
+  // Changes nothing on screen; a changed style is what makes React Native lay it out again.
+  remeasure: {
+    maxHeight: 100_000
   }
 })

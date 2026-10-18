@@ -3,7 +3,8 @@ import { caretRect } from './dom'
 /**
  * Cue's caret, which is also its brand mark: 2 px wide, the accent color, rounded,
  * line height minus 4 px, with a calm 1.1 s hard on/off blink that holds solid while
- * you type and doesn't blink at all under Reduce Motion (see app.css).
+ * you type, rests solid once the caret has been still for about 10 s, and doesn't blink
+ * at all under Reduce Motion (see app.css).
  *
  * Browsers can't restyle the native caret's width or blink, so one overlay element is
  * positioned at the selection. The native caret is hidden only while the overlay is

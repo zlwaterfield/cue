@@ -3,11 +3,12 @@ import * as Haptics from 'expo-haptics'
 import { addDays, friendlyDate, todayISO } from '@shared/dates'
 import * as ops from '@shared/editor/ops'
 import { dropTarget, subtreeEnd } from '@shared/editor/geometry'
+import { rollover } from '@shared/editor/rollover'
 import { Tx } from '@shared/editor/tx'
-import { UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
+import { revert, UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
 import { uuidv7 } from '@shared/ids'
 import { parseMarkdownLines } from '@shared/markdown'
-import type { ISODate, ItemType } from '@shared/types'
+import type { ISODate, Item, ItemType } from '@shared/types'
 import { itemStore, sync } from '../core/app'
 import { dismissToast, showToast, ui } from '../core/ui'
 import { DayLayout } from './layout'
@@ -73,7 +74,34 @@ export class Editor {
    * fast typing can arrive with the marker still in front; it's taken off again here.
    */
   private stripped = new Map<string, string>()
+  /** The old today's page after midnight, until it can follow to the new today. */
+  private following: ISODate | null = null
   scroller: Scroller | null = null
+
+  constructor() {
+    itemStore.onReset(() => this.reset())
+    itemStore.onExternal((applied) => this.onExternal(applied))
+  }
+
+  /**
+   * The notes on this phone were removed (signed out, or another account signed in).
+   * Nothing from before may act on whoever's notes come next: no undo history, no ghost
+   * ids, no caret, no page left on a day from the previous account.
+   */
+  private reset(): void {
+    this.undo.clear()
+    this.toastEntry = undefined
+    this.ghosts.clear()
+    this.layouts.clear()
+    this.carets.clear()
+    this.stripped.clear()
+    this.pending = null
+    if (this.frame) cancelAnimationFrame(this.frame)
+    this.frame = 0
+    this.following = null
+    const today = todayISO()
+    ui.set({ today, date: today, focusedId: null, toast: null, flash: null, dragging: false })
+  }
 
   /* ============================================================== Days */
 
@@ -119,25 +147,57 @@ export class Editor {
     this.scroller?.reveal(date, id)
   }
 
-  /** Keep "today" right when the app stays open past midnight. */
+  /**
+   * Keep "today" right when the app stays open past midnight (every 30 s, and when the app
+   * comes back). Titles and the Today pill move on at once; the old today's page follows
+   * only once no line is being edited or dragged (see `rollover`).
+   */
   checkToday(): void {
-    const today = todayISO()
-    const { today: shown, date } = ui.get()
-    if (today === shown) return
-    void itemStore.ensureLoaded([today]).then(() => ui.set({ today, date: date === shown ? today : date }))
+    const { today, date, focusedId, dragging } = ui.get()
+    const next = rollover({ today, page: date, following: this.following }, todayISO(), !!focusedId || dragging)
+    this.following = next.following
+    if (next.today !== today) void itemStore.ensureLoaded([next.today]).then(() => ui.set({ today: next.today }))
+    if (next.page !== date) void this.goTo(next.page)
   }
 
   /* ============================================================= Focus */
 
   register(id: string, input: TextInputInstance | null): void {
-    if (input) {
-      this.inputs.set(id, input)
-      if (this.pending?.id === id) this.schedule()
+    if (!input) return
+    this.inputs.set(id, input)
+    // A line just created for the caret (Return) takes it as it mounts, like autoFocus,
+    // rather than a frame later.
+    if (this.pending?.id === id) {
+      if (this.frame) cancelAnimationFrame(this.frame)
+      this.frame = 0
+      this.apply()
     }
   }
 
   unregister(id: string, input: TextInputInstance | null): void {
-    if (this.inputs.get(id) === input) this.inputs.delete(id)
+    if (this.inputs.get(id) !== input) return
+    this.inputs.delete(id)
+    if (ui.get().focusedId !== id) return
+    // A line removed while being edited (deleted, moved, its page replaced) never reports
+    // a blur. Unless it's back a frame later, the caret is on whichever line took it, or
+    // nowhere, so the toolbar never acts on a line that isn't there.
+    requestAnimationFrame(() => {
+      if (ui.get().focusedId === id && !this.inputs.has(id)) this.leave(id, this.focusedInput())
+    })
+  }
+
+  /** The line whose input has focus, as far as JavaScript knows (its focus event may be on the way). */
+  private focusedInput(): string | null {
+    for (const [id, input] of this.inputs) if (input.isFocused()) return id
+    return null
+  }
+
+  /** The line being edited is gone from the page: stop editing it. */
+  private leave(id: string, next: string | null = null): void {
+    this.undo.seal()
+    this.stripped.delete(id)
+    if (this.pending?.id === id) this.pending = null
+    ui.set({ focusedId: next })
   }
 
   /** Put the caret in a line once it's rendered (it may have just been created). */
@@ -151,15 +211,20 @@ export class Editor {
     if (this.frame) return
     this.frame = requestAnimationFrame(() => {
       this.frame = 0
-      const pending = this.pending
-      const input = pending && this.inputs.get(pending.id)
-      if (!pending || !input) return
-      this.pending = null
-      if (!input.isFocused()) input.focus()
-      input.setSelection(pending.start, pending.end)
-      const date = itemStore.get(pending.id)?.date ?? this.ghostDate(pending.id)
-      if (date) this.scroller?.reveal(date, pending.id)
+      this.apply()
     })
+  }
+
+  /** Focus the pending line if it's on screen (else its registration will). */
+  private apply(): void {
+    const pending = this.pending
+    const input = pending && this.inputs.get(pending.id)
+    if (!pending || !input) return
+    this.pending = null
+    if (!input.isFocused()) input.focus()
+    input.setSelection(pending.start, pending.end)
+    const date = itemStore.get(pending.id)?.date ?? this.ghostDate(pending.id)
+    if (date) this.scroller?.reveal(date, pending.id)
   }
 
   onFocus(id: string): void {
@@ -232,15 +297,25 @@ export class Editor {
     const entry = this.undo.popUndo()
     if (!entry) return
     dismissToast()
-    itemStore.commit(entry.changes.map((c) => (c.before ? c.before : { ...c.after, deleted: true })))
-    this.restore(entry.selectionBefore)
+    this.replay(entry, 'undo')
   }
 
   redoAction(): void {
     const entry = this.undo.popRedo()
     if (!entry) return
-    itemStore.commit(entry.changes.map((c) => c.after))
-    this.restore(entry.selectionAfter)
+    this.replay(entry, 'redo')
+  }
+
+  /** Reverse (or redo) only what the entry changed, leaving newer edits from other devices alone. */
+  private replay(entry: UndoEntry, direction: 'undo' | 'redo'): void {
+    const records = revert(entry.changes, direction, itemStore)
+    if (!records.length) {
+      showToast('Already changed on another device')
+      return
+    }
+    itemStore.commit(records)
+    // Lands only on a line that's still there.
+    this.restore(direction === 'undo' ? entry.selectionBefore : entry.selectionAfter)
   }
 
   /** The toast's Undo: only undoes the action it announced. */
@@ -253,6 +328,33 @@ export class Editor {
   private announce(message: string): void {
     showToast(message, { undo: true })
     this.toastEntry = this.undo.top()
+  }
+
+  /**
+   * Lines changed on another device. If the one being edited was deleted, or moved off this
+   * page, the keyboard goes (there's nothing left to type into) and a toast says why; a
+   * deletion can be undone from it, which brings the line back everywhere.
+   */
+  private onExternal(applied: Item[]): void {
+    const id = ui.get().focusedId
+    const record = id ? applied.find((item) => item.id === id) : undefined
+    if (!id || !record || itemStore.get(id)?.date === ui.get().date) return
+    const caret = this.carets.get(id) ?? { start: record.text.length, end: record.text.length }
+    this.leave(id)
+    Keyboard.dismiss()
+    if (record.deleted) {
+      this.undo.record({
+        label: 'Delete',
+        changes: [{ before: { ...record, deleted: false }, after: record }],
+        selectionBefore: { kind: 'text', id, ...caret },
+        selectionAfter: { kind: 'none' },
+        at: Date.now()
+      })
+      this.announce('Deleted on another device')
+    } else {
+      const label = friendlyDate(record.date, ui.get().today).replace(/^(Today|Tomorrow|Yesterday)$/, (m) => m.toLowerCase())
+      showToast(`Moved to ${label} on another device`)
+    }
   }
 
   /* ============================================================ Typing */

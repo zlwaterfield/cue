@@ -14,9 +14,14 @@ name: Writing
     env:
       EMAIL: ${output.email}
 
+# A new account's today is empty: once the first download has brought today's notes, the
+# caret is waiting in its blank line, keyboard and toolbar up.
+- extendedWaitUntil:
+    visible:
+      id: tool-hide
+    timeout: 5000
+
 # Typing into the blank line makes it a line; Return continues with the same type.
-- tapOn:
-    id: ${'new-line-' + output.today}
 - inputText: "Plan the week"
 - pressKey: Enter
 - inputText: "- Draft agenda"

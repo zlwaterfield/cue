@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler'
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
 import { router } from 'expo-router'
 import { SymbolView, type SFSymbol } from 'expo-symbols'
 import * as Haptics from 'expo-haptics'
 import { addDays, dateRange, longDate, MONTHS, parts, startOfWeek, weekday, WEEKDAYS } from '@shared/dates'
+import { indicator, INDICATOR_DELAY, INDICATOR_FADE } from '@shared/sync/status'
 import type { ISODate } from '@shared/types'
 import { itemStore, sync } from '../core/app'
 import { useStore } from '../core/store'
@@ -37,17 +38,19 @@ export function Header() {
         <Pressable
           onPress={() => router.push('/calendar')}
           accessibilityRole="button"
-          accessibilityLabel="Go to a date"
+          accessibilityLabel={`${MONTHS[month - 1]} ${year}`}
+          accessibilityHint="Opens the calendar"
           style={styles.month}
           hitSlop={8}
         >
-          <Text style={[styles.monthText, { color: c.text }]}>
+          {/* At the largest text sizes the month gives way, so search and settings stay on screen. */}
+          <Text style={[styles.monthText, { color: c.text }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
             {MONTHS[month - 1]} <Text style={{ color: c.text3 }}>{year}</Text>
           </Text>
           <SymbolView name="chevron.down" size={12} weight="semibold" tintColor={c.text3} />
         </Pressable>
         <View style={styles.actions}>
-          <SyncIndicator />
+          <SyncIndicator compact={!isToday} />
           {!isToday && (
             <Pressable
               onPress={() => void editor.goTo(today)}
@@ -55,7 +58,9 @@ export function Header() {
               accessibilityRole="button"
               hitSlop={6}
             >
-              <Text style={[styles.todayText, { color: c.text }]}>Today</Text>
+              <Text style={[styles.todayText, { color: c.text }]} maxFontSizeMultiplier={1.3}>
+                Today
+              </Text>
             </Pressable>
           )}
           <IconButton icon="magnifyingglass" label="Search" onPress={() => router.push('/search')} />
@@ -148,9 +153,13 @@ function WeekStrip({ date, today }: { date: ISODate; today: ISODate }) {
               accessibilityLabel={longDate(day)}
               testID={`day-${day}`}
             >
-              <Text style={[styles.weekday, { color: isToday ? c.text : c.text3 }]}>{WEEKDAYS[weekday(day)].slice(0, 1)}</Text>
+              <Text style={[styles.weekday, { color: isToday ? c.text : c.text2 }]} maxFontSizeMultiplier={1.3}>
+                {WEEKDAYS[weekday(day)].slice(0, 1)}
+              </Text>
               <View style={[styles.dayNumber, selected && { backgroundColor: c.accent }, !selected && isToday && { borderColor: c.lineStrong, borderWidth: 1 }]}>
-                <Text style={[styles.dayText, { color: selected ? c.onAccent : c.text }, isToday && styles.todayDay]}>{parts(day).day}</Text>
+                <Text style={[styles.dayText, { color: selected ? c.onAccent : c.text }, isToday && styles.todayDay]} maxFontSizeMultiplier={1.3}>
+                  {parts(day).day}
+                </Text>
               </View>
               <View style={[styles.dot, { backgroundColor: marked.has(day) && !selected ? c.text3 : 'transparent' }]} />
             </Pressable>
@@ -161,22 +170,52 @@ function WeekStrip({ date, today }: { date: ISODate; today: ISODate }) {
   )
 }
 
+/** True once `active` has held for `ms`; false again the moment it stops. */
+function useHeld(active: boolean, ms: number): boolean {
+  const [held, setHeld] = useState(false)
+  useEffect(() => {
+    if (!active) return
+    const timer = setTimeout(() => setHeld(true), ms)
+    return () => {
+      clearTimeout(timer)
+      setHeld(false)
+    }
+  }, [active, ms])
+  return active && held
+}
+
 /**
  * Sync shows only when it can't keep up: offline, paused, or the first download onto
- * this phone. A long sync fades in "Syncing…"; quick ones never show.
+ * this phone. A long sync fades in "Syncing…"; quick ones never take space. The words
+ * are the Mac title bar's (`shared/sync/status`). Beside the Today pill, and during the
+ * first download (the page itself says "Getting your notes…"), only the dot shows, as in
+ * a narrow Mac window; VoiceOver still reads the words.
  */
-function SyncIndicator() {
+function SyncIndicator({ compact }: { compact: boolean }) {
   const c = useColors()
   const state = useStore(sync.state, (s) => s)
-  let label: string | null = null
-  if (state.downloading) label = 'Getting your notes…'
-  else if (state.status === 'offline') label = 'Offline'
-  else if (state.status === 'error') label = 'Sync paused'
-  if (!label) return null
+  const shown = indicator(state)
+  const held = useHeld(!!shown?.delayed, INDICATOR_DELAY)
+  if (!shown || (shown.delayed && !held)) return null
+  const dotOnly = compact || (state.downloading && state.status !== 'offline' && state.status !== 'error')
   return (
-    <Pressable onPress={() => router.push('/settings')} hitSlop={6} accessibilityRole="button">
-      <Text style={[styles.sync, { color: c.text3 }]}>{label}</Text>
-    </Pressable>
+    <Animated.View entering={shown.delayed ? FadeIn.duration(INDICATOR_FADE) : undefined}>
+      <Pressable
+        onPress={() => router.push('/settings')}
+        hitSlop={{ top: 12, bottom: 12, left: 6, right: 6 }}
+        accessibilityRole="button"
+        accessibilityLabel={shown.label}
+        accessibilityHint="Opens Settings"
+        style={[styles.sync, dotOnly && styles.syncDotOnly]}
+      >
+        {(dotOnly || !shown.delayed) && <View style={[styles.syncDot, { backgroundColor: c.text2 }]} />}
+        {!dotOnly && (
+          <Text style={[styles.syncText, { color: c.text2 }, !shown.delayed && styles.syncAttention]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+            {shown.label}
+          </Text>
+        )}
+      </Pressable>
+    </Animated.View>
   )
 }
 
@@ -185,10 +224,11 @@ const styles = StyleSheet.create({
     paddingTop: 2
   },
   bar: {
-    height: 44,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 8,
     // The month lines up with the day's title and text.
     paddingLeft: metrics.gutter + metrics.marker,
     paddingRight: metrics.gutter - 6
@@ -196,9 +236,12 @@ const styles = StyleSheet.create({
   month: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
+    gap: 6,
+    flexShrink: 1,
+    minWidth: 0
   },
   monthText: {
+    flexShrink: 1,
     fontSize: 17,
     fontWeight: '600',
     letterSpacing: -0.2
@@ -206,7 +249,8 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4
+    gap: 4,
+    flexShrink: 0
   },
   icon: {
     width: 36,
@@ -225,9 +269,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600'
   },
+  // As on the Mac: a dot and weight 500 when sync needs a word, plain for a long sync.
   sync: {
-    fontSize: 13,
-    marginRight: 6
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginRight: 2
+  },
+  // The dot alone is still a 24 pt target, like the Mac's narrow title bar.
+  syncDotOnly: {
+    minWidth: 24,
+    minHeight: 24,
+    justifyContent: 'center'
+  },
+  syncDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3
+  },
+  syncText: {
+    fontSize: 13
+  },
+  syncAttention: {
+    fontWeight: '500'
   },
   strip: {
     flexDirection: 'row',

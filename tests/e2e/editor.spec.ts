@@ -286,3 +286,68 @@ test('the toast’s Undo only undoes the move it announced', async () => {
   await expect(page.locator('.toast')).toHaveCount(0)
   expect(await outline(page)).toBe('keep edited')
 })
+
+/** Move the page's clock past midnight (a day ahead) and let the app notice, as on wake. */
+function crossMidnight(page: Cue['page']): Promise<void> {
+  return page.evaluate(() => {
+    const Real = Date
+    const offset = 24 * 3600 * 1000
+    class Shifted extends Real {
+      constructor(...args: ConstructorParameters<typeof Date> | []) {
+        if (args.length) super(...(args as ConstructorParameters<typeof Date>))
+        else super(Real.now() + offset)
+      }
+      static now(): number {
+        return Real.now() + offset
+      }
+    }
+    window.Date = Shifted as DateConstructor
+    window.dispatchEvent(new Event('focus'))
+  })
+}
+
+/** Let a minute without typing go by, then let the app notice. */
+function pauseAMinute(page: Cue['page']): Promise<void> {
+  return page.evaluate(() => {
+    const now = performance.now.bind(performance)
+    performance.now = () => now() + 61_000
+    window.dispatchEvent(new Event('focus'))
+  })
+}
+
+const search = (page: Cue['page'], query: string) =>
+  page.evaluate((query) => window.cue!.search(query, 5).then((r) => r.map((x) => `${x.date}: ${x.text}`)), query)
+
+test('midnight never pulls the day out from under the line being typed', async () => {
+  const { page } = cue
+  const before = await today(page)
+  await page.keyboard.press('Meta+1')
+  await page.keyboard.type('Before midnight')
+  await crossMidnight(page)
+  await page.keyboard.type(' and after')
+  expect(await focusedText(page)).toBe('Before midnight and after')
+  await expect.poll(() => search(page, 'midnight')).toEqual([`${before}: Before midnight and after`])
+
+  // After a minute's pause the day view follows to the new today, caret on its blank line.
+  await pauseAMinute(page)
+  const after = addDays(before, 1)
+  await expect(page.locator('.day.is-today')).toHaveAttribute('data-day', after)
+  expect(await focusedId(page)).toBe(`ghost:${after}`)
+  expect(await outline(page, after)).toBe('')
+})
+
+test('in the week, a line typed across midnight stays where it is', async () => {
+  const { page } = cue
+  const before = await today(page)
+  await page.keyboard.type('Late note')
+  await crossMidnight(page)
+  await page.keyboard.type(', continued')
+  expect(await focusedText(page)).toBe('Late note, continued')
+  expect(await today(page)).toBe(before)
+
+  // Once typing pauses, today moves on; the caret is still somewhere to type.
+  await pauseAMinute(page)
+  await expect(page.locator('.day.is-today')).toHaveAttribute('data-day', addDays(before, 1))
+  expect(await focusedId(page)).not.toBeNull()
+  await expect.poll(() => search(page, 'Late note')).toEqual([`${before}: Late note, continued`])
+})

@@ -64,7 +64,7 @@ export const COMMANDS: CommandMeta[] = [
   { id: 'export.markdown', title: 'Export as Markdown…', group: 'Data', keywords: 'backup save files' },
   { id: 'export.json', title: 'Export JSON backup…', group: 'Data', keywords: 'backup save' },
   { id: 'import.json', title: 'Import JSON backup…', group: 'Data', keywords: 'restore' },
-  { id: 'app.revealData', title: 'Show data folder', group: 'Data', keywords: 'finder database location' },
+  { id: 'app.revealData', title: 'Show data folder in Finder', group: 'Data', keywords: 'reveal database location' },
   { id: 'sync.now', title: 'Sync now', group: 'Data', keywords: 'cloud devices refresh upload download', needsSync: true },
   { id: 'theme.system', title: 'Use system appearance', group: 'General', keywords: 'theme auto' },
   { id: 'theme.light', title: 'Use light appearance', group: 'General', keywords: 'theme' },

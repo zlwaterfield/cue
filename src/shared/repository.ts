@@ -104,6 +104,18 @@ function sameContent(a: Item, b: Item): boolean {
   )
 }
 
+/** Whether `next` changes only the text of `existing`, as typing does. Sync waits for typing to pause. */
+export function isTextOnlyChange(existing: Item, next: Item): boolean {
+  return (
+    existing.date === next.date &&
+    existing.parentId === next.parentId &&
+    existing.position === next.position &&
+    existing.type === next.type &&
+    existing.done === next.done &&
+    existing.deleted === next.deleted
+  )
+}
+
 export interface RepositoryOptions {
   clock?: () => number
 }

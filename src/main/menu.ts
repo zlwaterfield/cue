@@ -49,10 +49,10 @@ export function buildMenu(options: { isDev: boolean; syncAvailable: boolean }): 
         command('item.create', 'New Item'),
         separator,
         command('export.markdown'),
-        command('export.json'),
-        command('import.json'),
+        command('export.json', 'Export JSON Backup…'),
+        command('import.json', 'Import JSON Backup…'),
         separator,
-        command('app.revealData'),
+        command('app.revealData', 'Show Data Folder in Finder'),
         ...(options.syncAvailable ? [command('sync.now', 'Sync Now')] : []),
         separator,
         { role: 'close' }
@@ -80,7 +80,7 @@ export function buildMenu(options: { isDev: boolean; syncAvailable: boolean }): 
     {
       label: 'Item',
       submenu: [
-        command('item.toggleDone', 'Complete / Reopen'),
+        command('item.toggleDone', 'Complete or Reopen'),
         command('item.toggleTodo', 'Toggle Bullet / To-do'),
         {
           label: 'Convert To',
@@ -126,6 +126,12 @@ export function buildMenu(options: { isDev: boolean; syncAvailable: boolean }): 
             command('theme.dark', 'Dark')
           ]
         },
+        separator,
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        // The item shows ⌘+, which needs Shift on most layouts; ⌘= zooms in too.
+        { role: 'zoomIn', accelerator: 'CommandOrControl+=', visible: false },
+        { role: 'zoomOut' },
         separator,
         { role: 'togglefullscreen' },
         ...(options.isDev

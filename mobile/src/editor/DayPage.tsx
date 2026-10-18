@@ -9,7 +9,7 @@ import Animated, {
   useAnimatedStyle,
   useFrameCallback
 } from 'react-native-reanimated'
-import { diffDays, longDate, monthDay, relativeDayName } from '@shared/dates'
+import { daySubtitle, relativeDayName } from '@shared/dates'
 import type { ISODate } from '@shared/types'
 import { itemStore } from '../core/app'
 import { useStore } from '../core/store'
@@ -17,8 +17,8 @@ import { ui } from '../core/ui'
 import { metrics, useColors } from '../ui/theme'
 import { editor } from './controller'
 import { drag, scrollState, updateDrag } from './drag'
-import { TOOLBAR_HEIGHT } from './Toolbar'
-import { useOutline } from './hooks'
+import { TOOLBAR_SPACE } from './Toolbar'
+import { useArriving, useOutline } from './hooks'
 import { Row } from './Row'
 import { SwipeUnderlay } from './Swipe'
 
@@ -56,6 +56,7 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
   const keyboard = useAnimatedKeyboard()
   const contentTop = useRef(0)
   const [loaded, setLoaded] = useState(() => itemStore.isLoaded(date))
+  const arriving = useArriving(date)
 
   useEffect(() => {
     if (loaded) return
@@ -118,9 +119,12 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
         const frame = layout.frameOf(id)
         if (!frame) return
         const s = scrollState.value
+        // Not measured yet: the page is still coming on screen (the caret can land in an
+        // empty today as it does, after sign-in), and the keyboard opening will reveal it.
+        if (!s.viewportHeight) return
         const keyboard = Keyboard.metrics()
         // Above the keyboard and the toolbar riding on it.
-        const keyboardTop = keyboard ? keyboard.screenY - TOOLBAR_HEIGHT : s.viewportTop + s.viewportHeight
+        const keyboardTop = keyboard ? keyboard.screenY - TOOLBAR_SPACE : s.viewportTop + s.viewportHeight
         const visible = Math.min(s.viewportHeight, keyboardTop - s.viewportTop)
         const top = contentTop.current + frame.top
         const bottom = top + frame.height
@@ -145,10 +149,12 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
 
   /* ---------------------------------------------------------- Rendering */
 
-  const delta = diffDays(today, date)
   const title = relativeDayName(date, today)
-  const subtitle = Math.abs(delta) <= 1 ? longDate(date) : `${monthDay(date, today)}${Math.abs(delta) < 7 ? '' : delta > 0 ? ` · in ${delta} days` : ` · ${-delta} days ago`}`
+  const subtitle = daySubtitle(date, today)
   const empty = rows.length === 0
+  // An empty day whose notes are still on their way can't be written in yet, so nothing
+  // typed now lands beside the notes about to arrive.
+  const waiting = empty && arriving
 
   return (
     <View ref={frame} style={styles.frame} onLayout={onViewport}>
@@ -163,25 +169,31 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
       contentInsetAdjustmentBehavior="never"
     >
       <View style={styles.head}>
-        <Text style={[styles.title, { color: c.text }]} accessibilityRole="header" testID="day-title">
+        <Text style={[styles.title, { color: c.text }]} accessibilityRole="header" testID="day-title" maxFontSizeMultiplier={1.4}>
           {title}
         </Text>
-        <Text style={[styles.subtitle, { color: c.text3 }]}>{subtitle}</Text>
+        <Text style={[styles.subtitle, { color: c.text2 }]} maxFontSizeMultiplier={2}>
+          {subtitle}
+        </Text>
       </View>
       <Animated.View
         style={[styles.rows, container]}
         onLayout={(e) => (contentTop.current = e.nativeEvent.layout.y)}
         // Views are in creation order; VoiceOver reads them in the day's order.
-        experimental_accessibilityOrder={accessibilityOrder}
+        experimental_accessibilityOrder={waiting ? undefined : accessibilityOrder}
       >
         <SwipeUnderlay geometry={geometry} />
-        {loaded &&
-          order.map((id) => <Row key={id} id={id} date={date} depth={depths.get(id) ?? 0} empty={empty} />)}
+        {waiting ? (
+          <Text style={[styles.waiting, { color: c.text3 }]}>Getting your notes…</Text>
+        ) : (
+          loaded && order.map((id) => <Row key={id} id={id} date={date} depth={depths.get(id) ?? 0} empty={empty} />)
+        )}
       </Animated.View>
       {/* Tapping the open space below the last line starts a new one. */}
       <Pressable
         style={{ minHeight: screenHeight * 0.45 }}
         onPress={() => editor.focus(editor.ghostId(date), 0)}
+        disabled={waiting}
         accessibilityLabel="New line"
       />
     </AnimatedScrollView>
@@ -201,9 +213,8 @@ const styles = StyleSheet.create({
     paddingBottom: 10
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -0.6
+    fontSize: 34,
+    fontWeight: '700'
   },
   subtitle: {
     fontSize: 15,
@@ -211,5 +222,12 @@ const styles = StyleSheet.create({
   },
   rows: {
     position: 'relative'
+  },
+  waiting: {
+    // Where the blank line's text would be.
+    paddingLeft: metrics.gutter + metrics.marker,
+    paddingVertical: metrics.rowPadding,
+    fontSize: metrics.fontSize,
+    lineHeight: metrics.lineHeight
   }
 })

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { statusLine } from '@shared/sync/status'
+import { isEmailAddress, NOT_AN_EMAIL } from '@shared/text'
 import type { SyncResult, SyncState } from '@shared/types'
 import { backend } from '../data/backend'
 import { refreshSync, syncState } from '../store/sync'
@@ -6,31 +8,40 @@ import { useStore } from '../store/ui'
 
 /**
  * The Sync row in Settings. Sync is off until you sign in with your email and a
- * six-digit code. Builds without a sync server don't show this at all.
+ * six-digit code. Builds without a sync server don't show this at all. The words are the
+ * iPhone's (`shared/sync/status`).
  */
 export function SyncSettings() {
   const state = useStore(syncState, (s) => s)
   useEffect(refreshSync, [])
   if (!state.available) return null
-  return (
-    <div className="setting is-stacked">
-      {state.email ? <SignedIn state={state} /> : <SignIn message={state.message} />}
-    </div>
-  )
+  return <div className="setting is-stacked">{state.email ? <SignedIn state={state} /> : <SignIn state={state} />}</div>
+}
+
+/** The time, updated every `ms`, so "Synced 2 min ago" stays true while Settings is open. */
+function useNow(ms: number): number {
+  const [now, setNow] = useState(Date.now)
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), ms)
+    return () => clearInterval(timer)
+  }, [ms])
+  return now
 }
 
 function SignedIn({ state }: { state: SyncState }) {
+  const now = useNow(15_000)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // A failed sync leaves the status Offline or paused, and the status line says why, so
+  // Sync Now has nothing to add.
   const syncNow = async (): Promise<void> => {
     setBusy(true)
-    const result = await backend.sync.syncNow()
+    await backend.sync.syncNow()
     setBusy(false)
-    setError(result.ok ? null : result.error)
   }
   const deleteAccount = async (): Promise<void> => {
     const result = await backend.sync.deleteAccount()
-    if (result && !result.ok) setError(result.error)
+    setError(result && !result.ok ? result.error : null)
   }
   return (
     <>
@@ -38,12 +49,13 @@ function SignedIn({ state }: { state: SyncState }) {
         <div>
           <div className="setting-label">Sync</div>
           <div className="setting-help">
-            On as <strong>{state.email}</strong>. {describe(state)}
+            On as <strong>{state.email}</strong>
           </div>
-          {(error ?? state.message) && <div className="setting-error">{error ?? state.message}</div>}
+          <div className="setting-help">{statusLine(state, now)}</div>
+          {error && <div className="setting-error">{error}</div>}
         </div>
-        <button className="button" onClick={() => void syncNow()} disabled={busy}>
-          {busy || state.status === 'syncing' ? 'Syncing…' : 'Sync Now'}
+        <button className="button" onClick={() => void syncNow()} disabled={busy || state.status === 'syncing'}>
+          Sync Now
         </button>
       </div>
       <div className="button-row">
@@ -58,86 +70,95 @@ function SignedIn({ state }: { state: SyncState }) {
   )
 }
 
-function describe(state: SyncState): string {
-  const waiting = state.pending === 1 ? '1 change' : `${state.pending} changes`
-  switch (state.status) {
-    case 'offline':
-      return state.pending ? `Offline. ${waiting} will sync when you’re back online.` : 'Offline.'
-    case 'error':
-      return state.pending ? `${waiting} waiting to sync.` : ''
-    case 'syncing':
-      return 'Syncing…'
-    default:
-      return state.lastSyncedAt ? `Synced ${ago(state.lastSyncedAt)}.` : 'Syncing…'
-  }
-}
-
-function ago(time: number): string {
-  const minutes = Math.floor((Date.now() - time) / 60_000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes} min ago`
-  const hours = Math.floor(minutes / 60)
-  return hours === 1 ? '1 hour ago' : `${hours} hours ago`
-}
-
 type Step = { kind: 'off' } | { kind: 'email' } | { kind: 'code'; email: string }
 
-function SignIn({ message }: { message: string | null }) {
+/**
+ * Off, then your email, then the code. If the server ended the session, Off says so and
+ * offers to sign in again (or, for a deleted account, to turn sync on afresh).
+ */
+function SignIn({ state }: { state: SyncState }) {
   const [step, setStep] = useState<Step>({ kind: 'off' })
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState<'send' | 'verify' | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const run = async (action: () => Promise<SyncResult>, onSuccess?: () => void): Promise<void> => {
+  const go = (next: Step): void => {
+    setStep(next)
+    setError(null)
+  }
+
+  const run = async (kind: 'send' | 'verify', action: () => Promise<SyncResult>, onSuccess?: () => void): Promise<void> => {
     if (busy) return
-    setBusy(true)
+    setBusy(kind)
     setError(null)
     const result = await action()
-    setBusy(false)
+    setBusy(null)
     if (result.ok) onSuccess?.()
     else setError(result.error)
   }
 
-  const sendCode = (e: React.FormEvent): void => {
-    e.preventDefault()
-    const address = email.trim()
-    if (!address) return
+  const sendCode = (address: string): void => {
     void run(
+      'send',
       () => backend.sync.sendCode(address),
       () => {
         setCode('')
-        setStep({ kind: 'code', email: address })
+        go({ kind: 'code', email: address })
       }
     )
+  }
+
+  const submitEmail = (e: React.FormEvent): void => {
+    e.preventDefault()
+    const address = email.trim()
+    if (!address) return
+    if (isEmailAddress(address)) sendCode(address)
+    else setError(NOT_AN_EMAIL)
   }
 
   const verify = (e: React.FormEvent): void => {
     e.preventDefault()
     if (step.kind !== 'code' || !code.trim()) return
-    void run(() => backend.sync.verifyCode(step.email, code))
+    void run('verify', () => backend.sync.verifyCode(step.email, code))
   }
+
+  const previous = state.previousEmail
+  let help: React.ReactNode
+  if (step.kind === 'code') help = `Enter the code we sent to ${step.email}.`
+  else if (step.kind === 'email') help = 'Enter your email and we’ll send a six-digit code.'
+  else if (state.needsSignIn) help = <span className="setting-notice">{state.message}</span>
+  else help = 'Off. Your notes are stored only on this Mac. Turn on sync to keep them on your other devices too.'
 
   return (
     <>
       <div className="setting-split">
         <div>
           <div className="setting-label">Sync</div>
-          <div className="setting-help">
-            {step.kind === 'code'
-              ? `Enter the code we emailed to ${step.email}.`
-              : 'Off. Your notes are stored only on this Mac. Turn on sync to keep them on your other devices too.'}
-          </div>
-          {(error ?? message) && <div className="setting-error">{error ?? message}</div>}
+          <div className="setting-help">{help}</div>
+          {error && <div className="setting-error">{error}</div>}
         </div>
         {step.kind === 'off' && (
-          <button className="button" onClick={() => setStep({ kind: 'email' })}>
-            Turn On Sync…
-          </button>
+          <div className="setting-actions">
+            {state.needsSignIn && (
+              <button className="button is-quiet" onClick={() => void backend.sync.signOut()}>
+                Not Now
+              </button>
+            )}
+            {previous ? (
+              <button className="button" onClick={() => sendCode(previous)} disabled={!!busy}>
+                {busy ? 'Sending…' : 'Sign In Again…'}
+              </button>
+            ) : (
+              <button className="button" onClick={() => go({ kind: 'email' })}>
+                Turn On Sync…
+              </button>
+            )}
+          </div>
         )}
       </div>
       {step.kind === 'email' && (
-        <form className="inline-form" onSubmit={sendCode}>
+        <form className="inline-form" onSubmit={submitEmail} noValidate>
           <input
             className="field"
             type="email"
@@ -149,31 +170,41 @@ function SignIn({ message }: { message: string | null }) {
             onChange={(e) => setEmail(e.target.value)}
             aria-label="Email"
           />
-          <button className="button" type="submit" disabled={busy || !email.trim()}>
+          <button className="button" type="submit" disabled={!!busy || !email.trim()}>
             {busy ? 'Sending…' : 'Send Code'}
+          </button>
+          <button className="button is-quiet" type="button" onClick={() => go({ kind: 'off' })}>
+            Cancel
           </button>
         </form>
       )}
       {step.kind === 'code' && (
-        <form className="inline-form" onSubmit={verify}>
-          <input
-            className="field is-code"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder="123456"
-            autoFocus
-            maxLength={12}
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            aria-label="Sign-in code"
-          />
-          <button className="button" type="submit" disabled={busy || !code.trim()}>
-            {busy ? 'Checking…' : 'Turn On Sync'}
-          </button>
-          <button className="button is-quiet" type="button" onClick={() => setStep({ kind: 'email' })}>
-            Use a Different Email
-          </button>
-        </form>
+        <>
+          <form className="inline-form" onSubmit={verify} noValidate>
+            <input
+              className="field is-code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="123456"
+              autoFocus
+              maxLength={12}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              aria-label="Sign-in code"
+            />
+            <button className="button" type="submit" disabled={!!busy || !code.trim()}>
+              {busy === 'verify' ? 'Checking…' : 'Turn On Sync'}
+            </button>
+          </form>
+          <div className="button-row">
+            <button className="button is-quiet" onClick={() => sendCode(step.email)} disabled={!!busy}>
+              {busy === 'send' ? 'Sending…' : 'Send a New Code'}
+            </button>
+            <button className="button is-quiet" onClick={() => go({ kind: 'email' })}>
+              Use a Different Email
+            </button>
+          </div>
+        </>
       )}
     </>
   )

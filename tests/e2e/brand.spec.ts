@@ -48,3 +48,44 @@ test('About shows the wordmark and the alpha notice', async () => {
   await page.keyboard.press('Escape')
   await expect(about).toHaveCount(0)
 })
+
+test('the brand caret blinks, then rests solid, while the hidden native one stays still', async () => {
+  const { page } = cue
+  await expect.poll(async () => (await caretState(cue)).shown).toBe(true)
+  // Solid for a moment after each move, then blinking again: nine blinks, about 10 s.
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector('.cue-caret')!).animationIterationCount)).toBe('9')
+  const native = await page.evaluate(() => {
+    const style = getComputedStyle(document.activeElement!)
+    return { animation: style.getPropertyValue('caret-animation'), color: style.caretColor }
+  })
+  expect(native).toEqual({ animation: 'manual', color: 'rgba(0, 0, 0, 0)' })
+
+  const blink = (): Promise<{ playing: number; opacity: string }> =>
+    page.evaluate(() => {
+      const caret = document.querySelector('.cue-caret')!
+      const playing = caret.getAnimations().filter((a) => a.playState === 'running').length
+      return { playing, opacity: getComputedStyle(caret).opacity }
+    })
+  // Skip to the end of the blink: the caret rests, drawn, with nothing left animating.
+  await page.evaluate(() => document.querySelector('.cue-caret')!.getAnimations().forEach((a) => a.finish()))
+  expect(await blink()).toEqual({ playing: 0, opacity: '1' })
+  // Moving the caret starts the blink again.
+  await page.keyboard.type('x')
+  await expect.poll(async () => (await blink()).playing).toBe(1)
+})
+
+test('a selected segment is lighter than its track in dark mode, as in light', async () => {
+  const { page } = cue
+  const luminance = (color: string): number => {
+    const [r, g, b] = color.match(/\d+/g)!.map(Number)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+  }
+  for (const colorScheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme })
+    const { track, pill } = await page.evaluate(() => ({
+      track: getComputedStyle(document.querySelector('.titlebar .segmented')!).backgroundColor,
+      pill: getComputedStyle(document.querySelector('.titlebar .segmented .is-active')!).backgroundColor
+    }))
+    expect(luminance(pill), `${colorScheme}: ${pill} on ${track}`).toBeGreaterThan(luminance(track))
+  }
+})

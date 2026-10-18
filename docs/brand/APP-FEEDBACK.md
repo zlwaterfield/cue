@@ -23,6 +23,7 @@ Unchecked boxes are identified only by their outline. Strict non-text contrast n
 ## 4. The caret is the brand now
 - Caret: 2 px wide, `--accent`, rounded ends, height ≈ line height − 4 px, which matches the symbol's proportions.
 - Blink: a calm 1.1 s cycle with a hard on/off. Never fade. Respect *Reduce Motion* by not blinking.
+  - *Implemented:* the blink stops and the caret rests solid after about 10 s without moving, so an idle window stops waking the GPU (137 wakeups a second down to a handful). Any move starts it again.
 - Make sure the caret is visible the moment the window appears, so launch-to-typing feels instant.
 
 ## 5. Empty state

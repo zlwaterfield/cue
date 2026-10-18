@@ -1,10 +1,10 @@
-import { Pressable, StyleSheet, Text } from 'react-native'
+import { Pressable, StyleSheet, Text, useColorScheme, useWindowDimensions } from 'react-native'
 import Animated, { FadeInDown, FadeOutDown, useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
-import { TOOLBAR_HEIGHT } from '../editor/Toolbar'
+import { TOOLBAR_SPACE } from '../editor/Toolbar'
 import { useColors } from './theme'
 
 /** A quiet confirmation after a move or a delete, with Undo. Sits above the keyboard. */
@@ -12,10 +12,13 @@ export function Toast() {
   const c = useColors()
   const toast = useStore(ui, (s) => s.toast)
   const insets = useSafeAreaInsets()
+  const { width } = useWindowDimensions()
   const keyboard = useAnimatedKeyboard()
+  // In dark the toast is close to the page, so a hairline gives it an edge.
+  const dark = useColorScheme() === 'dark'
   // Above the keyboard and the toolbar on it, or above the home indicator.
   const lift = useAnimatedStyle(() => ({
-    bottom: keyboard.height.value > 0 ? keyboard.height.value + TOOLBAR_HEIGHT + 10 : insets.bottom + 12
+    bottom: keyboard.height.value > 0 ? keyboard.height.value + TOOLBAR_SPACE + 10 : insets.bottom + 12
   }))
   if (!toast) return null
   return (
@@ -23,7 +26,8 @@ export function Toast() {
       key={toast.id}
       entering={FadeInDown.duration(180)}
       exiting={FadeOutDown.duration(140)}
-      style={[styles.toast, { backgroundColor: c.toastBg }, lift]}
+      // 16 pt from each edge at most: at large text sizes the message wraps and Undo stays in sight.
+      style={[styles.toast, { backgroundColor: c.toastBg, maxWidth: width - 32 }, dark && { borderWidth: StyleSheet.hairlineWidth, borderColor: c.line }, lift]}
       accessibilityRole="alert"
     >
       <Text style={[styles.message, { color: c.toastText }]}>{toast.message}</Text>
@@ -52,6 +56,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 }
   },
   message: {
+    flexShrink: 1,
     fontSize: 15
   },
   undo: {

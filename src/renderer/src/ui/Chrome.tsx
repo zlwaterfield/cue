@@ -1,5 +1,6 @@
-import { useSyncExternalStore } from 'react'
-import { diffDays, MONTHS, parts, shortDate } from '@shared/dates'
+import { useEffect, useState, useSyncExternalStore } from 'react'
+import { MONTHS, parts } from '@shared/dates'
+import { indicator, INDICATOR_DELAY, statusLine } from '@shared/sync/status'
 import { controller } from '../editor/controller'
 import { itemStore } from '../store/items'
 import { syncState } from '../store/sync'
@@ -11,12 +12,16 @@ export function Header() {
   const view = useStore(ui, (s) => s.view)
   const today = useStore(ui, (s) => s.today)
 
-  let title: string
+  // A day's own heading names it; the bar gives the month, like the calendar.
+  let title: React.ReactNode
   if (view.mode === 'week') title = 'This week'
   else {
-    const delta = diffDays(today, view.date)
     const { year, month } = parts(view.date)
-    title = Math.abs(delta) <= 1 ? shortDate(view.date) : `${MONTHS[month - 1]} ${year}`
+    title = (
+      <>
+        {MONTHS[month - 1]} <span className="view-title-year">{year}</span>
+      </>
+    )
   }
 
   const keep = (e: React.MouseEvent): void => e.preventDefault()
@@ -59,39 +64,41 @@ export function Header() {
   )
 }
 
+/** True once `active` has held for `ms`; false again the moment it stops. */
+function useHeld(active: boolean, ms: number): boolean {
+  const [held, setHeld] = useState(false)
+  useEffect(() => {
+    if (!active) return
+    const timer = setTimeout(() => setHeld(true), ms)
+    return () => {
+      clearTimeout(timer)
+      setHeld(false)
+    }
+  }, [active, ms])
+  return active && held
+}
+
 /**
- * Sync stays out of sight while it works. This shows only when it can't: offline,
- * or stopped and needing attention. A long sync (the first one) fades in "Syncing…".
+ * Sync stays out of sight while it works, and for anyone who never turned it on. This
+ * shows only when it can't: offline, paused, or signed out by the server. A long sync (the
+ * first one) fades in "Syncing…"; a quick one (every push while typing) never takes space
+ * in the title bar. The words are the iPhone header's (`shared/sync/status`).
  */
 function SyncIndicator() {
   const sync = useStore(syncState, (s) => s)
-  let label: string
-  let hint: string
-  if (!sync.email) {
-    if (!sync.message) return null
-    label = 'Sync off'
-    hint = sync.message
-  } else if (sync.status === 'offline') {
-    label = 'Offline'
-    hint = 'Changes are saved on this Mac and will sync when you’re back online.'
-  } else if (sync.status === 'error') {
-    label = 'Sync paused'
-    hint = sync.message ?? 'Sync will retry shortly.'
-  } else if (sync.status === 'syncing') {
-    label = 'Syncing…'
-    hint = 'Syncing with your other devices.'
-  } else {
-    return null
-  }
-  const quiet = sync.status === 'syncing' && !!sync.email
+  const shown = indicator(sync)
+  const held = useHeld(!!shown?.delayed, INDICATOR_DELAY)
+  if (!shown || (shown.delayed && !held)) return null
   return (
     <button
-      className={`sync-status${quiet ? ' is-delayed' : ' is-attention'}`}
+      className={`sync-status${shown.delayed ? ' is-delayed' : ' is-attention'}`}
       onMouseDown={(e) => e.preventDefault()}
       onClick={() => controller.execute('app.settings')}
-      title={hint}
+      title={statusLine(sync, Date.now())}
+      // Narrow windows show only the dot.
+      aria-label={shown.label}
     >
-      {label}
+      {shown.label}
     </button>
   )
 }

@@ -3,23 +3,16 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import Constants from 'expo-constants'
 import { router } from 'expo-router'
 import { SvgXml } from 'react-native-svg'
+import { statusLine } from '@shared/sync/status'
 import type { Settings } from '@shared/types'
 import { sync, updateSettings } from '../core/app'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { lockup } from '../ui/lockup'
+import { SheetTitle } from '../ui/Sheet'
 import { metrics, useColors } from '../ui/theme'
 
-function syncedLabel(at: number | null, now: number): string {
-  if (!at) return 'Not synced yet'
-  const seconds = Math.round((now - at) / 1000)
-  if (seconds < 45) return 'Synced just now'
-  const minutes = Math.round(seconds / 60)
-  if (minutes < 60) return `Synced ${minutes} min ago`
-  return `Synced at ${new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
-}
-
-/** Account and sync, appearance, and the week. */
+/** Account and sync, appearance, and the week. The sync words are the Mac's (`shared/sync/status`). */
 export default function SettingsSheet() {
   const c = useColors()
   const state = useStore(sync.state, (s) => s)
@@ -32,16 +25,13 @@ export default function SettingsSheet() {
     return () => clearInterval(timer)
   }, [])
 
-  let status = syncedLabel(state.lastSyncedAt, now)
-  if (state.downloading) status = 'Getting your notes…'
-  else if (state.status === 'offline') status = state.pending ? `Offline · ${state.pending} ${state.pending === 1 ? 'change' : 'changes'} waiting` : 'Offline'
-  else if (state.status === 'error') status = state.message ?? 'Sync paused. It will retry shortly.'
-
   const syncNow = async (): Promise<void> => {
     setSyncing(true)
     const result = await sync.syncNow()
     setSyncing(false)
-    if (!result.ok) Alert.alert('Couldn’t sync', result.error)
+    // Offline or paused needs no alert: the footnote already says why, as on the Mac.
+    const { status } = sync.state.get()
+    if (!result.ok && status !== 'offline' && status !== 'error') Alert.alert('Couldn’t sync', result.error)
   }
 
   const signOut = async (): Promise<void> => {
@@ -57,9 +47,10 @@ export default function SettingsSheet() {
       ])
       return
     }
+    const waiting = unsent === 1 ? '1 change on this iPhone hasn’t' : `${unsent} changes on this iPhone haven’t`
     Alert.alert(
       'Some changes haven’t synced',
-      `${unsent} ${unsent === 1 ? 'change' : 'changes'} on this iPhone haven’t reached your account yet. If you sign out now, they’ll be lost.`,
+      `${waiting} reached your account yet. If you sign out now, they’ll be lost.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Sign Out Anyway', style: 'destructive', onPress: () => void finish() }
@@ -88,9 +79,10 @@ export default function SettingsSheet() {
 
   return (
     <ScrollView contentContainerStyle={styles.sheet}>
-      <Section title="Account">
-        <Row label={state.email ?? ''} />
-        <Row label={status} muted action={syncing ? 'Syncing…' : 'Sync Now'} onPress={syncNow} />
+      <SheetTitle title="Settings" />
+
+      <Section title="Account" footnote={statusLine(state, now)}>
+        <Row label={state.email ?? ''} action="Sync Now" onPress={syncNow} disabled={syncing || state.status === 'syncing'} />
       </Section>
 
       <Section title="Appearance">
@@ -118,12 +110,15 @@ export default function SettingsSheet() {
 
       <Section>
         <Row label="Sign Out" action="" onPress={signOut} />
+      </Section>
+
+      <Section footnote="Deletes your account and its notes from the sync server.">
         <Row label="Delete Account…" action="" onPress={deleteAccount} />
       </Section>
 
       <View style={styles.about}>
         <SvgXml xml={lockup(c.text3)} width={56} height={28} />
-        <Text style={[styles.version, { color: c.text3 }]}>
+        <Text style={[styles.version, { color: c.text2 }]}>
           Version {Constants.expoConfig?.version ?? '0.1.0'} · alpha. Your notes sync across your devices.
         </Text>
       </View>
@@ -131,11 +126,11 @@ export default function SettingsSheet() {
   )
 }
 
-function Section({ title, children }: { title?: string; children: React.ReactNode }) {
+function Section({ title, footnote, children }: { title?: string; footnote?: string; children: React.ReactNode }) {
   const c = useColors()
   return (
     <View style={styles.section}>
-      {title && <Text style={[styles.sectionTitle, { color: c.text3 }]}>{title}</Text>}
+      {title && <Text style={[styles.sectionTitle, { color: c.text2 }]}>{title}</Text>}
       <View style={[styles.group, { backgroundColor: c.bgSubtle }]}>
         {Children.toArray(children).map((child, i) => (
           <View key={i}>
@@ -144,24 +139,33 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
           </View>
         ))}
       </View>
+      {footnote && <Text style={[styles.footnote, { color: c.text2 }]}>{footnote}</Text>}
     </View>
   )
 }
 
-function Row({ label, muted, action, onPress }: { label: string; muted?: boolean; action?: string; onPress?: () => void }) {
+/** A row is a button, or, with an `action` word, a label with that button at its end. */
+function Row({ label, action, onPress, disabled }: { label: string; action?: string; onPress?: () => void; disabled?: boolean }) {
   const c = useColors()
-  const content = (
-    <>
-      <Text style={[styles.rowLabel, { color: muted ? c.text2 : c.text }]} numberOfLines={2}>
-        {label}
-      </Text>
-      {action ? <Text style={[styles.rowAction, { color: c.text }]}>{action}</Text> : null}
-    </>
+  const text = (
+    <Text style={[styles.rowLabel, { color: c.text }]} numberOfLines={2}>
+      {label}
+    </Text>
   )
-  if (!onPress) return <View style={styles.row}>{content}</View>
+  if (action) {
+    return (
+      <View style={styles.row}>
+        {text}
+        <Pressable onPress={onPress} disabled={disabled} hitSlop={12} accessibilityRole="button" accessibilityState={{ disabled: !!disabled }}>
+          {({ pressed }) => <Text style={[styles.rowAction, { color: c.text }, (pressed || disabled) && styles.rowDimmed]}>{action}</Text>}
+        </Pressable>
+      </View>
+    )
+  }
+  if (!onPress) return <View style={styles.row}>{text}</View>
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && { backgroundColor: c.bgHover }]} accessibilityRole="button">
-      {content}
+      {text}
     </Pressable>
   )
 }
@@ -184,11 +188,14 @@ function Segmented<T extends string | number>({
           <Pressable
             key={String(option)}
             onPress={() => onChange(option)}
-            style={[styles.segment, selected && { backgroundColor: c.bgElevated, shadowOpacity: 0.08 }]}
+            style={[styles.segment, selected && { backgroundColor: c.bgSelected, shadowOpacity: 0.08 }]}
             accessibilityRole="button"
             accessibilityState={{ selected }}
           >
-            <Text style={[styles.segmentText, { color: selected ? c.text : c.text2 }, selected && styles.segmentSelected]}>{label}</Text>
+            {/* Like iOS's own segmented controls, the words stop growing before they'd break mid-word. */}
+            <Text style={[styles.segmentText, { color: selected ? c.text : c.text2 }, selected && styles.segmentSelected]} maxFontSizeMultiplier={1.6}>
+              {label}
+            </Text>
           </Pressable>
         )
       })}
@@ -199,7 +206,7 @@ function Segmented<T extends string | number>({
 const styles = StyleSheet.create({
   sheet: {
     padding: metrics.gutter,
-    paddingTop: 26,
+    paddingTop: 22,
     gap: 22
   },
   section: {
@@ -215,6 +222,10 @@ const styles = StyleSheet.create({
   group: {
     borderRadius: 12,
     overflow: 'hidden'
+  },
+  footnote: {
+    fontSize: 13,
+    marginHorizontal: 4
   },
   separator: {
     height: StyleSheet.hairlineWidth,
@@ -236,6 +247,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600'
   },
+  rowDimmed: {
+    opacity: 0.45
+  },
   segmented: {
     flexDirection: 'row',
     padding: 3,
@@ -243,7 +257,9 @@ const styles = StyleSheet.create({
   },
   segment: {
     flex: 1,
-    height: 36,
+    minHeight: 36,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
@@ -253,7 +269,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0
   },
   segmentText: {
-    fontSize: 15
+    fontSize: 15,
+    textAlign: 'center'
   },
   segmentSelected: {
     fontWeight: '600'

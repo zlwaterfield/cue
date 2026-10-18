@@ -1,6 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
+import { createServer, type AddressInfo } from 'node:net'
+import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { signInCode, syncServer, testEmail } from '../syncServer'
-import { caret, focusedText, launch, lines, outline, today } from './app'
+import { caret, focusedText, launch, lines, outline, today, typeLines } from './app'
 
 test('sync is off until you turn it on, and Cue works the same', async () => {
   // A configured server that is never contacted: nothing happens until sign-in.
@@ -14,6 +17,103 @@ test('sync is off until you turn it on, and Cue works the same', async () => {
   expect(await outline(cue.page)).toBe('Just this Mac')
   await cue.app.close()
 })
+
+test('a network that resets every connection never freezes Cue', async () => {
+  test.setTimeout(60_000)
+  // Accepts each connection, then resets it, as some firewalls and proxies do. Before
+  // src/main/guard.ts, the realtime socket's reset threw where nothing could catch it,
+  // and Electron's blocking alert froze the app.
+  const server = createServer((socket) => socket.resetAndDestroy())
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const env = { CUE_SUPABASE_URL: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, CUE_SUPABASE_KEY: 'unused' }
+  let cue = await launch(undefined, env)
+  await cue.app.close()
+  signedIn(cue.dataDir, 'reset@example.com')
+
+  cue = await launch(cue.dataDir, env)
+  await cue.page.keyboard.type('Still typing')
+  await cue.page.waitForTimeout(10_000)
+  expect(await cue.page.evaluate(() => window.cue!.sync.getState())).toMatchObject({ email: 'reset@example.com', status: 'offline' })
+  await expect(cue.page.locator('.sync-status')).toHaveText('Offline')
+  expect(await outline(cue.page)).toBe('Still typing')
+  await cue.app.close()
+  server.close()
+})
+
+test('a session the server ended asks to sign in again, quietly, until dismissed', async () => {
+  const env = { CUE_SUPABASE_URL: 'http://127.0.0.1:9', CUE_SUPABASE_KEY: 'unused' }
+  let cue = await launch(undefined, env)
+  await cue.app.close()
+  ended(cue.dataDir, 'me@example.com', 'expired')
+
+  cue = await launch(cue.dataDir, env)
+  const { page } = cue
+  await page.locator('.sync-status', { hasText: 'Sign in to sync' }).click()
+  await expect(page.getByText('Your sync session ended. Sign in again to keep syncing.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sign In Again…' })).toBeVisible()
+  await page.getByRole('button', { name: 'Not Now' }).click()
+  await expect(page.getByText('Off. Your notes are stored only on this Mac.', { exact: false })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.sync-status')).toHaveCount(0)
+  await cue.app.close()
+
+  // A deleted account can't be signed back in to: sync starts afresh, with any email.
+  ended(cue.dataDir, 'me@example.com', 'deleted')
+  cue = await launch(cue.dataDir, env)
+  await cue.page.locator('.sync-status', { hasText: 'Sign in to sync' }).click()
+  await expect(cue.page.getByText('Your account was deleted on another device. Notes on this Mac stay here.')).toBeVisible()
+  await expect(cue.page.getByRole('button', { name: 'Sign In Again…' })).toHaveCount(0)
+  await cue.page.getByRole('button', { name: 'Turn On Sync…' }).click()
+  await expect(cue.page.getByLabel('Email')).toHaveValue('')
+  await cue.app.close()
+})
+
+test('the email step checks the address itself, in the iPhone’s words, and can be cancelled', async () => {
+  // Nothing is listening at this address: a request would fail with "Can’t reach the sync server".
+  const cue = await launch(undefined, { CUE_SUPABASE_URL: 'http://127.0.0.1:9', CUE_SUPABASE_KEY: 'unused' })
+  const { page } = cue
+  await page.keyboard.press('Meta+,')
+  await page.getByRole('button', { name: 'Turn On Sync…' }).click()
+  await expect(page.getByText('Enter your email and we’ll send a six-digit code.')).toBeVisible()
+  await page.getByLabel('Email').fill('not-an-email')
+  await page.keyboard.press('Enter')
+  // The form submits (no native validation bubble), and the shared check answers.
+  await expect(page.locator('.setting-error')).toHaveText('That doesn’t look like an email address.')
+  await expect(page.locator('form[novalidate]')).toHaveCount(1)
+
+  await page.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.getByText('Off. Your notes are stored only on this Mac.', { exact: false })).toBeVisible()
+  await expect(page.locator('.setting-error')).toHaveCount(0)
+  await cue.app.close()
+})
+
+/** The server ended this Mac's session, as the sync service records it. */
+function ended(dataDir: string, email: string, reason: 'expired' | 'deleted'): void {
+  const db = new DatabaseSync(join(dataDir, 'cue.sqlite'))
+  db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('sync_ended', JSON.stringify({ email, reason }))
+  db.close()
+}
+
+/** Leave this Mac signed in, as far as it knows, without a server to sign in with. */
+function signedIn(dataDir: string, email: string): void {
+  const base64 = (value: object): string => Buffer.from(JSON.stringify(value)).toString('base64url')
+  const expiresAt = Math.floor(Date.now() / 1000) + 3600
+  const user = { id: '00000000-0000-4000-8000-000000000001', email }
+  const session = {
+    access_token: `${base64({ alg: 'HS256', typ: 'JWT' })}.${base64({ sub: user.id, exp: expiresAt, role: 'authenticated' })}.signature`,
+    refresh_token: 'refresh',
+    token_type: 'bearer',
+    expires_in: 3600,
+    expires_at: expiresAt,
+    user: { ...user, aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() }
+  }
+  const db = new DatabaseSync(join(dataDir, 'cue.sqlite'))
+  const put = db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)')
+  put.run('sync_account', JSON.stringify(user))
+  put.run('sync_user', user.id)
+  put.run('sync_session:session', JSON.stringify(session))
+  db.close()
+}
 
 test.describe('with a sync server', () => {
   test.skip(!syncServer, 'Set CUE_SUPABASE_URL and CUE_SUPABASE_KEY (docs/SYNC.md)')
@@ -69,6 +169,58 @@ test.describe('with a sync server', () => {
     await Promise.all([a.app.close(), b.app.close()])
   })
 
+  test('the line you’re on is deleted on the other Mac: the caret moves up, and Undo brings it back', async () => {
+    const email = testEmail('doomed')
+    const [a, b] = await Promise.all([launch(undefined, env()), launch(undefined, env())])
+    const day = await today(a.page)
+    await typeLines(a.page, 'Keep', 'Doomed')
+    await turnOnSync(a.page, email)
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    await turnOnSync(b.page, email)
+    await expect.poll(() => outline(b.page, day)).toBe(lines('Keep', 'Doomed'))
+    expect(await focusedText(a.page)).toBe('Doomed')
+
+    await b.page.locator(`.day[data-day="${day}"] .row .text`, { hasText: 'Doomed' }).click()
+    await b.page.keyboard.press('Meta+Shift+Backspace')
+    await expect.poll(() => outline(a.page, day)).toBe('Keep')
+    expect(await focusedText(a.page)).toBe('Keep')
+    expect(await caret(a.page)).toBe('Keep'.length)
+    await expect(a.page.locator('.toast')).toContainText('Deleted on another device')
+
+    await a.page.locator('.toast').getByRole('button', { name: /Undo/ }).click()
+    await expect.poll(() => outline(a.page, day)).toBe(lines('Keep', 'Doomed'))
+    await expect.poll(() => outline(b.page, day)).toBe(lines('Keep', 'Doomed'))
+    await Promise.all([a.app.close(), b.app.close()])
+  })
+
+  test('after the session ends, Sign In Again goes straight to the code for the same account', async () => {
+    const email = testEmail('again')
+    let cue = await launch(undefined, env())
+    await cue.app.close()
+    ended(cue.dataDir, email, 'expired')
+
+    cue = await launch(cue.dataDir, env())
+    const { page } = cue
+    await page.locator('.sync-status', { hasText: 'Sign in to sync' }).click()
+    await page.getByRole('button', { name: 'Sign In Again…' }).click()
+    await expect(page.getByText(`Enter the code we sent to ${email}.`)).toBeVisible()
+    const first = await signInCode(email)
+
+    await page.getByLabel('Sign-in code').fill(first === '000000' ? '111111' : '000000')
+    await page.keyboard.press('Enter')
+    await expect(page.locator('.setting-error')).toHaveText('That code is wrong or has expired. Check it, or send a new one.')
+    await new Promise((resolve) => setTimeout(resolve, 1100)) // one code per address per second
+    await page.getByRole('button', { name: 'Send a New Code' }).click()
+    await expect(page.locator('.setting-error')).toHaveCount(0)
+    await page.getByLabel('Sign-in code').fill(await signInCode(email))
+    await page.keyboard.press('Enter')
+    await expect(page.locator('.setting-help', { hasText: `On as ${email}` })).toBeVisible()
+    await expect(page.locator('.setting-help', { hasText: 'Synced just now' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.sync-status')).toHaveCount(0)
+    await cue.app.close()
+  })
+
   test('a quick quit still uploads, and the other Mac catches up when it opens', async () => {
     const email = testEmail('restart')
     let a = await launch(undefined, env())
@@ -79,9 +231,14 @@ test.describe('with a sync server', () => {
     await turnOnSync(b.page, email)
     await a.app.close()
 
-    // Saved on this Mac but quit before the usual pause-then-upload.
-    await b.page.keyboard.type('Written just before quitting')
-    await expect.poll(() => b.page.evaluate(() => window.cue!.sync.getState()).then((s) => s.pending)).toBeGreaterThan(0)
+    // A new line goes out at once. Typing is saved on this Mac, but quit before the usual
+    // pause-then-upload.
+    const state = () => b.page.evaluate(() => window.cue!.sync.getState())
+    const synced = (await state()).lastSyncedAt ?? 0
+    await b.page.keyboard.type('Written')
+    await expect.poll(() => state().then((s) => (s.lastSyncedAt ?? 0) > synced && s.pending === 0)).toBe(true)
+    await b.page.keyboard.type(' just before quitting')
+    await expect.poll(() => state().then((s) => s.pending)).toBeGreaterThan(0)
     await b.app.close()
 
     a = await launch(a.dataDir, env())

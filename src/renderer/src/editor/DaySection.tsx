@@ -1,5 +1,5 @@
 import { memo, useCallback, useRef } from 'react'
-import { diffDays, longDate, monthDay, relativeDayName, WEEKDAYS, weekday } from '@shared/dates'
+import { daySubtitle, diffDays, longDate, relativeDayName } from '@shared/dates'
 import type { ISODate } from '@shared/types'
 import { controller, ghostId } from './controller'
 import { useOutline } from './hooks'
@@ -66,14 +66,6 @@ export const DaySection = memo(function DaySection({
   const rows = useOutline(date)
   const delta = diffDays(today, date)
   const name = relativeDayName(date, today)
-  const isRelative = Math.abs(delta) <= 1
-  const subtitle = variant === 'day'
-    ? isRelative
-      ? longDate(date)
-      : `${monthDay(date, today)}${Math.abs(delta) < 7 ? '' : delta > 0 ? ` · in ${delta} days` : ` · ${-delta} days ago`}`
-    : isRelative
-      ? `${WEEKDAYS[weekday(date)]}, ${monthDay(date, today)}`
-      : monthDay(date, today)
 
   const classes = ['day', `is-${variant}`]
   if (delta === 0) classes.push('is-today')
@@ -94,7 +86,7 @@ export const DaySection = memo(function DaySection({
         >
           {name}
         </h2>
-        <span className="day-sub">{subtitle}</span>
+        <span className="day-sub">{daySubtitle(date, today)}</span>
       </header>
       <div className="rows">
         {rows.map((row) => (

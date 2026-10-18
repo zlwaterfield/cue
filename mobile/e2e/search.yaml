@@ -1,0 +1,48 @@
+# Search: a prompt before typing; the first letter finds lines at once and the rest follow
+# as you type; a query with no match says so. Opening a result goes to its day.
+appId: app.cue
+name: Search
+---
+- runFlow: subflows/launch.yaml
+- runScript: scripts/today.js
+- runScript:
+    file: scripts/email.js
+    env:
+      PREFIX: search
+- runFlow:
+    file: subflows/sign-in.yaml
+    env:
+      EMAIL: ${output.email}
+
+- tapOn:
+    id: ${'new-line-' + output.today}
+- inputText: "Plan the budget review"
+- pressKey: Enter
+- inputText: "Call the dentist"
+- tapOn:
+    id: tool-hide
+
+- tapOn: "Search"
+- assertVisible: "Find anything you’ve written"
+- inputText: "plan budget"
+- extendedWaitUntil:
+    visible:
+      id: "search-result"
+    timeout: 1000
+- assertNotVisible: "No matches"
+
+- eraseText: 11
+- inputText: "zqxj"
+- extendedWaitUntil:
+    visible: "No matches"
+    timeout: 1000
+- assertNotVisible:
+    id: "search-result"
+
+- eraseText: 4
+- inputText: "dentist"
+- tapOn:
+    id: "search-result"
+    text: ".*Call the dentist.*"
+- assertVisible:
+    id: "0/text:Call the dentist"

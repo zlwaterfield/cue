@@ -60,7 +60,7 @@ const EDITING: Array<[string, string]> = [
   ['New line', 'Enter'],
   ['Extend selection', 'Shift+ArrowDown'],
   ['Select all in day', 'Mod+A'],
-  ['Remove formatting', 'Backspace'],
+  ['Turn back into text (at line start)', 'Backspace'],
   ['Open link', 'Mod+Click']
 ]
 
@@ -111,6 +111,7 @@ export function ShortcutsSheet() {
   )
 }
 
+/** A radio group: one Tab stop (the chosen option), arrow keys to change it. */
 function Segmented<T extends string | number>({
   value,
   options,
@@ -120,10 +121,26 @@ function Segmented<T extends string | number>({
   options: Array<[T, string]>
   onChange: (value: T) => void
 }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const onKeyDown = (e: React.KeyboardEvent): void => {
+    const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+    if (!step) return
+    e.preventDefault()
+    const next = (options.findIndex(([v]) => v === value) + step + options.length) % options.length
+    onChange(options[next][0])
+    ;(ref.current?.children[next] as HTMLElement | undefined)?.focus()
+  }
   return (
-    <div className="segmented" role="radiogroup">
+    <div className="segmented" role="radiogroup" ref={ref} onKeyDown={onKeyDown}>
       {options.map(([v, label]) => (
-        <button key={String(v)} role="radio" aria-checked={v === value} className={v === value ? 'is-active' : ''} onClick={() => onChange(v)}>
+        <button
+          key={String(v)}
+          role="radio"
+          aria-checked={v === value}
+          tabIndex={v === value ? 0 : -1}
+          className={v === value ? 'is-active' : ''}
+          onClick={() => onChange(v)}
+        >
           {label}
         </button>
       ))}
@@ -158,7 +175,7 @@ export function AboutSheet() {
               controller.execute('app.revealData')
             }}
           >
-            Show data folder
+            Show in Finder
           </button>
         </div>
       </div>
@@ -216,13 +233,13 @@ export function SettingsSheet() {
         </div>
         <div className="button-row">
           <button className="button" onClick={run('export.markdown')} disabled={!isDesktop}>
-            Export Markdown…
+            Export as Markdown…
           </button>
           <button className="button" onClick={run('export.json')} disabled={!isDesktop}>
-            Export JSON backup…
+            Export JSON Backup…
           </button>
           <button className="button" onClick={run('import.json')} disabled={!isDesktop}>
-            Import backup…
+            Import JSON Backup…
           </button>
           <button className="button is-quiet" onClick={run('app.revealData')} disabled={!isDesktop}>
             Show in Finder

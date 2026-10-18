@@ -1,3 +1,4 @@
+import './guard'
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net, powerMonitor, safeStorage, screen, shell } from 'electron'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -7,7 +8,7 @@ import type { ExportResult, ImportResult, Item, Settings, ThemePreference } from
 import { openDatabase } from './db'
 import { buildMenu } from './menu'
 import { backupJSON, exportMarkdown, importJSON, readText, runDailyBackup } from './portability'
-import { Repository } from '../shared/repository'
+import { isTextOnlyChange, Repository } from '../shared/repository'
 import { SyncService } from './sync/service'
 import type { SyncConfig } from '../shared/sync/supabase'
 
@@ -19,6 +20,8 @@ else if (!app.isPackaged) app.setPath('userData', join(app.getPath('appData'), '
 const isDev = !app.isPackaged && !!process.env.ELECTRON_RENDERER_URL
 // Automated tests show the window without stealing focus from the person at the Mac.
 const isTest = process.env.CUE_E2E === '1'
+// `pnpm bench` (scripts/bench.mjs) reads timings and memory from stdout.
+const isBench = process.env.CUE_BENCH === '1'
 const LIGHT_BG = '#ffffff'
 const DARK_BG = '#18181a'
 
@@ -41,7 +44,8 @@ if (!app.requestSingleInstanceLock()) {
 
 function start(): void {
   // Unpackaged builds run inside Electron's bundle; show Cue's icon in the Dock anyway.
-  if (!app.isPackaged && process.platform === 'darwin') app.dock?.setIcon(join(app.getAppPath(), 'build/icon.png'))
+  // Not while benchmarking: it's on the launch path, and packaged builds never pay for it.
+  if (!app.isPackaged && !isBench && process.platform === 'darwin') app.dock?.setIcon(join(app.getAppPath(), 'build/icon.png'))
   const dataDir = app.getPath('userData')
   mkdirSync(dataDir, { recursive: true })
   db = openDatabase(join(dataDir, 'cue.sqlite'))
@@ -59,13 +63,10 @@ function start(): void {
   Menu.setApplicationMenu(buildMenu({ isDev, syncAvailable: sync.state().available }))
   createWindow()
 
-  // A consistent snapshot per day, kept for two weeks, off the startup path.
+  // A consistent snapshot per day, kept for two weeks, off the startup path. SQLite copies
+  // it on a worker thread, so typing never waits for it.
   const backup = (): void => {
-    try {
-      runDailyBackup(db, join(dataDir, 'Backups'))
-    } catch (error) {
-      console.error('Backup failed', error)
-    }
+    void runDailyBackup(db, join(dataDir, 'Backups')).catch((error) => console.error('Backup failed', error))
   }
   setTimeout(backup, 10_000).unref?.()
   setInterval(backup, 6 * 60 * 60 * 1000).unref?.()
@@ -214,16 +215,28 @@ function broadcast(channel: string, payload: unknown): void {
   for (const win of BrowserWindow.getAllWindows()) win.webContents.send(channel, payload)
 }
 
+/**
+ * Store edits from the editor. With sync on, anything but typing (a new line, a move, a
+ * toggle, a delete) goes to the server right away rather than after the typing pause.
+ */
+function saveItems(items: Item[]): Item[] {
+  const soon =
+    sync.isOn() &&
+    items.some((item) => {
+      const existing = typeof item?.id === 'string' ? repo.get(item.id) : null
+      return !existing || !isTextOnlyChange(existing, item)
+    })
+  const saved = repo.saveItems(items)
+  if (saved.length) sync.localChange({ soon })
+  return saved
+}
+
 function registerIpc(): void {
   ipcMain.handle('items:load', (_e, dates: string[]) => repo.loadDates(dates))
-  ipcMain.handle('items:save', (_e, items: Item[]) => {
-    const saved = repo.saveItems(items)
-    if (saved.length) sync.localChange()
-    return saved.map(({ id, version }) => ({ id, version }))
-  })
+  ipcMain.handle('items:save', (_e, items: Item[]) => saveItems(items).map(({ id, version }) => ({ id, version })))
   ipcMain.on('items:saveSync', (event, items: Item[]) => {
     try {
-      if (repo.saveItems(items).length) sync.localChange()
+      saveItems(items)
       event.returnValue = true
     } catch (error) {
       console.error('Synchronous save failed', error)
@@ -327,13 +340,10 @@ function registerIpc(): void {
     // Sync starts once the first screen is up, so it never competes with launch.
     void sync.start()
     // `pnpm bench` measures launch → first editable screen from this signal.
-    if (process.env.CUE_BENCH !== '1') return
+    if (!isBench) return
     process.stdout.write(`CUE_INTERACTIVE ${Date.now()}\n`)
-    // Settled memory across all of Cue's processes, a few seconds after launch.
-    setTimeout(() => {
-      const bytes = app.getAppMetrics().reduce((n, m) => n + m.memory.workingSetSize, 0) * 1024
-      process.stdout.write(`CUE_MEMORY ${bytes}\n`)
-    }, 3000)
+    // Cue's processes a few seconds after launch; the bench reads their settled memory.
+    setTimeout(() => process.stdout.write(`CUE_PIDS ${app.getAppMetrics().map((m) => m.pid).join(',')}\n`), 3000)
   })
 }
 

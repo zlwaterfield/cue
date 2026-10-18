@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { SyncEngine, type SyncTransport } from '../../src/shared/sync/engine'
+import { SessionError, SyncEngine, type SessionEnd, type SyncTransport } from '../../src/shared/sync/engine'
 import { SupabaseSync, type Account, type SessionStore } from '../../src/shared/sync/supabase'
 import type { Repository } from '../../src/shared/repository'
 import type { Item } from '../../src/shared/types'
@@ -159,6 +159,21 @@ describe.skipIf(!syncServer)('sync with Supabase', { timeout: 30_000 }, () => {
     expect(records.some((r) => r.text === 'bad type' || r.text === 'bad version')).toBe(false)
   })
 
+  it('reads a range of days straight from the table, only ever your own', async () => {
+    const day = '2031-02-03'
+    const [mine] = laptop.repo.saveItems([newItem({ date: day, type: 'todo', done: true, text: 'on the third' })])
+    const [tomb] = laptop.repo.saveItems([{ ...newItem({ date: day, text: 'deleted' }), deleted: true }])
+    await laptop.engine.flush()
+    other.repo.saveItems([newItem({ date: day, text: 'someone else’s' })])
+    await other.engine.sync()
+
+    const records = await laptop.client.pullDates('2031-02-01', '2031-02-05')
+    const byId = (items: Item[]) => [...items].sort((a, b) => (a.id < b.id ? -1 : 1))
+    // The app's own record shape, tombstones included.
+    expect(byId(records)).toEqual(byId([mine, tomb]))
+    expect(await laptop.client.pullDates('2031-02-04', '2031-02-05')).toEqual([])
+  })
+
   it('never skips a change while two Macs push at once', async () => {
     await Promise.all([laptop.engine.stop(), desktop.engine.stop()])
     const watcher = attach(laptop, memoryRepo())
@@ -206,6 +221,30 @@ describe.skipIf(!syncServer)('sync with Supabase', { timeout: 30_000 }, () => {
     const restored = new SupabaseSync(syncServer!, laptop.store)
     const { records } = await restored.pull(0, 1)
     expect(records).toHaveLength(1)
+  })
+
+  it('signs a device out cleanly once its account is deleted on another', async () => {
+    const email = testEmail('gone')
+    const phone = await signIn(email)
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    const mac = await signIn(email)
+    devices.push(phone, mac)
+    mac.repo.saveItems([newItem({ text: 'before' })])
+    await mac.engine.sync()
+    await phone.client.deleteAccount()
+
+    // The token outlives the account, so the next push is the first to notice.
+    const ended: SessionEnd[] = []
+    mac.client.onSignedOut((reason) => ended.push(reason))
+    mac.repo.saveItems([newItem({ text: 'after' })])
+    const refused = (await mac.engine.sync().catch((error) => error)) as SessionError
+    await mac.engine.stop()
+    expect(refused).toBeInstanceOf(SessionError)
+    expect(refused.reason).toBe('deleted')
+    expect(refused.message).not.toMatch(/foreign key|violates|items_/)
+    await mac.client.checkSession(refused.reason)
+    expect(ended).toEqual(['deleted'])
+    expect(mac.store.values.has('session')).toBe(false)
   })
 
   it('deletes the account and everything in it', async () => {

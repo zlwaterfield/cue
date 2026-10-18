@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, KeyboardAvoidingView, Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native'
+import { AccessibilityInfo, ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 import * as SplashScreen from 'expo-splash-screen'
 import { SvgXml } from 'react-native-svg'
+import { isEmailAddress, NOT_AN_EMAIL } from '@shared/text'
 import { sync } from '../core/app'
 import { useStore } from '../core/store'
 import { lockup } from '../ui/lockup'
@@ -12,11 +13,12 @@ import { metrics, useColors } from '../ui/theme'
 /**
  * Cue on iPhone needs an account: the phone holds a copy of the notes, and sync keeps it
  * the same as every other device. Sign-in is the Mac's: an email, then a six-digit code.
- * iOS offers the code from Mail or Messages above the keyboard.
+ * iOS offers the code from Mail or Messages above the keyboard. The words are the Mac's.
  */
 export default function SignIn() {
   const c = useColors()
   const insets = useSafeAreaInsets()
+  // Why this phone was signed out, if the server ended the session.
   const notice = useStore(sync.state, (s) => s.message)
   const [step, setStep] = useState<'email' | 'code'>('email')
   const [email, setEmail] = useState('')
@@ -29,11 +31,12 @@ export default function SignIn() {
     void SplashScreen.hideAsync()
   }, [])
 
+  useEffect(() => {
+    if (error) AccessibilityInfo.announceForAccessibility(error)
+  }, [error])
+
   const sendCode = async (): Promise<void> => {
-    if (busy || !/\S+@\S+\.\S+/.test(email.trim())) {
-      setError('Enter your email address.')
-      return
-    }
+    if (busy) return
     setBusy(true)
     setError(null)
     const result = await sync.sendCode(email)
@@ -46,6 +49,32 @@ export default function SignIn() {
     setStep('code')
     setCode('')
     requestAnimationFrame(() => codeInput.current?.focus())
+  }
+
+  /** Before a code goes out, say so if signing in could remove changes the last account never got. */
+  const submitEmail = (): void => {
+    if (busy || !email.trim()) return
+    if (!isEmailAddress(email)) {
+      setError(NOT_AN_EMAIL)
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+      return
+    }
+    const unsent = sync.unsentFromPreviousAccount()
+    if (!unsent) {
+      void sendCode()
+      return
+    }
+    const waiting = unsent === 1 ? '1 change on this iPhone hasn’t' : `${unsent} changes on this iPhone haven’t`
+    // With the keyboard up after a server sign-out, iOS can present the alert out of sight.
+    Keyboard.dismiss()
+    Alert.alert(
+      'Some changes haven’t synced',
+      `${waiting} reached your account. Signing in to a different account, or to one that was deleted, removes ${unsent === 1 ? 'it' : 'them'}.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Continue', onPress: () => void sendCode() }
+      ]
+    )
   }
 
   const verify = async (value: string): Promise<void> => {
@@ -70,90 +99,103 @@ export default function SignIn() {
   }
 
   return (
-    <KeyboardAvoidingView behavior="padding" style={[styles.screen, { backgroundColor: c.bg, paddingTop: insets.top + 56, paddingBottom: insets.bottom + 16 }]}>
-      <View style={styles.brand}>
-        <SvgXml xml={lockup(c.text)} width={104} height={52} accessibilityLabel="Cue" />
-        <Text style={[styles.tagline, { color: c.text2 }]}>Every day is a page.</Text>
-      </View>
+    <KeyboardAvoidingView behavior="padding" style={[styles.keyboard, { backgroundColor: c.bg, paddingTop: insets.top }]}>
+      {/* At the largest text sizes the form can sit under the keyboard: it scrolls, and the first tap still sends. */}
+      <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={styles.brand}>
+          <SvgXml xml={lockup(c.text)} width={104} height={52} accessibilityLabel="Cue" />
+          <Text style={[styles.tagline, { color: c.text2 }]}>Every day is a page.</Text>
+        </View>
 
-      <View style={styles.form}>
-        {step === 'email' ? (
-          <>
-            <Text style={[styles.label, { color: c.text }]}>Sign in to sync your notes</Text>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              onSubmitEditing={sendCode}
-              placeholder="you@example.com"
-              placeholderTextColor={c.text3}
-              autoFocus
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-              keyboardType="email-address"
-              textContentType="emailAddress"
-              returnKeyType="send"
-              selectionColor={c.accent}
-              style={[styles.field, { color: c.text, backgroundColor: c.bgSubtle }]}
-              accessibilityLabel="Email"
-              testID="email"
-            />
-            <Button label="Send code" busy={busy} onPress={sendCode} />
-          </>
-        ) : (
-          <>
-            <Text style={[styles.label, { color: c.text }]}>Enter the code we sent to</Text>
-            <Text style={[styles.email, { color: c.text2 }]}>{email.trim()}</Text>
-            <TextInput
-              ref={codeInput}
-              value={code}
-              onChangeText={onCode}
-              placeholder="000000"
-              placeholderTextColor={c.text3}
-              keyboardType="number-pad"
-              textContentType="oneTimeCode"
-              autoComplete="one-time-code"
-              maxLength={6}
-              selectionColor={c.accent}
-              style={[styles.field, styles.code, { color: c.text, backgroundColor: c.bgSubtle }]}
-              accessibilityLabel="Six-digit code"
-              testID="code"
-            />
-            {busy && <ActivityIndicator color={c.text2} style={styles.spinner} />}
-            <View style={styles.links}>
-              <Pressable onPress={sendCode} hitSlop={8} disabled={busy}>
-                <Text style={[styles.link, { color: c.text2 }]}>Send a new code</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  setStep('email')
-                  setError(null)
-                }}
-                hitSlop={8}
-              >
-                <Text style={[styles.link, { color: c.text2 }]}>Use a different email</Text>
-              </Pressable>
-            </View>
-          </>
-        )}
-        {(error ?? notice) && <Text style={[styles.error, { color: c.text }]}>{error ?? notice}</Text>}
-      </View>
+        <View style={styles.form}>
+          {step === 'email' ? (
+            <>
+              {notice && <Text style={[styles.notice, { color: c.text }]}>{notice}</Text>}
+              <View>
+                <Text style={[styles.label, { color: c.text }]}>Sign in to sync your notes</Text>
+                <Text style={[styles.help, { color: c.text2 }]}>Enter your email and we’ll send a six-digit code.</Text>
+              </View>
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                onSubmitEditing={submitEmail}
+                placeholder="you@example.com"
+                placeholderTextColor={c.text3}
+                autoFocus
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                returnKeyType="send"
+                selectionColor={c.accent}
+                style={[styles.field, { color: c.text, backgroundColor: c.bgSubtle }]}
+                accessibilityLabel="Email"
+                testID="email"
+              />
+              <Button label="Send Code" busy={busy} disabled={!email.trim()} onPress={submitEmail} />
+            </>
+          ) : (
+            <>
+              <Text style={[styles.label, { color: c.text }]}>Enter the code we sent to</Text>
+              <Text style={[styles.email, { color: c.text2 }]}>{email.trim()}</Text>
+              <TextInput
+                ref={codeInput}
+                value={code}
+                onChangeText={onCode}
+                placeholder="000000"
+                placeholderTextColor={c.text3}
+                keyboardType="number-pad"
+                textContentType="oneTimeCode"
+                autoComplete="one-time-code"
+                maxLength={6}
+                selectionColor={c.accent}
+                style={[styles.field, styles.code, { color: c.text, backgroundColor: c.bgSubtle }]}
+                accessibilityLabel="Six-digit code"
+                testID="code"
+              />
+              {busy && <ActivityIndicator color={c.text2} style={styles.spinner} />}
+              <View style={styles.links}>
+                <Pressable onPress={sendCode} hitSlop={8} disabled={busy} accessibilityRole="button">
+                  <Text style={[styles.link, { color: c.text2 }]}>Send a New Code</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setStep('email')
+                    setError(null)
+                  }}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.link, { color: c.text2 }]}>Use a Different Email</Text>
+                </Pressable>
+              </View>
+            </>
+          )}
+          {error && (
+            <Text style={[styles.error, { color: c.text }]} accessibilityRole="alert" accessibilityLiveRegion="polite">
+              {error}
+            </Text>
+          )}
+        </View>
 
-      <Text style={[styles.footnote, { color: c.text3 }]}>
-        Your notes sync across your devices. New here? The code creates your account.
-      </Text>
+        <Text style={[styles.footnote, { color: c.text2 }]}>
+          Your notes sync across your devices. New here? The code creates your account.
+        </Text>
+      </ScrollView>
     </KeyboardAvoidingView>
   )
 }
 
-function Button({ label, busy, onPress }: { label: string; busy: boolean; onPress: () => void }) {
+function Button({ label, busy, disabled, onPress }: { label: string; busy: boolean; disabled?: boolean; onPress: () => void }) {
   const c = useColors()
   return (
     <Pressable
       onPress={onPress}
-      disabled={busy}
+      disabled={busy || disabled}
       accessibilityRole="button"
-      style={({ pressed }) => [styles.button, { backgroundColor: c.accent, opacity: pressed || busy ? 0.75 : 1 }]}
+      accessibilityState={{ disabled: busy || !!disabled }}
+      style={({ pressed }) => [styles.button, { backgroundColor: c.accent, opacity: disabled ? 0.45 : pressed || busy ? 0.75 : 1 }]}
     >
       {busy ? <ActivityIndicator color={c.onAccent} /> : <Text style={[styles.buttonText, { color: c.onAccent }]}>{label}</Text>}
     </Pressable>
@@ -161,8 +203,12 @@ function Button({ label, busy, onPress }: { label: string; busy: boolean; onPres
 }
 
 const styles = StyleSheet.create({
+  keyboard: {
+    flex: 1
+  },
   screen: {
-    flex: 1,
+    flexGrow: 1,
+    paddingTop: 56,
     paddingHorizontal: metrics.gutter + 8
   },
   brand: {
@@ -176,9 +222,20 @@ const styles = StyleSheet.create({
     marginTop: 48,
     gap: 12
   },
+  notice: {
+    fontSize: 15,
+    fontWeight: '500',
+    lineHeight: 20,
+    marginBottom: 8
+  },
   label: {
     fontSize: 17,
     fontWeight: '600'
+  },
+  help: {
+    fontSize: 15,
+    lineHeight: 20,
+    marginTop: 4
   },
   email: {
     fontSize: 15,
@@ -196,7 +253,8 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums']
   },
   button: {
-    height: 50,
+    minHeight: 50,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center'
@@ -210,7 +268,10 @@ const styles = StyleSheet.create({
   },
   links: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
+    columnGap: 16,
+    rowGap: 8,
     marginTop: 4
   },
   link: {
@@ -218,6 +279,7 @@ const styles = StyleSheet.create({
   },
   error: {
     fontSize: 15,
+    fontWeight: '500',
     marginTop: 4
   },
   footnote: {

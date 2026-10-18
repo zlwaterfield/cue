@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { addDays, todayISO } from '../../src/shared/dates'
 import { SyncEngine, type EngineTiming } from '../../src/shared/sync/engine'
 import { MemorySyncServer } from '../../src/shared/sync/memoryServer'
-import type { Repository } from '../../src/shared/repository'
+import { isTextOnlyChange, type Repository } from '../../src/shared/repository'
 import type { Item } from '../../src/shared/types'
 import { memoryRepo, newItem } from './helpers'
 
@@ -282,9 +283,124 @@ describe('sync scheduling', () => {
     expect(server.requests).toBe(requests)
     expect(repo.pendingCount()).toBe(1)
   })
+
+  it('stops within a second while a request hangs, and drops its late answer', async () => {
+    fakeTimers()
+    const server = new MemorySyncServer()
+    const repo = memoryRepo()
+    let answer: (() => void) | null = null
+    const engine = new SyncEngine(repo, {
+      ...server.transport(),
+      push: (records) => new Promise((resolve) => (answer = () => resolve(server.push(records))))
+    })
+    repo.saveItems([newItem({ text: 'in flight' })])
+    engine.start()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(answer).not.toBeNull()
+
+    let stopped = false
+    void engine.stop().then(() => (stopped = true))
+    await vi.advanceTimersByTimeAsync(900)
+    expect(stopped).toBe(false)
+    await vi.advanceTimersByTimeAsync(200)
+    expect(stopped).toBe(true)
+
+    // The server took it, but this engine is done: nothing is acknowledged or moved.
+    answer!()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(repo.pendingCount()).toBe(1)
+    expect(repo.getMeta('sync_cursor')).toBeNull()
+  })
+
+  it('sends a command at once, and typing once it pauses', async () => {
+    fakeTimers()
+    const server = new MemorySyncServer()
+    const { repo, engine } = device(server, { debounce: 600 })
+    engine.start()
+    await vi.advanceTimersByTimeAsync(0)
+    const before = server.requests
+
+    repo.saveItems([newItem({ text: 'toggled' })])
+    engine.localChange({ soon: true })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(server.requests).toBe(before + 1)
+
+    repo.saveItems([newItem({ text: 'typed' })])
+    engine.localChange()
+    await vi.advanceTimersByTimeAsync(599)
+    expect(server.requests).toBe(before + 1)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(server.requests).toBe(before + 2)
+
+    // While failing, the retry timer owns the schedule; commands don't add requests either.
+    server.online = false
+    await engine.sync().catch(() => {})
+    const failing = server.requests
+    for (let i = 0; i < 5; i++) {
+      repo.saveItems([newItem({ text: `moved ${i}` })])
+      engine.localChange({ soon: true })
+    }
+    await vi.advanceTimersByTimeAsync(500)
+    expect(server.requests).toBe(failing)
+    await engine.stop()
+  })
+
+  it('checks for changes every 30 s while realtime hints are down', async () => {
+    fakeTimers()
+    const server = new MemorySyncServer()
+    const { engine } = device(server)
+    engine.start()
+    await vi.advanceTimersByTimeAsync(0)
+
+    const down = server.requests
+    engine.setLive(false)
+    await vi.advanceTimersByTimeAsync(90_000)
+    expect(server.requests - down).toBe(3)
+
+    engine.setLive(true)
+    const live = server.requests
+    await vi.advanceTimersByTimeAsync(4 * 60_000)
+    expect(server.requests).toBe(live)
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(server.requests).toBe(live + 1)
+    await engine.stop()
+  })
+
+  it('brings the days around today first when joining an account', async () => {
+    const server = new MemorySyncServer()
+    const author = device(server)
+    const today = todayISO()
+    // Five years of notes, all at least a week back, plus three lines today.
+    const years = Array.from({ length: 3000 }, (_, i) => newItem({ date: addDays(today, -8 - Math.floor((i * 1820) / 3000)), text: `old ${i}` }))
+    const todays = ['one', 'two', 'three'].map((text) => newItem({ date: today, text }))
+    author.repo.saveItems([...years, ...todays])
+    await author.engine.sync()
+
+    const repo = memoryRepo()
+    const batches: Item[][] = []
+    let readyAfter: number | null = null
+    const engine = new SyncEngine(repo, server.transport(), {
+      onRemoteChanges: (items) => batches.push(items),
+      onRecentReady: () => (readyAfter = batches.length)
+    })
+    await engine.sync()
+    expect(batches[0].map((i) => i.text).sort()).toEqual(['one', 'three', 'two'])
+    expect(readyAfter).toBe(1)
+    // The full download follows, skipping what's already here.
+    expect(batches.slice(1).flat()).toHaveLength(3000)
+    expect(visible(repo.allItems())).toEqual(visible(server.snapshot()))
+    expect(repo.pendingCount()).toBe(0)
+  })
 })
 
 describe('repository sync support', () => {
+  it('tells typing apart from every other change', () => {
+    const item = newItem({ text: 'a' })
+    expect(isTextOnlyChange(item, { ...item, text: 'ab' })).toBe(true)
+    const others: Array<Partial<Item>> = [{ done: true }, { type: 'todo' }, { position: 'zz' }, { parentId: 'p' }, { date: '2026-10-18' }, { deleted: true }]
+    for (const change of others) expect(isTextOnlyChange(item, { ...item, ...change })).toBe(false)
+  })
+
   it('queues imported records for upload and everything on joining an account', () => {
     const source: Repository = memoryRepo()
     const saved = source.saveItems([newItem({ text: 'from a backup' })])

@@ -3,7 +3,7 @@ import { COMMANDS_BY_ID } from '@shared/commands'
 import { uuidv7 } from '@shared/ids'
 import { addDays, friendlyDate, nextWeekday, startOfWeek, todayISO, weekViewDates } from '@shared/dates'
 import { linesToMarkdown, parseMarkdownLines, type LineSpec } from '@shared/markdown'
-import type { ISODate, ItemType, Settings } from '@shared/types'
+import type { ISODate, Item, ItemType, Settings } from '@shared/types'
 import { backend } from '../data/backend'
 import { itemStore } from '../store/items'
 import { syncState } from '../store/sync'
@@ -14,7 +14,7 @@ import { flash } from './highlights'
 import { commandFor, isMac } from './keys'
 import * as ops from '@shared/editor/ops'
 import { Tx } from '@shared/editor/tx'
-import { UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
+import { revert, UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
 
 /**
  * The editor controller: owns focus, caret movement across items, block selection,
@@ -26,6 +26,9 @@ const GHOST = 'ghost:'
 export const ghostId = (date: ISODate): string => GHOST + date
 export const isGhost = (id: string): boolean => id.startsWith(GHOST)
 const ghostDate = (id: string): ISODate => id.slice(GHOST.length)
+
+/** Midnight waits this long after the last keystroke, so the line being typed stays put. */
+const ROLLOVER_QUIET_MS = 60_000
 
 type FocusResult = ops.CaretFocus | SelectionSnapshot | null | void
 
@@ -57,6 +60,7 @@ class EditorController {
   private lastExecuted = { id: '', at: 0, source: '' }
   private toastEntry: UndoEntry | undefined
   private navigationSeq = 0
+  private lastInputAt = 0
   private selectionCache: { selection: Selection | null; ids: Set<string> } = { selection: null, ids: new Set() }
   composing = false
   sink: HTMLElement | null = null
@@ -299,20 +303,27 @@ class EditorController {
     const entry = this.undo.popUndo()
     if (!entry) return
     dismissToast()
-    flushSync(() => {
-      itemStore.commit(entry.changes.map((c) => (c.before ? c.before : { ...c.after, deleted: true })))
-    })
-    this.restore(entry.selectionBefore)
-    refreshCaret()
+    this.replay(entry, 'undo')
   }
 
   redoAction(): void {
     const entry = this.undo.popRedo()
     if (!entry) return
+    this.replay(entry, 'redo')
+  }
+
+  /** Reverse (or redo) only what the entry changed, leaving newer edits from other devices alone. */
+  private replay(entry: UndoEntry, direction: 'undo' | 'redo'): void {
+    const records = revert(entry.changes, direction, itemStore)
+    if (!records.length) {
+      showToast('Already changed on another device')
+      return
+    }
     flushSync(() => {
-      itemStore.commit(entry.changes.map((c) => c.after))
+      itemStore.commit(records)
     })
-    this.restore(entry.selectionAfter)
+    // Lands only on a line that's still there.
+    this.restore(direction === 'undo' ? entry.selectionBefore : entry.selectionAfter)
     refreshCaret()
   }
 
@@ -512,6 +523,7 @@ class EditorController {
 
   /** Window-level keys: global shortcuts and block-selection mode. */
   onGlobalKeyDown = (e: KeyboardEvent): void => {
+    this.lastInputAt = performance.now()
     if (e.defaultPrevented || e.isComposing) return
     const state = ui.get()
     const command = commandFor(e)
@@ -634,6 +646,7 @@ class EditorController {
   /* =============================================================== Input */
 
   onItemInput(id: string, el: HTMLElement): void {
+    this.lastInputAt = performance.now()
     if (this.composing) return
     let text = el.textContent ?? ''
     if (/[\r\n]/.test(text)) {
@@ -674,6 +687,7 @@ class EditorController {
   }
 
   onGhostInput(date: ISODate, el: HTMLElement): void {
+    this.lastInputAt = performance.now()
     if (this.composing) return
     const text = (el.textContent ?? '').replace(/[\r\n]+/g, ' ')
     if (!text) return
@@ -697,10 +711,12 @@ class EditorController {
   }
 
   onCompositionStart(): void {
+    this.lastInputAt = performance.now()
     this.composing = true
   }
 
   onCompositionEnd(id: string, el: HTMLElement): void {
+    this.lastInputAt = performance.now()
     this.composing = false
     if (isGhost(id)) this.onGhostInput(ghostDate(id), el)
     else this.onItemInput(id, el)
@@ -1120,19 +1136,86 @@ class EditorController {
     window.addEventListener('beforeunload', () => itemStore.persistence.flushSync())
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') void itemStore.persistence.flush()
-      this.checkToday()
+      void this.checkToday()
     })
-    window.addEventListener('focus', () => this.checkToday())
+    window.addEventListener('focus', () => void this.checkToday())
     backend.onCommand((id) => this.execute(id, 'menu'))
-    backend.onItemsChanged((items) => itemStore.applyExternal(items))
-    setInterval(() => this.checkToday(), 30_000)
+    backend.onItemsChanged((items) => this.applyExternal(items))
+    setInterval(() => void this.checkToday(), 30_000)
   }
 
-  /** Keep "today" correct when the app stays open past midnight. */
-  private checkToday(): void {
+  /** Records written elsewhere (sync, import). They may take away the line being edited. */
+  private applyExternal(items: Item[]): void {
+    // The line being edited, or the one an open sheet will return to.
+    const editing = this.snapshotText()
+    const inLine = !!editing && document.activeElement === this.els.get(editing.id)
+    const focus = inLine || ui.get().overlay ? editing : null
+    const order = focus ? this.navOrder() : []
+    flushSync(() => {
+      itemStore.applyExternal(items)
+    })
+    if (focus && !this.isVisible(focus.id)) this.focusLost(focus, order, items)
+    // Moved to another day on screen: the caret goes with it.
+    else if (focus && inLine && document.activeElement !== this.els.get(focus.id)) this.focusText(focus.id, focus.start, focus.end)
+    // Lines arriving above the caret move it without any selection change.
+    refreshCaret()
+  }
+
+  /**
+   * The line being edited was deleted, or moved off screen, elsewhere. The caret goes to
+   * the end of the nearest line above it that's still here (else the start of the next one),
+   * so the next key doesn't land nowhere, and a toast says what happened.
+   */
+  private focusLost(focus: CaretMemo, order: string[], items: Item[]): void {
+    // With a sheet open, closing it puts the caret somewhere sensible by itself.
+    if (!ui.get().overlay) {
+      const at = order.indexOf(focus.id)
+      const above = order.slice(0, Math.max(at, 0)).reverse().find((id) => this.isVisible(id))
+      const below = at === -1 ? undefined : order.slice(at + 1).find((id) => this.isVisible(id))
+      if (above) this.focusEnd(above)
+      else if (below) this.focusText(below, 0)
+      else this.focusDefault()
+    }
+    const record = items.find((item) => item.id === focus.id)
+    if (!record) return
+    if (record.deleted) {
+      // Undo (here or in the toast) brings it back everywhere: a newer write wins.
+      this.undo.record({
+        label: 'Delete',
+        changes: [{ before: { ...record, deleted: false }, after: record }],
+        selectionBefore: { kind: 'text', ...focus },
+        selectionAfter: this.snapshot(),
+        at: Date.now()
+      })
+      showToast('Deleted on another device', { undo: true })
+      this.toastEntry = this.undo.top()
+    } else {
+      const label = friendlyDate(record.date, ui.get().today).replace(/^(Today|Tomorrow|Yesterday)$/, (m) => m.toLowerCase())
+      showToast(`Moved to ${label} on another device`)
+    }
+  }
+
+  /**
+   * Keep "today" correct when the app stays open past midnight, without moving anything
+   * from under an edit: while composing, or within a minute of the last keystroke, it waits
+   * (the 30 s timer tries again), so a line typed across midnight stays on its day. Then
+   * the day view follows to the new today if it was showing the old one.
+   */
+  private async checkToday(): Promise<void> {
+    const writing = () => this.composing || performance.now() - this.lastInputAt < ROLLOVER_QUIET_MS
     const today = todayISO()
-    if (today === ui.get().today) return
-    void itemStore.ensureLoaded(this.datesFor({ mode: 'week' }, today)).then(() => ui.set({ today }))
+    if (today === ui.get().today || writing()) return
+    await itemStore.ensureLoaded(this.datesFor({ mode: 'week' }, today))
+    const { today: shown, view } = ui.get()
+    if (today === shown || writing()) return
+    const follow = view.mode === 'day' && view.date === shown
+    flushSync(() => {
+      ui.set({ today, ...(follow && { view: { mode: 'day', date: today } }) })
+    })
+    // The day the caret was on may have left the screen; never leave it nowhere.
+    const active = document.activeElement as HTMLElement | null
+    if (!ui.get().overlay && (!active || (!active.isContentEditable && active !== this.sink))) this.focusDefault()
+    refreshCaret()
   }
 }
 

@@ -3,6 +3,7 @@
 ```
 ┌──────────────────────── Electron main process ────────────────────────┐
 │  index.ts      window, lifecycle, IPC, dialogs, context menu          │
+│  guard.ts      first import: network errors never freeze the app      │
 │  menu.ts       native menu generated from shared/commands.ts          │
 │  db.ts         SQLite (node:sqlite), WAL, synchronous=FULL             │
 │  sync/service  optional sync: account, lifecycle, Keychain session    │
@@ -20,7 +21,7 @@
    sqlite.ts       schema + migrations, for node:sqlite and expo-sqlite alike
    repository.ts   the storage boundary (validation, versions, outbox)
    hlc.ts          hybrid logical clock
-   sync/           engine, Supabase transport, in-memory reference server
+   sync/           engine, Supabase transport, in-memory reference server, status words
    itemStore.ts    in-memory items for loaded days + write-behind queue
    editor/ops.ts   structural operations (pure functions over a draft)
    editor/tx.ts    draft transaction over the store
@@ -69,7 +70,13 @@ and ⌘Z right after reverts just the formatting.
 See `src/shared/types.ts`. Items carry `id, date, parentId, position, type, text,
 done, createdAt, updatedAt, deleted, version`. Order among siblings is a fractional
 index (`position`) with the id as a tiebreaker, so inserting never rewrites
-neighbors and concurrent inserts can't collide destructively.
+neighbors and concurrent inserts can't collide destructively. Siblings can end up with
+the same key (two devices inserting at one spot offline). A new line (Return, paste)
+placed among them goes after the tied run, so nothing another device is editing gets
+rewritten. Moving a line into the tie (⌥↑, ⌥↓, drag) is an explicit reorder: the twins
+after the slot get fresh keys, so the line lands exactly where asked, and the twins
+before it keep theirs. Only those rewritten twins could lose an unsynced edit another
+device makes to them at the same moment.
 
 The outline for a day is derived, never stored (`shared/outline.ts`). Derivation is
 total: orphaned items render at the top level and parent cycles are broken.
@@ -95,8 +102,10 @@ sign in. See [SYNC.md](SYNC.md).
 - SQLite runs in WAL mode with `synchronous=FULL`: committed writes survive app
   crashes and power loss. A test kills the app with SIGKILL mid-session and checks
   that nothing is lost.
-- A consistent snapshot (`VACUUM INTO`) is taken once a day into
-  `~/Library/Application Support/Cue/Backups`, and the last 14 are kept.
+- A consistent snapshot is taken once a day into
+  `~/Library/Application Support/Cue/Backups`, and the last 14 are kept. SQLite's online
+  backup copies the pages on a worker thread, a hundred at a time, so saves never wait
+  behind it, and the copy only takes its real name once it's complete.
 - If the renderer crashes, the main process reloads it. The database is unaffected.
 
 ## Undo
@@ -106,6 +115,11 @@ selection on each side. Typing coalesces into runs (split by pauses, focus chang
 and structural actions). Undo and redo are *new writes* with new versions, which
 keeps them correct under sync. Undoing a move to Friday brings the item back and puts
 the caret where it was, navigating if needed.
+
+Undo reverses only what the action changed, field group by field group (place, type,
+text, completion, deletion), and only where the item still holds what the action left
+(`revert`). A newer edit from another device stays, a line deleted elsewhere stays
+deleted, and an undo with nothing left to do says "Already changed on another device".
 
 ## Keyboard and menus
 
@@ -128,11 +142,16 @@ Shortcut deviations from the brief:
 ## Accessibility notes
 
 - Body text, secondary text and the accent meet WCAG AA in both modes (`docs/brand/tokens/contrast.md`).
+  Metadata people read (dates, hints, group headers, the sync status) uses `--text-2`.
 - Completed to-dos and placeholders use `--text-3` (3.26:1 light, 3.48–3.93:1 dark). That is
   deliberate, since completed items should recede, but it is a known AA exception. The strict
-  alternative is to render done items in `--text-2`.
+  alternative is to render done items in `--text-2`. Out-of-month calendar days, the year in
+  "October 2026" and decorative glyphs use it too.
 - Checkbox outlines (`--line-strong`, 24% / 26%) sit below the 3:1 non-text guideline, a
-  judgment call for a calm page. Keyboard focus on controls gets a clearly visible ring.
+  judgment call for a calm page. A to-do's whole 24 × 30 marker cell is its click target.
+- Keyboard focus on controls gets a 2 px outline. Segmented controls are radio groups: one Tab
+  stop, arrow keys to choose.
+- ⌘+ / ⌘− / ⌘0 zoom the window (View menu).
 - The caret doesn't blink when macOS Reduce Motion is on, and every animation is disabled
   under `prefers-reduced-motion`.
 

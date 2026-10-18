@@ -10,13 +10,15 @@ import { useColors } from '../ui/theme'
 import { editor } from './controller'
 import { useItem } from './hooks'
 
-/** Height of the bar; the page keeps the line being edited clear of it. */
-export const TOOLBAR_HEIGHT = 46
+const BAR_HEIGHT = 46
+const BAR_GAP = 6
+/** Room the bar takes above the keyboard; the page and the toast keep clear of it. */
+export const TOOLBAR_SPACE = BAR_HEIGHT + BAR_GAP
 
 /**
- * The bar above the keyboard while writing. Line types are one tap each: ☐ makes the line
- * a to-do and • a bullet, and tapping the lit one turns it back into plain text. Then
- * indent, undo, and "move to another day".
+ * The bar floating above the keyboard while writing. Line types are one tap each: ☐ makes
+ * the line a to-do and • a bullet, and tapping the lit one turns it back into plain text.
+ * Then indent, undo, and "move to another day".
  */
 export function Toolbar() {
   const c = useColors()
@@ -29,12 +31,14 @@ export function Toolbar() {
   const focused = last.current
   const item = useItem(focused ?? '')
   const type = item?.type ?? 'text'
+  // Only for a line that's still there: one deleted on another device takes the bar with it.
+  const live = !!current && (!!item || editor.isGhost(current))
 
   return (
     // Rides on top of the keyboard, following it as it opens, closes, and is dragged away.
     <KeyboardStickyView style={styles.sticky} offset={{ closed: -insets.bottom, opened: 0 }} pointerEvents="box-none">
-      {current && (
-        <View style={[styles.bar, { borderTopColor: c.line, backgroundColor: c.bgElevated }]}>
+      {live && (
+        <View style={[styles.bar, { borderColor: c.line, backgroundColor: c.bgElevated }]}>
           <Tool id="todo" icon="checkmark.square" label="To-do" active={type === 'todo'} onPress={() => focused && editor.toggleType(focused, 'todo')} />
           <Tool id="bullet" icon="list.bullet" label="Bullet" active={type === 'bullet'} onPress={() => focused && editor.toggleType(focused, 'bullet')} />
           <View style={[styles.divider, { backgroundColor: c.line }]} />
@@ -101,17 +105,24 @@ const styles = StyleSheet.create({
     bottom: 0
   },
   bar: {
-    height: TOOLBAR_HEIGHT,
+    height: BAR_HEIGHT,
+    marginHorizontal: 8,
+    marginBottom: BAR_GAP,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 5,
     gap: 2,
-    borderTopWidth: StyleSheet.hairlineWidth
+    borderRadius: BAR_HEIGHT / 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }
   },
   tool: {
     width: 40,
     height: 36,
-    borderRadius: 9,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center'
   },

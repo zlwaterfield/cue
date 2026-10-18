@@ -1,4 +1,4 @@
-import { buildOutline, type Row } from './outline'
+import { buildOutline, sameStructure, type Row } from './outline'
 import type { CueBridge, ISODate, Item } from './types'
 
 /**
@@ -13,10 +13,6 @@ import type { CueBridge, ISODate, Item } from './types'
 export type StoreBackend = Pick<CueBridge, 'loadDates' | 'saveItems' | 'saveItemsSync'>
 
 type Listener = () => void
-
-function structurallyEqual(a: Item, b: Item): boolean {
-  return a.date === b.date && a.parentId === b.parentId && a.position === b.position && a.deleted === b.deleted
-}
 
 export type SaveState = { state: 'saved' } | { state: 'pending' } | { state: 'error'; message: string }
 
@@ -155,6 +151,8 @@ export class ItemStore {
   private dateListeners = new Map<ISODate, Set<Listener>>()
   /** Records from elsewhere that arrived while a local save of the same item was in flight. */
   private racing = new Map<string, Item>()
+  private externalListeners = new Set<(applied: Item[]) => void>()
+  private resetListeners = new Set<Listener>()
   readonly persistence: PersistenceQueue
 
   constructor(private readonly backend: StoreBackend) {
@@ -211,6 +209,22 @@ export class ItemStore {
       set!.delete(listener)
       if (!set!.size) this.dateListeners.delete(date)
     }
+  }
+
+  /**
+   * Called with the records from elsewhere that were actually applied (tombstones
+   * included), after subscribers have been told, so an editor can notice that the line
+   * it's on was deleted or moved by another device.
+   */
+  onExternal(listener: (applied: Item[]) => void): () => void {
+    this.externalListeners.add(listener)
+    return () => this.externalListeners.delete(listener)
+  }
+
+  /** Called after `reset()`, so anything that refers to the forgotten items can forget them too. */
+  onReset(listener: Listener): () => void {
+    this.resetListeners.add(listener)
+    return () => this.resetListeners.delete(listener)
   }
 
   /* ---------------------------------------------------------------- Loading */
@@ -284,7 +298,7 @@ export class ItemStore {
       if (this.persistence.isInflight(item.id)) this.racing.set(item.id, item)
       else apply.push(item)
     }
-    this.ingest(apply)
+    this.ingestExternal(apply)
   }
 
   private settleRaces(batch: Item[], versions: Map<string, string>): void {
@@ -298,7 +312,12 @@ export class ItemStore {
       const stored = versions.get(id)
       if (!this.persistence.isPending(id) && (!stored || stored < remote.version)) apply.push(remote)
     }
-    this.ingest(apply)
+    this.ingestExternal(apply)
+  }
+
+  private ingestExternal(items: Item[]): void {
+    this.ingest(items)
+    if (items.length) for (const l of this.externalListeners) l(items)
   }
 
   /** Forget everything in memory, e.g. when an account signs out and its notes leave the device. */
@@ -312,6 +331,7 @@ export class ItemStore {
     this.loading.clear()
     this.racing.clear()
     this.notify(items, dates)
+    for (const l of this.resetListeners) l()
   }
 
   /* ---------------------------------------------------------------- Writes */
@@ -323,7 +343,7 @@ export class ItemStore {
     const dirtyItems = new Set<string>()
     for (const next of changes) {
       const prev = this.items.get(next.id)
-      if (prev && !structurallyEqual(prev, next)) {
+      if (prev && !sameStructure(prev, next)) {
         this.removeFromIndex(prev)
         dirtyDates.add(prev.date)
       }
@@ -334,7 +354,7 @@ export class ItemStore {
       } else {
         // Indexed even if the day isn't loaded yet; loading never overwrites local edits.
         this.items.set(next.id, next)
-        if (!prev || !structurallyEqual(prev, next)) {
+        if (!prev || !sameStructure(prev, next)) {
           this.addToIndex(next)
           dirtyDates.add(next.date)
         }

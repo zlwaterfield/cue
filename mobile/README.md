@@ -17,7 +17,11 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 - **Sync is required.** The Mac works without an account; the phone signs in first, with
   the same email and six-digit code. The phone holds a local copy of the account in SQLite,
   so it opens instantly and works offline. Signing out removes that copy (after checking
-  nothing is left unsent); the account keeps everything.
+  nothing is left unsent); the account keeps everything. Right after signing in, today
+  and the week around it download first; an empty day whose notes haven't arrived yet says
+  "Getting your notes…" and can't be written in until they do, and an empty today then
+  gets the caret. If the app is closed mid-download, the next launch carries on and those
+  days keep waiting.
 - **Sync is quicker to send.** iOS suspends apps soon after they leave the screen, so the
   phone pushes 450 ms after typing pauses (2 s at most during continuous typing), the
   moment a line is finished (focus leaves it), and when the app goes to the background
@@ -34,11 +38,11 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 | --- | --- |
 | Tap a line | Edit it, with the caret where your finger landed |
 | Tap a bullet | Make it a to-do |
-| Tap a box | Complete or reopen |
+| Tap a box | Complete or reopen (the whole marker column takes the tap, the margin beside it too) |
 | Swipe right | Text or bullet → to-do → done (and back) |
 | Swipe left | Move to tomorrow (Undo in the toast); keep going to delete |
-| Long-press, then drag | Reorder, taking children along. Drag sideways to nest or un-nest, one level at a time, within what the outline allows |
-| Toolbar above the keyboard | ☐ to-do and • bullet (tap the lit one for plain text), outdent, indent, undo, move to another day, hide the keyboard |
+| Long-press, then drag | Reorder, taking children along. Drag sideways to nest or un-nest, one level at a time, within what the outline allows. A finger already moving sideways is a swipe, not a lift |
+| Toolbar floating above the keyboard | ☐ to-do and • bullet (tap the lit one for plain text), outdent, indent, undo, move to another day, hide the keyboard |
 | Type `- ` / `[] ` / `[x] ` | Bullet, to-do, done to-do, as on the Mac |
 | Return / Backspace | The Mac's rules: Return continues the list; on an empty item it steps out, then drops the marker. Backspace at the start drops the marker, then the indent, then joins the line above |
 
@@ -53,6 +57,16 @@ VoiceOver reads lines in the day's order.
   and their views stay in the order they were created. Reordering a line, whether by drag,
   move, or another device, never removes a text view from the window. Removing one would
   end editing and drop the keyboard. Moves animate as a side effect.
+- **Lines only do work when they move.** Each line watches the layout, the drag and the
+  swipe on the UI thread and animates only when its own target changes, so a wrap, a
+  Return or a drag frame touches the lines that actually move. A line new to the page
+  (Return, a paste, another device) shows once it's placed there, in the same frame as the
+  lines it pushes down, so it never covers the line below. Markers are plain views at rest;
+  a change pops in once with a layout animation.
+- **Heights come from the text views.** React Native measures a text input with the text
+  it had before an edit that wasn't typed into it (Return mid-paragraph, Undo, an edit from
+  another device), so after such an edit the input is laid out once more, in the same
+  frame, and measures the new text.
 - **Touches.** A line that isn't being edited takes touches as a whole
   (`pointerEvents="box-only"`), so long press and swipes are free. A tap is passed to a small
   native module (`modules/cue-native`) that focuses the line with the caret at the touched
@@ -119,11 +133,19 @@ cd .. && pnpm test              # shared core, including the drag geometry
 [`e2e/`](e2e) holds [Maestro](https://maestro.mobile.dev) flows that drive the real app on a
 simulator, against the local sync server:
 
-- **writing**: Return, Markdown shortcuts, toolbar types and indent, Backspace, undo
+- **writing**: the caret waiting in a new account's empty today, Return, Markdown
+  shortcuts, toolbar types and indent, Backspace, undo
 - **touch**: marker taps, swipes, the undo toast, and drag to reorder and to nest
+- **search**: the prompt before typing, results as you type, "No matches", and opening a
+  result
 - **sync**: a line from the phone reaches the account, and a line pushed by another device
   appears on the phone within 3 s with no refresh
 - **account**: sign out removes the phone's copy; signing back in brings it back
+- **account-switch**: after signing in to a different account, Undo can't bring back the
+  first account's lines, on the phone or on the server
+- **account-deleted**: the account is deleted on another device. A phone that writes signs
+  out with the reason at its next push and warns before a sign-in that would remove an unsent
+  line. A phone that only reads notices on coming back to the foreground.
 
 Each flow starts from a clean install and a new account.
 

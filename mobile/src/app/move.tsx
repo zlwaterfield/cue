@@ -1,13 +1,14 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { SymbolView, type SFSymbol } from 'expo-symbols'
-import { addDays, friendlyDate, nextWeekday, shortDate, startOfWeek, WEEKDAYS, weekday } from '@shared/dates'
+import { addDays, friendlyDate, nextWeekday, shortDate, startOfWeek } from '@shared/dates'
 import type { ISODate } from '@shared/types'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
 import { useItem } from '../editor/hooks'
 import { DatePicker } from '../ui/Calendar'
+import { SheetTitle } from '../ui/Sheet'
 import { metrics, useColors } from '../ui/theme'
 
 /** Move a line (and its children) to another day: the usual choices first, then any date. */
@@ -23,20 +24,20 @@ export default function MoveSheet() {
     router.back()
     void editor.moveTo(item.id, date)
   }
-  const tomorrow = addDays(today, 1)
-  const weekdayNext = nextWeekday(today)
-  const nextWeek = addDays(startOfWeek(today, weekStartsOn), 7)
-  const options: Array<{ icon: SFSymbol; label: string; detail: string; date: ISODate }> = [
-    { icon: 'sun.max', label: 'Today', detail: shortDate(today), date: today },
-    { icon: 'sunrise', label: 'Tomorrow', detail: shortDate(tomorrow), date: tomorrow },
-    { icon: 'briefcase', label: 'Next weekday', detail: WEEKDAYS[weekday(weekdayNext)], date: weekdayNext },
-    { icon: 'calendar.badge.plus', label: 'Next week', detail: shortDate(nextWeek), date: nextWeek }
+  const options: Array<{ icon: SFSymbol; label: string; date: ISODate }> = [
+    { icon: 'sun.max', label: 'Today', date: today },
+    { icon: 'sunrise', label: 'Tomorrow', date: addDays(today, 1) },
+    { icon: 'briefcase', label: 'Next weekday', date: nextWeekday(today) },
+    { icon: 'calendar.badge.plus', label: 'Next week', date: addDays(startOfWeek(today, weekStartsOn), 7) }
   ]
-  const choices = options.filter((choice, i) => choice.date !== item.date && options.findIndex((other) => other.date === choice.date) === i)
+  // Each date once ("Next weekday" is often "Tomorrow"), and never the day the line is on.
+  const choices = options
+    .filter((choice, i) => choice.date !== item.date && options.findIndex((other) => other.date === choice.date) === i)
+    .map((choice) => ({ ...choice, detail: shortDate(choice.date, today) }))
 
   return (
     <ScrollView contentContainerStyle={styles.sheet} keyboardShouldPersistTaps="handled">
-      <Text style={[styles.title, { color: c.text }]}>Move to…</Text>
+      <SheetTitle title="Move to…" />
       <Text style={[styles.subject, { color: c.text2 }]} numberOfLines={2}>
         {item.text.trim() || 'Empty line'} · now on {friendlyDate(item.date, today).replace(/^(Today|Tomorrow|Yesterday)$/, (m) => m.toLowerCase())}
       </Text>
@@ -47,10 +48,16 @@ export default function MoveSheet() {
             onPress={() => move(choice.date)}
             style={({ pressed }) => [styles.choice, i > 0 && { borderTopColor: c.line, borderTopWidth: StyleSheet.hairlineWidth }, pressed && { backgroundColor: c.bgHover }]}
             accessibilityRole="button"
+            accessibilityLabel={`${choice.label}, ${choice.detail}`}
           >
-            <SymbolView name={choice.icon} size={18} tintColor={c.text2} />
-            <Text style={[styles.choiceLabel, { color: c.text }]}>{choice.label}</Text>
-            <Text style={[styles.choiceDetail, { color: c.text3 }]}>{choice.detail}</Text>
+            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <SymbolView name={choice.icon} size={18} tintColor={c.text2} />
+            </View>
+            {/* At the largest text sizes the date goes under the label, as in iOS's own lists. */}
+            <View style={styles.choiceText}>
+              <Text style={[styles.choiceLabel, { color: c.text }]}>{choice.label}</Text>
+              <Text style={[styles.choiceDetail, { color: c.text2 }]}>{choice.detail}</Text>
+            </View>
           </Pressable>
         ))}
       </View>
@@ -65,10 +72,6 @@ const styles = StyleSheet.create({
     paddingTop: 22,
     gap: 14
   },
-  title: {
-    fontSize: 20,
-    fontWeight: '700'
-  },
   subject: {
     fontSize: 15,
     marginTop: -8
@@ -82,11 +85,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 14,
-    height: 48
+    paddingVertical: 10,
+    minHeight: 48
+  },
+  choiceText: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: 12
   },
   choiceLabel: {
     fontSize: 16,
-    flex: 1
+    flexGrow: 1
   },
   choiceDetail: {
     fontSize: 15

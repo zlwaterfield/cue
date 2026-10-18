@@ -1,4 +1,4 @@
-import type { Item } from '../types'
+import type { ISODate, Item } from '../types'
 import { OfflineError, type PullResult, type PushResult, type SyncTransport } from './engine'
 
 /**
@@ -8,6 +8,7 @@ import { OfflineError, type PullResult, type PushResult, type SyncTransport } fr
  *  - one row per item, replaced only by a strictly newer version (LWW)
  *  - every accepted write gets the next sequence number
  *  - pull(since) returns current rows whose sequence is greater than `since`
+ *  - pullDates(from, to) reads current rows by date, as `SupabaseSync.pullDates` does
  */
 export class MemorySyncServer {
   private rows = new Map<string, { record: Item; seq: number }>()
@@ -19,7 +20,8 @@ export class MemorySyncServer {
   transport(): SyncTransport {
     return {
       push: async (records) => this.push(records),
-      pull: async (since, limit) => this.pull(since, limit)
+      pull: async (since, limit) => this.pull(since, limit),
+      pullDates: async (from, to) => this.pullDates(from, to)
     }
   }
 
@@ -53,6 +55,14 @@ export class MemorySyncServer {
       cursor: page.length ? page[page.length - 1].seq : since,
       hasMore: changed.length > limit
     }
+  }
+
+  pullDates(from: ISODate, to: ISODate): Item[] {
+    this.request()
+    return [...this.rows.values()]
+      .filter((r) => r.record.date >= from && r.record.date <= to)
+      .slice(0, 1000)
+      .map((r) => ({ ...r.record }))
   }
 
   /** Forget everything, as if restored from an empty backup. */

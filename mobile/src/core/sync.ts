@@ -2,7 +2,8 @@ import { AppState, type AppStateStatus } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import type { ItemStore } from '@shared/itemStore'
 import type { Repository } from '@shared/repository'
-import { OfflineError, SyncEngine } from '@shared/sync/engine'
+import { errorMessage, OfflineError, SessionError, SyncEngine, type SessionEnd } from '@shared/sync/engine'
+import { DELETE_FAILED, SIGN_IN_FAILED, SYNC_OFFLINE } from '@shared/sync/status'
 import { SupabaseSync, type Account, type SessionStore, type SyncConfig } from '@shared/sync/supabase'
 import type { SyncResult } from '@shared/types'
 import { backgroundTask } from '../../modules/cue-native'
@@ -26,11 +27,13 @@ export interface SyncStatus {
   email: string | null
   status: 'idle' | 'syncing' | 'offline' | 'error'
   lastSyncedAt: number | null
-  /** Local changes not yet uploaded. */
+  /** Local changes not yet uploaded. Kept current while offline or paused. */
   pending: number
   /** The first download of this account to this phone hasn't finished yet. */
   downloading: boolean
-  /** Why sync stopped or failed, in words a person can act on. */
+  /** During that download: today ± 7 days have already arrived. */
+  recent: boolean
+  /** Why sync stopped or failed, in words a person can act on. Never raw server text. */
   message: string | null
 }
 
@@ -38,9 +41,26 @@ const ACCOUNT = 'sync_account'
 /** The account whose notes are in this database. */
 const SYNCED_WITH = 'sync_user'
 const CURSOR = 'sync_cursor'
+/** The first download of this account to this phone hasn't finished, even across relaunches. */
+const JOINING = 'sync_joining'
 
 /** Faster than the Mac's 600 ms / 3 s: a phone is put down mid-thought. */
 const TIMING = { debounce: 450, maxWait: 2000 }
+/** Ask the auth server about a refused session at most this often. */
+const CHECK_EVERY = 30_000
+/**
+ * On launch and coming back, ask whether the session still stands, at most this often.
+ * Pulls succeed for a deleted account (there's just nothing new), so a phone that only
+ * reads would otherwise keep saying "Synced just now".
+ */
+const VERIFY_EVERY = 30 * 60_000
+/** When the server ends the session, sign-in shows once typing has paused this long. */
+const TYPING_PAUSE = 1000
+
+const ENDED_MESSAGES: Record<SessionEnd, string> = {
+  expired: 'Your sync session ended. Sign in again to keep syncing.',
+  deleted: 'Your account was deleted on another device.'
+}
 
 /** The Supabase session lives in the Keychain, readable only on this device. */
 function keychainSessionStore(): SessionStore {
@@ -68,11 +88,18 @@ export class MobileSync {
     lastSyncedAt: null,
     pending: 0,
     downloading: false,
+    recent: false,
     message: null
   })
   private readonly client: SupabaseSync | null
   private engine: SyncEngine | null = null
   private account: Account | null = null
+  /** The first download hasn't finished: this engine's first sync completes it. */
+  private joining = false
+  private checkedAt = 0
+  private verifiedAt = 0
+  private lastEdit = 0
+  private signInTimer: ReturnType<typeof setTimeout> | null = null
   private appState = (AppState.currentState ?? 'active') as AppStateStatus
 
   constructor(
@@ -81,12 +108,12 @@ export class MobileSync {
     config: SyncConfig | null
   ) {
     this.client = config ? new SupabaseSync(config, keychainSessionStore()) : null
-    // The server ended the session: signed out everywhere, or the account was deleted.
-    this.client?.onSignedOut(() => {
+    // The server ended the session: it expired or was revoked, or the account was deleted.
+    // The notes stay until someone signs in, so unsent edits aren't lost.
+    this.client?.onSignedOut((reason) => {
       if (!this.account) return
-      void this.end({ forget: true }).then(() =>
-        this.emit({ phase: 'signedOut', message: 'You were signed out. Sign in again to keep syncing.' })
-      )
+      void this.end({ forget: true })
+      this.showSignIn(ENDED_MESSAGES[reason])
     })
   }
 
@@ -112,14 +139,25 @@ export class MobileSync {
     // the first screen is up.
     this.account = account
     this.emit({ phase: 'signedIn' })
-    requestAnimationFrame(() => setTimeout(() => this.account === account && this.begin(account), 0))
+    requestAnimationFrame(() =>
+      setTimeout(() => {
+        if (this.account !== account) return
+        this.begin(account)
+        this.verifySession()
+      }, 0)
+    )
   }
 
   /* ------------------------------------------------------------ Triggers */
 
-  /** A local edit was stored. */
-  localChange(): void {
-    this.engine?.localChange()
+  /** A local edit was stored. `soon` for anything but typing, which goes without the typing pause. */
+  localChange(options?: { soon?: boolean }): void {
+    this.lastEdit = Date.now()
+    const engine = this.engine
+    if (!engine) return
+    engine.localChange(options)
+    // Nothing goes out while offline or paused, so keep the waiting count current.
+    if (engine.status === 'offline' || engine.status === 'error') this.emit()
   }
 
   /** A line is finished (the keyboard went away, or focus moved on): send it now. */
@@ -129,10 +167,16 @@ export class MobileSync {
     void this.store.persistence.settle().then(() => engine.flush().catch(() => {}))
   }
 
-  syncNow(): Promise<SyncResult> {
+  /** Offline, this fails with "Offline. Changes will sync when you’re back online." */
+  async syncNow(): Promise<SyncResult> {
     const engine = this.engine
-    if (!engine) return Promise.resolve({ ok: false, error: 'Not signed in.' })
-    return attempt(() => engine.sync())
+    if (!engine) return { ok: false, error: 'Not signed in.' }
+    try {
+      await engine.sync()
+      return { ok: true }
+    } catch (error) {
+      return { ok: false, error: error instanceof OfflineError ? SYNC_OFFLINE : errorMessage(error) }
+    }
   }
 
   private onAppState(next: AppStateStatus): void {
@@ -141,7 +185,10 @@ export class MobileSync {
     if (next === 'active') {
       this.client?.setForeground(true)
       // Hints sent while suspended were missed, and the socket is reconnecting: pull now.
-      if (previous !== 'active') void this.engine?.sync().catch(() => {})
+      if (previous !== 'active') {
+        void this.engine?.sync().catch(() => {})
+        this.verifySession()
+      }
       return
     }
     if (previous === 'active') void this.pushBeforeSuspend()
@@ -167,7 +214,7 @@ export class MobileSync {
   async sendCode(email: string): Promise<SyncResult> {
     const client = this.client
     if (!client) return { ok: false, error: 'This build of Cue has no sync server.' }
-    return attempt(() => client.sendCode(email.trim()))
+    return attempt(() => client.sendCode(email.trim()), SIGN_IN_FAILED)
   }
 
   async verifyCode(email: string, code: string): Promise<SyncResult> {
@@ -180,15 +227,24 @@ export class MobileSync {
         // Notes left by another account (signed out by the server) leave with it.
         if (previous) this.clearLocal()
         this.repo.setMeta(CURSOR, '0')
+        this.repo.setMeta(JOINING, '1')
         this.repo.setMeta(SYNCED_WITH, account.id)
       }
       this.begin(account)
-    })
+    }, SIGN_IN_FAILED)
   }
 
   /** Local changes the server doesn't have yet, including any still being saved. */
   unsent(): number {
     return this.repo.pendingCount() + (this.store.persistence.hasPending() ? 1 : 0)
+  }
+
+  /**
+   * Signed out by the server with changes it never received. Signing in to a different
+   * account, or to one that was deleted, removes them. 0 while signed in.
+   */
+  unsentFromPreviousAccount(): number {
+    return !this.account && this.repo.getMeta(SYNCED_WITH) ? this.repo.pendingCount() : 0
   }
 
   /** Try to upload everything before signing out. Resolves with what's still unsent. */
@@ -203,16 +259,19 @@ export class MobileSync {
 
   /** Sign out of this phone. Its copy of the notes is removed; the account keeps them. */
   async signOut(): Promise<void> {
-    await this.end({ forget: true })
+    // The engine stops at once, so nothing in flight can write after the notes are gone.
+    this.cancelSignIn()
+    const ending = this.end({ forget: true })
     this.clearLocal()
     this.emit({ phase: 'signedOut', message: null })
+    await ending
     await this.client?.signOut().catch((error) => console.warn('Sign out failed', error))
   }
 
   async deleteAccount(): Promise<SyncResult> {
     const client = this.client
     if (!client || !this.account) return { ok: false, error: 'Not signed in.' }
-    const result = await attempt(() => client.deleteAccount())
+    const result = await attempt(() => client.deleteAccount(), DELETE_FAILED)
     if (result.ok) await this.signOut()
     return result
   }
@@ -221,25 +280,41 @@ export class MobileSync {
 
   private begin(account: Account): void {
     const client = this.client!
+    this.cancelSignIn()
     this.repo.setMeta(ACCOUNT, JSON.stringify(account))
     this.account = account
+    // The cursor moves on with every page, so a download cut short by a relaunch is
+    // remembered in meta. Today ± 7 days were stored before the cursor first moved.
+    const cursor = this.repo.getMeta(CURSOR)
+    this.joining = cursor === '0' || this.repo.getMeta(JOINING) === '1'
     const engine = new SyncEngine(
       this.repo,
       client,
       {
         onRemoteChanges: (items) => this.store.applyExternal(items),
+        onRecentReady: () => {
+          if (this.engine === engine) this.emit({ recent: true })
+        },
         onStatus: (_status, error) => {
           if (this.engine !== engine) return
-          this.emit({ message: error && !(error instanceof OfflineError) ? error.message : null })
+          if (this.joining && engine.lastSyncedAt) {
+            this.joining = false
+            this.repo.deleteMeta(JOINING)
+          }
+          this.emit({ message: error && !(error instanceof OfflineError) ? errorMessage(error) : null })
+          if (error instanceof SessionError) this.checkSession(client, error.reason)
         }
       },
       TIMING
     )
     this.engine = engine
     client.setForeground(AppState.currentState === 'active')
-    void client.listen(account, (seq) => engine.remoteChange(seq)).catch((error) => console.warn('Sync hints unavailable', error))
+    void client.listen(account, (seq) => engine.remoteChange(seq), (live) => engine.setLive(live)).catch((error) => {
+      console.warn('Sync hints unavailable', error)
+      engine.setLive(false)
+    })
     engine.start()
-    this.emit({ phase: 'signedIn', message: null })
+    this.emit({ phase: 'signedIn', recent: cursor !== '0', message: null })
   }
 
   private async end(options: { forget?: boolean } = {}): Promise<void> {
@@ -251,11 +326,47 @@ export class MobileSync {
     await engine?.stop()
   }
 
+  /**
+   * The server refused the session. Ask the auth server (an expired token gets one
+   * refresh), at most every `CHECK_EVERY`; if the session is over, `onSignedOut` follows.
+   */
+  private checkSession(client: SupabaseSync, reason: SessionEnd): void {
+    if (Date.now() - this.checkedAt < CHECK_EVERY) return
+    this.checkedAt = Date.now()
+    void client.checkSession(reason).catch((error) => console.warn('Couldn’t check the sync session', error))
+  }
+
+  /** Ask the auth server whether the session still stands, at most every `VERIFY_EVERY`. */
+  private verifySession(): void {
+    const client = this.client
+    if (!client || !this.engine || Date.now() - this.verifiedAt < VERIFY_EVERY) return
+    this.verifiedAt = Date.now()
+    void client.checkSession('expired').catch((error) => console.warn('Couldn’t check the sync session', error))
+  }
+
+  /**
+   * The server ended the session: show sign-in with the reason, but only once typing has
+   * paused, so the screen never changes under someone mid-word. Edits made meanwhile are
+   * stored and stay until the next sign-in, like any other unsent change.
+   */
+  private showSignIn(message: string): void {
+    this.cancelSignIn()
+    const wait = this.lastEdit + TYPING_PAUSE - Date.now()
+    if (wait > 0) this.signInTimer = setTimeout(() => this.showSignIn(message), wait)
+    else this.emit({ phase: 'signedOut', message })
+  }
+
+  private cancelSignIn(): void {
+    if (this.signInTimer) clearTimeout(this.signInTimer)
+    this.signInTimer = null
+  }
+
   private clearLocal(): void {
     this.store.reset()
     this.repo.clearNotes()
     this.repo.deleteMeta(SYNCED_WITH)
     this.repo.deleteMeta(CURSOR)
+    this.repo.deleteMeta(JOINING)
   }
 
   private readAccount(): Account | null {
@@ -274,17 +385,18 @@ export class MobileSync {
       status: engine ? engine.status : 'idle',
       lastSyncedAt: engine?.lastSyncedAt ?? null,
       pending: this.account ? this.repo.pendingCount() : 0,
-      downloading: !!engine && !engine.lastSyncedAt && this.repo.getMeta(CURSOR) === '0',
+      downloading: !!engine && !engine.lastSyncedAt && this.joining,
       ...patch
     })
   }
 }
 
-async function attempt(fn: () => Promise<void>): Promise<SyncResult> {
+/** Run an account action. Failures come back in words, never as raw server text. */
+async function attempt(fn: () => Promise<void>, fallback?: string): Promise<SyncResult> {
   try {
     await fn()
     return { ok: true }
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    return { ok: false, error: errorMessage(error, fallback) }
   }
 }
