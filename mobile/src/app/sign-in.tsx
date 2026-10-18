@@ -124,9 +124,6 @@ export default function SignIn() {
                 autoFocus
                 autoCapitalize="none"
                 autoCorrect={false}
-                // The sign-in name, not just an email: iOS then offers Passwords and password
-                // managers above the keyboard. An email field offers Hide My Email instead,
-                // which would make a new relay address and so a new, empty account.
                 autoComplete="username"
                 keyboardType="email-address"
                 textContentType="username"
