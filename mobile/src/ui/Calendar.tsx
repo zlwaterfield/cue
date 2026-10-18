@@ -115,7 +115,7 @@ function Month({
               accessibilityState={{ selected: isSelected }}
             >
               <View style={[styles.circle, isSelected && { backgroundColor: c.accent }, !isSelected && isToday && { borderWidth: 1, borderColor: c.lineStrong }]}>
-                <Text style={[styles.day, { color: isSelected ? c.onAccent : inMonth ? c.text : c.text3 }, isToday && styles.today]}>
+                <Text style={[styles.day, { color: isSelected ? c.onAccent : inMonth ? c.text : c.text3 }, isToday && styles.today]} maxFontSizeMultiplier={1.3}>
                   {parts(day).day}
                 </Text>
               </View>

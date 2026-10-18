@@ -192,7 +192,10 @@ function Segmented<T extends string | number>({
             accessibilityRole="button"
             accessibilityState={{ selected }}
           >
-            <Text style={[styles.segmentText, { color: selected ? c.text : c.text2 }, selected && styles.segmentSelected]}>{label}</Text>
+            {/* Like iOS's own segmented controls, the words stop growing before they'd break mid-word. */}
+            <Text style={[styles.segmentText, { color: selected ? c.text : c.text2 }, selected && styles.segmentSelected]} maxFontSizeMultiplier={1.6}>
+              {label}
+            </Text>
           </Pressable>
         )
       })}
@@ -254,7 +257,9 @@ const styles = StyleSheet.create({
   },
   segment: {
     flex: 1,
-    height: 36,
+    minHeight: 36,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
@@ -264,7 +269,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0
   },
   segmentText: {
-    fontSize: 15
+    fontSize: 15,
+    textAlign: 'center'
   },
   segmentSelected: {
     fontWeight: '600'

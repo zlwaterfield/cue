@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AccessibilityInfo, ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native'
+import { AccessibilityInfo, ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 import * as SplashScreen from 'expo-splash-screen'
@@ -99,87 +99,90 @@ export default function SignIn() {
   }
 
   return (
-    <KeyboardAvoidingView behavior="padding" style={[styles.screen, { backgroundColor: c.bg, paddingTop: insets.top + 56, paddingBottom: insets.bottom + 16 }]}>
-      <View style={styles.brand}>
-        <SvgXml xml={lockup(c.text)} width={104} height={52} accessibilityLabel="Cue" />
-        <Text style={[styles.tagline, { color: c.text2 }]}>Every day is a page.</Text>
-      </View>
+    <KeyboardAvoidingView behavior="padding" style={[styles.keyboard, { backgroundColor: c.bg, paddingTop: insets.top }]}>
+      {/* At the largest text sizes the form can sit under the keyboard: it scrolls, and the first tap still sends. */}
+      <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={styles.brand}>
+          <SvgXml xml={lockup(c.text)} width={104} height={52} accessibilityLabel="Cue" />
+          <Text style={[styles.tagline, { color: c.text2 }]}>Every day is a page.</Text>
+        </View>
 
-      <View style={styles.form}>
-        {step === 'email' ? (
-          <>
-            {notice && <Text style={[styles.notice, { color: c.text }]}>{notice}</Text>}
-            <View>
-              <Text style={[styles.label, { color: c.text }]}>Sign in to sync your notes</Text>
-              <Text style={[styles.help, { color: c.text2 }]}>Enter your email and we’ll send a six-digit code.</Text>
-            </View>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              onSubmitEditing={submitEmail}
-              placeholder="you@example.com"
-              placeholderTextColor={c.text3}
-              autoFocus
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-              keyboardType="email-address"
-              textContentType="emailAddress"
-              returnKeyType="send"
-              selectionColor={c.accent}
-              style={[styles.field, { color: c.text, backgroundColor: c.bgSubtle }]}
-              accessibilityLabel="Email"
-              testID="email"
-            />
-            <Button label="Send Code" busy={busy} disabled={!email.trim()} onPress={submitEmail} />
-          </>
-        ) : (
-          <>
-            <Text style={[styles.label, { color: c.text }]}>Enter the code we sent to</Text>
-            <Text style={[styles.email, { color: c.text2 }]}>{email.trim()}</Text>
-            <TextInput
-              ref={codeInput}
-              value={code}
-              onChangeText={onCode}
-              placeholder="000000"
-              placeholderTextColor={c.text3}
-              keyboardType="number-pad"
-              textContentType="oneTimeCode"
-              autoComplete="one-time-code"
-              maxLength={6}
-              selectionColor={c.accent}
-              style={[styles.field, styles.code, { color: c.text, backgroundColor: c.bgSubtle }]}
-              accessibilityLabel="Six-digit code"
-              testID="code"
-            />
-            {busy && <ActivityIndicator color={c.text2} style={styles.spinner} />}
-            <View style={styles.links}>
-              <Pressable onPress={sendCode} hitSlop={8} disabled={busy} accessibilityRole="button">
-                <Text style={[styles.link, { color: c.text2 }]}>Send a New Code</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  setStep('email')
-                  setError(null)
-                }}
-                hitSlop={8}
-                accessibilityRole="button"
-              >
-                <Text style={[styles.link, { color: c.text2 }]}>Use a Different Email</Text>
-              </Pressable>
-            </View>
-          </>
-        )}
-        {error && (
-          <Text style={[styles.error, { color: c.text }]} accessibilityRole="alert" accessibilityLiveRegion="polite">
-            {error}
-          </Text>
-        )}
-      </View>
+        <View style={styles.form}>
+          {step === 'email' ? (
+            <>
+              {notice && <Text style={[styles.notice, { color: c.text }]}>{notice}</Text>}
+              <View>
+                <Text style={[styles.label, { color: c.text }]}>Sign in to sync your notes</Text>
+                <Text style={[styles.help, { color: c.text2 }]}>Enter your email and we’ll send a six-digit code.</Text>
+              </View>
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                onSubmitEditing={submitEmail}
+                placeholder="you@example.com"
+                placeholderTextColor={c.text3}
+                autoFocus
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                returnKeyType="send"
+                selectionColor={c.accent}
+                style={[styles.field, { color: c.text, backgroundColor: c.bgSubtle }]}
+                accessibilityLabel="Email"
+                testID="email"
+              />
+              <Button label="Send Code" busy={busy} disabled={!email.trim()} onPress={submitEmail} />
+            </>
+          ) : (
+            <>
+              <Text style={[styles.label, { color: c.text }]}>Enter the code we sent to</Text>
+              <Text style={[styles.email, { color: c.text2 }]}>{email.trim()}</Text>
+              <TextInput
+                ref={codeInput}
+                value={code}
+                onChangeText={onCode}
+                placeholder="000000"
+                placeholderTextColor={c.text3}
+                keyboardType="number-pad"
+                textContentType="oneTimeCode"
+                autoComplete="one-time-code"
+                maxLength={6}
+                selectionColor={c.accent}
+                style={[styles.field, styles.code, { color: c.text, backgroundColor: c.bgSubtle }]}
+                accessibilityLabel="Six-digit code"
+                testID="code"
+              />
+              {busy && <ActivityIndicator color={c.text2} style={styles.spinner} />}
+              <View style={styles.links}>
+                <Pressable onPress={sendCode} hitSlop={8} disabled={busy} accessibilityRole="button">
+                  <Text style={[styles.link, { color: c.text2 }]}>Send a New Code</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setStep('email')
+                    setError(null)
+                  }}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.link, { color: c.text2 }]}>Use a Different Email</Text>
+                </Pressable>
+              </View>
+            </>
+          )}
+          {error && (
+            <Text style={[styles.error, { color: c.text }]} accessibilityRole="alert" accessibilityLiveRegion="polite">
+              {error}
+            </Text>
+          )}
+        </View>
 
-      <Text style={[styles.footnote, { color: c.text3 }]}>
-        Your notes sync across your devices. New here? The code creates your account.
-      </Text>
+        <Text style={[styles.footnote, { color: c.text2 }]}>
+          Your notes sync across your devices. New here? The code creates your account.
+        </Text>
+      </ScrollView>
     </KeyboardAvoidingView>
   )
 }
@@ -200,8 +203,12 @@ function Button({ label, busy, disabled, onPress }: { label: string; busy: boole
 }
 
 const styles = StyleSheet.create({
+  keyboard: {
+    flex: 1
+  },
   screen: {
-    flex: 1,
+    flexGrow: 1,
+    paddingTop: 56,
     paddingHorizontal: metrics.gutter + 8
   },
   brand: {
@@ -246,7 +253,8 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums']
   },
   button: {
-    height: 50,
+    minHeight: 50,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center'
@@ -260,7 +268,10 @@ const styles = StyleSheet.create({
   },
   links: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
+    columnGap: 16,
+    rowGap: 8,
     marginTop: 4
   },
   link: {

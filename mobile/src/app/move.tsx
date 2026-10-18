@@ -53,8 +53,11 @@ export default function MoveSheet() {
             <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
               <SymbolView name={choice.icon} size={18} tintColor={c.text2} />
             </View>
-            <Text style={[styles.choiceLabel, { color: c.text }]}>{choice.label}</Text>
-            <Text style={[styles.choiceDetail, { color: c.text2 }]}>{choice.detail}</Text>
+            {/* At the largest text sizes the date goes under the label, as in iOS's own lists. */}
+            <View style={styles.choiceText}>
+              <Text style={[styles.choiceLabel, { color: c.text }]}>{choice.label}</Text>
+              <Text style={[styles.choiceDetail, { color: c.text2 }]}>{choice.detail}</Text>
+            </View>
           </Pressable>
         ))}
       </View>
@@ -82,11 +85,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 14,
-    height: 48
+    paddingVertical: 10,
+    minHeight: 48
+  },
+  choiceText: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: 12
   },
   choiceLabel: {
     fontSize: 16,
-    flex: 1
+    flexGrow: 1
   },
   choiceDetail: {
     fontSize: 15
