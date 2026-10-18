@@ -286,8 +286,11 @@ The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outb
   A fresh install clears any session a previous install left there.
 - **The first download** of a large account runs in the background while today's page
   shows. Today ± 7 days arrive first (`SyncStatus.recent`), then the rest. Five years of
-  notes (36,994 items) took about 4 s against the local server in a development build. The
-  header says "Getting your notes…" until it's done (`SyncStatus.downloading`).
+  notes (36,994 items) took about 4 s against the local server in a development build.
+  Until it's done (`SyncStatus.downloading`), an empty day whose notes haven't arrived says
+  "Getting your notes…" and can't be written in, and the header shows a quiet dot that
+  VoiceOver reads the same way. A download interrupted by closing the app picks up where it
+  left off at the next launch (meta `sync_joining`).
 - **The same words.** The header and Settings use `indicator` and `statusLine`, so the phone
   says what the Mac says, down to "Syncing…" fading in only after 1.2 s. The one deliberate
   difference is **Sign Out** (the phone needs an account) where the Mac has **Turn Off Sync**.
