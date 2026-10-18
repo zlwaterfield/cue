@@ -121,22 +121,29 @@ the same path an import uses, with one rule: **an edit in progress always wins.*
   auth server, at most every 30 s, whether the session still stands (`checkSession`, which
   tries one token refresh first). Only a clear answer signs out; network trouble and server
   errors never do. Then sync stops, every note stays, and the state says so: `needsSignIn`,
-  `previousEmail`, and "Your sync session ended. Sign in again to keep syncing." or "Your sync
-  account was deleted. Notes on this Mac stay here." That survives a restart until someone
-  signs in again or turns sync off. Signing back in to the same account sends only what
-  changed.
+  and "Your sync session ended. Sign in again to keep syncing." (with `previousEmail`, to
+  sign in again) or "Your account was deleted on another device. Notes on this Mac stay
+  here." That survives a restart until someone signs in again or turns sync off. Signing
+  back in to the same account sends only what changed.
 
 ### UI
 
 The words are shared by the Mac and iPhone (`src/shared/sync/status.ts`): `indicator` for the
 title bar or header, `statusLine` for Settings, `syncedAgo` for the time.
 
-- **Settings → Sync**: off, then your email, then the code, then on. When on, it shows "Synced
-  just now", a pending-change count while offline, **Sync Now**, **Turn Off Sync** and
-  **Delete Account…**. Builds without a sync server don't show it.
-- **Title bar**: nothing while sync is healthy. A quiet "Offline" or "Sync paused" when it isn't,
-  which opens Settings when clicked. A long sync, such as the first upload, fades in
-  "Syncing…" after a second; quick ones never show.
+- **Settings → Sync**: off, then your email, then the code, then on. The email step checks
+  the address before asking for a code (`isEmailAddress`, the iPhone's check and words) and
+  has **Cancel**; the code step has **Send a New Code** and **Use a Different Email**. When on,
+  it shows the account and the status line ("Synced just now", refreshed every 15 s; a
+  pending-change count while offline or paused), **Sync Now**, **Turn Off Sync** and
+  **Delete Account…**. If the server ended the session, it says why and offers **Sign In
+  Again…**, which goes straight to the code for the same account, or **Not Now**, which
+  dismisses it. A deleted account offers **Turn On Sync…** with any email instead. Builds
+  without a sync server don't show it.
+- **Title bar**: nothing while sync is healthy, or for anyone who never turned it on. A quiet
+  "Offline", "Sync paused" or "Sign in to sync" when it needs a word, which opens Settings
+  when clicked. A long sync, such as the first upload, fades in "Syncing…" after 1.2 s;
+  quick ones never show.
 - **Sync now** is a command (palette and File menu).
 
 ## Protocol
@@ -232,8 +239,9 @@ npx supabase stop
   deleted on another.
 - **`tests/e2e/sync.spec.ts`** drives two real Cue apps. It checks that sync is off by
   default, that typing is undisturbed while the other Mac edits the same day, turning sync
-  off, a quick quit still uploading, catching up on launch, and that a network resetting
-  every connection leaves Cue responsive and Offline.
+  off, a quick quit still uploading, catching up on launch, that a network resetting
+  every connection leaves Cue responsive and Offline, the email check, and signing in again
+  (or not) after the server ends the session.
 
 ## Mobile
 

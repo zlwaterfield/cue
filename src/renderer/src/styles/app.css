@@ -1088,12 +1088,20 @@ kbd.is-text {
   gap: 24px;
 }
 
-.setting-split > .button {
+.setting-split > .button,
+.setting-actions .button {
   flex: none;
   white-space: nowrap;
 }
 
-.setting-help strong {
+.setting-actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+.setting-help strong,
+.setting-notice {
   font-weight: 500;
   color: var(--text);
 }
@@ -1102,6 +1110,7 @@ kbd.is-text {
   margin-top: 6px;
   font-size: 12px;
   line-height: 1.45;
+  font-weight: 500;
   color: var(--text);
   max-width: 360px;
 }

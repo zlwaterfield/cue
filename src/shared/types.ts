@@ -97,7 +97,7 @@ export interface SyncState {
    * in, or by `signOut`.
    */
   needsSignIn: boolean
-  /** With `needsSignIn`, the account that was signed in, to offer signing in again. */
+  /** With `needsSignIn`, the account to offer signing in again to. Null if it was deleted. */
   previousEmail: string | null
 }
 

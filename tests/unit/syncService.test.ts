@@ -118,11 +118,12 @@ describe('SyncService', () => {
     await vi.waitFor(() => expect(service.state().needsSignIn).toBe(true))
     expect(client.checkSession).toHaveBeenCalledTimes(1)
     expect(client.checkSession).toHaveBeenCalledWith('deleted')
+    // There's no signing back in to it: Settings offers to turn sync on afresh.
     expect(service.state()).toMatchObject({
       email: null,
       status: 'off',
-      previousEmail: 'me@example.com',
-      message: 'Your sync account was deleted. Notes on this Mac stay here.'
+      previousEmail: null,
+      message: 'Your account was deleted on another device. Notes on this Mac stay here.'
     })
     expect(repo.allItems().map((i) => i.text).sort()).toEqual(['typed after it was deleted', 'written here'])
     expect(server.snapshot().map((i) => i.text)).toEqual(['written here'])

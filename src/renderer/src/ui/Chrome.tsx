@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { MONTHS, parts } from '@shared/dates'
+import { indicator, INDICATOR_DELAY, statusLine } from '@shared/sync/status'
 import { controller } from '../editor/controller'
 import { itemStore } from '../store/items'
 import { syncState } from '../store/sync'
@@ -78,43 +79,26 @@ function useHeld(active: boolean, ms: number): boolean {
 }
 
 /**
- * Sync stays out of sight while it works. This shows only when it can't: offline,
- * or stopped and needing attention. A long sync (the first one) fades in "Syncing…";
- * a quick one (every push while typing) never takes space in the title bar.
+ * Sync stays out of sight while it works, and for anyone who never turned it on. This
+ * shows only when it can't: offline, paused, or signed out by the server. A long sync (the
+ * first one) fades in "Syncing…"; a quick one (every push while typing) never takes space
+ * in the title bar. The words are the iPhone header's (`shared/sync/status`).
  */
 function SyncIndicator() {
   const sync = useStore(syncState, (s) => s)
-  const longSync = useHeld(sync.status === 'syncing' && !!sync.email, 1200)
-  let label: string
-  let hint: string
-  if (!sync.email) {
-    if (!sync.message) return null
-    label = 'Sync off'
-    hint = sync.message
-  } else if (sync.status === 'offline') {
-    label = 'Offline'
-    hint = 'Changes are saved on this Mac and will sync when you’re back online.'
-  } else if (sync.status === 'error') {
-    label = 'Sync paused'
-    hint = sync.message ?? 'Sync will retry shortly.'
-  } else if (sync.status === 'syncing') {
-    if (!longSync) return null
-    label = 'Syncing…'
-    hint = 'Syncing with your other devices.'
-  } else {
-    return null
-  }
-  const quiet = sync.status === 'syncing' && !!sync.email
+  const shown = indicator(sync)
+  const held = useHeld(!!shown?.delayed, INDICATOR_DELAY)
+  if (!shown || (shown.delayed && !held)) return null
   return (
     <button
-      className={`sync-status${quiet ? ' is-delayed' : ' is-attention'}`}
+      className={`sync-status${shown.delayed ? ' is-delayed' : ' is-attention'}`}
       onMouseDown={(e) => e.preventDefault()}
       onClick={() => controller.execute('app.settings')}
-      title={hint}
+      title={statusLine(sync, Date.now())}
       // Narrow windows show only the dot.
-      aria-label={label}
+      aria-label={shown.label}
     >
-      {label}
+      {shown.label}
     </button>
   )
 }

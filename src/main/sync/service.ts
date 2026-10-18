@@ -47,7 +47,7 @@ const CHECK_EVERY = 30_000
 
 const ENDED_MESSAGES: Record<SessionEnd, string> = {
   expired: 'Your sync session ended. Sign in again to keep syncing.',
-  deleted: 'Your sync account was deleted. Notes on this Mac stay here.'
+  deleted: 'Your account was deleted on another device. Notes on this Mac stay here.'
 }
 
 export class SyncService {
@@ -91,7 +91,8 @@ export class SyncService {
       pending: this.account ? this.repo.pendingCount() : 0,
       message: ended ? ENDED_MESSAGES[ended.reason] : this.message,
       needsSignIn: !!ended,
-      previousEmail: ended?.email ?? null
+      // A deleted account can't be signed back in to; turning sync on starts afresh.
+      previousEmail: ended?.reason === 'expired' ? ended.email : null
     }
   }
 
