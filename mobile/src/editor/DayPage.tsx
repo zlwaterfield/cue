@@ -176,7 +176,9 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
         <Text style={[styles.title, { color: c.text }]} accessibilityRole="header" testID="day-title" maxFontSizeMultiplier={1.4}>
           {title}
         </Text>
-        <Text style={[styles.subtitle, { color: c.text2 }]}>{subtitle}</Text>
+        <Text style={[styles.subtitle, { color: c.text2 }]} maxFontSizeMultiplier={2}>
+          {subtitle}
+        </Text>
       </View>
       <Animated.View
         style={[styles.rows, container]}
