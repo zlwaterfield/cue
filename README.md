@@ -103,7 +103,8 @@ Cue 0.1 is a working macOS app (Apple silicon). Here is everything it does right
 - A single calm column, hanging bullets and checkboxes, and system typography, in monochrome
   graphite with no hue.
 - The caret is the brand: a 2 px graphite bar with a calm, hard blink. It holds still while
-  you type and doesn't blink at all with Reduce Motion on.
+  you type, rests solid after about 10 seconds without moving (so an idle window costs no
+  energy), and doesn't blink at all with Reduce Motion on.
 - Light and dark appearance that follows macOS, or can be set by hand.
 - A native macOS menu bar, a native context menu with spelling suggestions, and window size
   and position remembered between launches.

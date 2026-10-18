@@ -521,7 +521,9 @@ button:focus-visible {
   background: var(--accent);
   pointer-events: none;
   display: none;
-  animation: cue-blink 1.1s step-end infinite;
+  /* Nine blinks (about 10 s) after the caret last moved, then it rests solid, so an idle
+     window stops waking the GPU. Removing .is-solid on the next move starts it again. */
+  animation: cue-blink 1.1s step-end 9;
 }
 
 body.has-cue-caret .cue-caret {

@@ -49,16 +49,29 @@ test('About shows the wordmark and the alpha notice', async () => {
   await expect(about).toHaveCount(0)
 })
 
-test('the brand caret blinks while the hidden native one stays still', async () => {
+test('the brand caret blinks, then rests solid, while the hidden native one stays still', async () => {
   const { page } = cue
   await expect.poll(async () => (await caretState(cue)).shown).toBe(true)
-  // Solid for a moment after each move, then blinking again.
-  await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector('.cue-caret')!).animationIterationCount)).toBe('infinite')
+  // Solid for a moment after each move, then blinking again: nine blinks, about 10 s.
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector('.cue-caret')!).animationIterationCount)).toBe('9')
   const native = await page.evaluate(() => {
     const style = getComputedStyle(document.activeElement!)
     return { animation: style.getPropertyValue('caret-animation'), color: style.caretColor }
   })
   expect(native).toEqual({ animation: 'manual', color: 'rgba(0, 0, 0, 0)' })
+
+  const blink = (): Promise<{ playing: number; opacity: string }> =>
+    page.evaluate(() => {
+      const caret = document.querySelector('.cue-caret')!
+      const playing = caret.getAnimations().filter((a) => a.playState === 'running').length
+      return { playing, opacity: getComputedStyle(caret).opacity }
+    })
+  // Skip to the end of the blink: the caret rests, drawn, with nothing left animating.
+  await page.evaluate(() => document.querySelector('.cue-caret')!.getAnimations().forEach((a) => a.finish()))
+  expect(await blink()).toEqual({ playing: 0, opacity: '1' })
+  // Moving the caret starts the blink again.
+  await page.keyboard.type('x')
+  await expect.poll(async () => (await blink()).playing).toBe(1)
 })
 
 test('a selected segment is lighter than its track in dark mode, as in light', async () => {
