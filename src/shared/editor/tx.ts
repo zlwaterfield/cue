@@ -1,6 +1,6 @@
 import { generateNKeysBetween } from 'fractional-indexing'
 import { uuidv7 } from '../ids'
-import { buildOutline, type Row } from '../outline'
+import { buildOutline, sameStructure, type Row } from '../outline'
 import type { ISODate, Item } from '../types'
 
 const MAX_KEY_LENGTH = 48
@@ -36,10 +36,12 @@ export class Tx {
 
   put(item: Item): void {
     const existing = this.changes.get(item.id)
+    const current = this.overlay.get(item.id) ?? this.store.get(item.id)
     const before = existing ? existing.before : (this.store.get(item.id) ?? null)
     this.changes.set(item.id, { before, after: item })
     this.overlay.set(item.id, item)
-    this.outlines.clear()
+    // Rows hold only structure, so text, type and completion edits keep them.
+    if (!current || !sameStructure(current, item)) this.outlines.clear()
   }
 
   update(id: string, patch: Partial<Item>): Item | undefined {

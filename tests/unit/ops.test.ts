@@ -4,6 +4,8 @@ import type { Backend } from '../../src/renderer/src/data/backend'
 import * as ops from '../../src/shared/editor/ops'
 import { Tx } from '../../src/shared/editor/tx'
 import { ItemStore } from '../../src/shared/itemStore'
+import type { LineSpec } from '../../src/shared/markdown'
+import { buildOutline } from '../../src/shared/outline'
 import type { Item, ItemType } from '../../src/shared/types'
 
 const DAY = '2026-10-17'
@@ -305,5 +307,116 @@ describe('Sync artifacts', () => {
     expect(tx.netChanges().filter((c) => c.before).map((c) => c.after.id)).toEqual([])
     store.commit(tx.netChanges().map((c) => c.after))
     expect(render(store)).toBe('A\nB\n')
+  })
+})
+
+describe('Bulk edits in linear time', () => {
+  /** An item source that counts how often a draft reads a whole day. */
+  function counting(): { tx: Tx; reads: () => number } {
+    let reads = 0
+    const source = { get: (id: string) => store.get(id), itemsOn: (date: string) => (reads++, store.itemsOn(date)) }
+    return { tx: new Tx(source), reads: () => reads }
+  }
+
+  const bulk = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ depth: i % 6 === 5 ? 1 : 0, type: 'todo' as const, done: false, text: `Line ${i}` }))
+
+  it('pastes 2,000 lines reading the day only a few times', async () => {
+    await setup('first')
+    const { tx, reads } = counting()
+    ops.insertLinesAfter(tx, DAY, 'first', bulk(2000))
+    expect(reads()).toBeLessThanOrEqual(3)
+    store.commit(tx.netChanges().map((c) => c.after))
+    const rows = store.outline(DAY)
+    expect(rows).toHaveLength(2001)
+    expect(rows.slice(0, 7).map((r) => `${r.depth}|${store.get(r.id)!.text}`)).toEqual([
+      '0|first',
+      '0|Line 0',
+      '0|Line 1',
+      '0|Line 2',
+      '0|Line 3',
+      '0|Line 4',
+      '1|Line 5'
+    ])
+  })
+
+  it('deletes 2,000 lines reading the day only a few times', async () => {
+    await setup('')
+    run((tx) => ops.insertLinesAfter(tx, DAY, null, bulk(2000)))
+    const { tx, reads } = counting()
+    ops.remove(tx, store.outline(DAY).map((r) => r.id))
+    expect(reads()).toBeLessThanOrEqual(3)
+    store.commit(tx.netChanges().map((c) => c.after))
+    expect(store.outline(DAY)).toEqual([])
+  })
+
+  /** The one-line-at-a-time paste and delete these replaced, over a draft that never caches. */
+  class UncachedTx extends Tx {
+    override outline(date: string) {
+      return buildOutline(this.itemsOn(date))
+    }
+  }
+  function referencePaste(tx: Tx, date: string, afterId: string | null, lines: LineSpec[]): void {
+    const stack: string[] = afterId ? [afterId] : []
+    const parent = afterId ? tx.parentOf(afterId) : null
+    const anchor = afterId ?? 'end'
+    let first = true
+    for (const line of lines) {
+      const depth = Math.min(line.depth, stack.length)
+      const parentId = depth === 0 ? parent : stack[depth - 1]
+      const after = stack[depth] ?? (depth === 0 ? (first ? anchor : 'end') : null)
+      const item = tx.create({ date, type: line.type, done: line.type === 'todo' && line.done, text: line.text })
+      tx.place([item.id], date, parentId, after)
+      stack[depth] = item.id
+      stack.length = depth + 1
+      first = false
+    }
+  }
+  function referenceRemove(tx: Tx, ids: string[]): void {
+    for (const root of tx.roots(ids)) for (const id of tx.subtreeIds(root)) tx.update(id, { deleted: true })
+  }
+
+  it('pastes and deletes exactly like line-at-a-time editing (200 random nested cases)', async () => {
+    let seed = 7
+    const random = () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31
+    /** Random nested lines; unlike parsed Markdown, they may start indented. */
+    const randomLines = (n: number, start = 0): LineSpec[] => {
+      const out: LineSpec[] = []
+      let depth = start
+      for (let i = 0; i < n; i++) {
+        if (i) depth = Math.max(0, Math.min(depth + Math.floor(random() * 3) - 1, 3))
+        const type = (['text', 'bullet', 'todo'] as const)[Math.floor(random() * 3)]
+        out.push({ depth, type, done: type === 'todo' && random() < 0.5, text: `line ${i}` })
+      }
+      return out
+    }
+    const shape = () => render(store)
+    let mismatches = 0
+    for (let t = 0; t < 200; t++) {
+      const base = randomLines(1 + Math.floor(random() * 12))
+      const pasted = randomLines(1 + Math.floor(random() * 40), Math.floor(random() * 2))
+      const anchorAt = random()
+      const results: string[] = []
+      for (const reference of [false, true]) {
+        await setup('')
+        run((tx) => ops.insertLinesAfter(tx, DAY, null, base))
+        const rows = store.outline(DAY)
+        // Mostly an anchor somewhere in the day (often one with children), sometimes the end.
+        const anchor = anchorAt < 0.15 ? null : rows[Math.floor(anchorAt * rows.length)].id
+        const tx = reference ? new UncachedTx(store) : new Tx(store)
+        if (reference) referencePaste(tx, DAY, anchor, pasted)
+        else ops.insertLinesAfter(tx, DAY, anchor, pasted)
+        store.commit(tx.netChanges().map((c) => c.after))
+        const afterPaste = shape()
+        const doomed = store.outline(DAY).filter((_, i) => (i * 7 + t) % 3 === 0).map((r) => r.id)
+        const txd = reference ? new UncachedTx(store) : new Tx(store)
+        if (reference) referenceRemove(txd, doomed)
+        else ops.remove(txd, doomed)
+        store.commit(txd.netChanges().map((c) => c.after))
+        results.push(`${afterPaste}\n---\n${shape()}`)
+      }
+      if (results[0] !== results[1]) mismatches++
+    }
+    expect(mismatches).toBe(0)
   })
 })

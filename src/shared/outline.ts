@@ -13,6 +13,11 @@ export interface Row {
   parentId: string | null
 }
 
+/** Whether two versions of an item sit in the same place (rows depend on nothing else). */
+export function sameStructure(a: Item, b: Item): boolean {
+  return a.date === b.date && a.parentId === b.parentId && a.position === b.position && a.deleted === b.deleted
+}
+
 /** Sibling order: fractional position, ties broken by id for determinism across devices. */
 export function compareItems(a: Pick<Item, 'position' | 'id'>, b: Pick<Item, 'position' | 'id'>): number {
   if (a.position < b.position) return -1

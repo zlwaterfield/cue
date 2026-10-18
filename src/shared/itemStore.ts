@@ -1,4 +1,4 @@
-import { buildOutline, type Row } from './outline'
+import { buildOutline, sameStructure, type Row } from './outline'
 import type { CueBridge, ISODate, Item } from './types'
 
 /**
@@ -13,10 +13,6 @@ import type { CueBridge, ISODate, Item } from './types'
 export type StoreBackend = Pick<CueBridge, 'loadDates' | 'saveItems' | 'saveItemsSync'>
 
 type Listener = () => void
-
-function structurallyEqual(a: Item, b: Item): boolean {
-  return a.date === b.date && a.parentId === b.parentId && a.position === b.position && a.deleted === b.deleted
-}
 
 export type SaveState = { state: 'saved' } | { state: 'pending' } | { state: 'error'; message: string }
 
@@ -323,7 +319,7 @@ export class ItemStore {
     const dirtyItems = new Set<string>()
     for (const next of changes) {
       const prev = this.items.get(next.id)
-      if (prev && !structurallyEqual(prev, next)) {
+      if (prev && !sameStructure(prev, next)) {
         this.removeFromIndex(prev)
         dirtyDates.add(prev.date)
       }
@@ -334,7 +330,7 @@ export class ItemStore {
       } else {
         // Indexed even if the day isn't loaded yet; loading never overwrites local edits.
         this.items.set(next.id, next)
-        if (!prev || !structurallyEqual(prev, next)) {
+        if (!prev || !sameStructure(prev, next)) {
           this.addToIndex(next)
           dirtyDates.add(next.date)
         }
