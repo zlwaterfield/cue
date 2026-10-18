@@ -2,9 +2,9 @@ import './polyfills'
 import { Appearance } from 'react-native'
 import Constants from 'expo-constants'
 import { ItemStore, type StoreBackend } from '@shared/itemStore'
-import { Repository } from '@shared/repository'
+import { isTextOnlyChange, Repository } from '@shared/repository'
 import type { SyncConfig } from '@shared/sync/supabase'
-import type { Settings } from '@shared/types'
+import type { Item, Settings } from '@shared/types'
 import { openDatabase } from './db'
 import { MobileSync } from './sync'
 import { ui } from './ui'
@@ -22,17 +22,26 @@ function syncConfig(): SyncConfig | null {
 
 export const repo = new Repository(openDatabase())
 
+/** Store edits. Anything but typing (a new line, a move, a toggle) syncs without the typing pause. */
+function save(items: Item[]): Item[] {
+  const soon = items.some((item) => {
+    const existing = repo.get(item.id)
+    return !existing || !isTextOnlyChange(existing, item)
+  })
+  const saved = repo.saveItems(items)
+  if (saved.length) sync.localChange({ soon })
+  return saved
+}
+
 const backend: StoreBackend = {
   async loadDates(dates) {
     return repo.loadDates(dates)
   },
   async saveItems(items) {
-    const saved = repo.saveItems(items)
-    if (saved.length) sync.localChange()
-    return saved.map(({ id, version }) => ({ id, version }))
+    return save(items).map(({ id, version }) => ({ id, version }))
   },
   saveItemsSync(items) {
-    if (repo.saveItems(items).length) sync.localChange()
+    save(items)
   }
 }
 

@@ -89,8 +89,16 @@ export interface SyncState {
   lastSyncedAt: number | null
   /** Local changes not yet uploaded. */
   pending: number
-  /** Why sync stopped or failed, in words a person can act on. */
+  /** Why sync stopped or failed, in words a person can act on. Never raw server text. */
   message: string | null
+  /**
+   * The server ended the session (it expired, or the account was deleted elsewhere), so
+   * sync is off until someone signs in again. Notes stay on this Mac. Cleared by signing
+   * in, or by `signOut`.
+   */
+  needsSignIn: boolean
+  /** With `needsSignIn`, the account that was signed in, to offer signing in again. */
+  previousEmail: string | null
 }
 
 export const SYNC_OFF: SyncState = {
@@ -99,9 +107,12 @@ export const SYNC_OFF: SyncState = {
   status: 'off',
   lastSyncedAt: null,
   pending: 0,
-  message: null
+  message: null,
+  needsSignIn: false,
+  previousEmail: null
 }
 
+/** The outcome of an account action. `error` is always written for people. */
 export type SyncResult = { ok: true } | { ok: false; error: string }
 
 export interface SyncBridge {
@@ -111,8 +122,9 @@ export interface SyncBridge {
   sendCode(email: string): Promise<SyncResult>
   /** Finish signing in; sync starts right away. */
   verifyCode(email: string, code: string): Promise<SyncResult>
+  /** Offline, this fails with "Offline. Changes will sync when you’re back online." */
   syncNow(): Promise<SyncResult>
-  /** Stop syncing on this Mac. Notes stay here. */
+  /** Stop syncing on this Mac (or dismiss `needsSignIn`). Notes stay here. */
   signOut(): Promise<void>
   /** Asks for confirmation, then deletes the account and its server copy. Notes stay here. */
   deleteAccount(): Promise<SyncResult | null>

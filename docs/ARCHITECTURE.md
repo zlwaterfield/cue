@@ -21,7 +21,7 @@
    sqlite.ts       schema + migrations, for node:sqlite and expo-sqlite alike
    repository.ts   the storage boundary (validation, versions, outbox)
    hlc.ts          hybrid logical clock
-   sync/           engine, Supabase transport, in-memory reference server
+   sync/           engine, Supabase transport, in-memory reference server, status words
    itemStore.ts    in-memory items for loaded days + write-behind queue
    editor/ops.ts   structural operations (pure functions over a draft)
    editor/tx.ts    draft transaction over the store

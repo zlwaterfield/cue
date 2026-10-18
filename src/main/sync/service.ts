@@ -1,5 +1,6 @@
 import type { Repository } from '../../shared/repository'
-import { OfflineError, SyncEngine, type SyncTransport } from '../../shared/sync/engine'
+import { errorMessage, OfflineError, SessionError, SyncEngine, SyncError, type SessionEnd, type SyncTransport } from '../../shared/sync/engine'
+import { DELETE_FAILED, SIGN_IN_FAILED, SYNC_OFFLINE } from '../../shared/sync/status'
 import type { Account, SessionStore, SupabaseSync, SyncConfig } from '../../shared/sync/supabase'
 import type { Item, SyncResult, SyncState } from '../../shared/types'
 
@@ -10,7 +11,10 @@ import type { Item, SyncResult, SyncState } from '../../shared/types'
  */
 
 /** The sync server connection, as the service needs it (`SupabaseSync`, or a fake in tests). */
-export type SyncClient = Pick<SupabaseSync, 'sendCode' | 'verifyCode' | 'onSignedOut' | 'signOut' | 'deleteAccount' | 'listen' | 'unlisten'> &
+export type SyncClient = Pick<
+  SupabaseSync,
+  'sendCode' | 'verifyCode' | 'onSignedOut' | 'checkSession' | 'signOut' | 'deleteAccount' | 'listen' | 'unlisten'
+> &
   SyncTransport
 
 export interface SyncServiceOptions {
@@ -23,14 +27,28 @@ export interface SyncServiceOptions {
   connect?: (config: SyncConfig, store: SessionStore) => Promise<SyncClient>
 }
 
+interface Ended {
+  email: string
+  reason: SessionEnd
+}
+
 const ACCOUNT = 'sync_account'
 /** The account this database last synced with; switching accounts re-uploads everything. */
 const SYNCED_WITH = 'sync_user'
 const CURSOR = 'sync_cursor'
+/** The session the server ended, kept so Settings can still offer to sign in again after a restart. */
+const ENDED = 'sync_ended'
 const SESSION_PREFIX = 'sync_session:'
 
 /** Pull when coming back to the app if the last sync is older than this. */
 const STALE_AFTER = 60_000
+/** Ask the auth server about a refused session at most this often. */
+const CHECK_EVERY = 30_000
+
+const ENDED_MESSAGES: Record<SessionEnd, string> = {
+  expired: 'Your sync session ended. Sign in again to keep syncing.',
+  deleted: 'Your sync account was deleted. Notes on this Mac stay here.'
+}
 
 export class SyncService {
   private client: Promise<SyncClient> | null = null
@@ -38,11 +56,16 @@ export class SyncService {
   private started = false
   private account: Account | null = null
   private message: string | null = null
+  private ended: Ended | null
+  private checkedAt = 0
+  private shownPending = 0
 
   constructor(
     private readonly repo: Repository,
     private readonly options: SyncServiceOptions
-  ) {}
+  ) {
+    this.ended = this.readEnded()
+  }
 
   /** Resume syncing if this Mac was signed in. Call once the window is interactive. */
   async start(): Promise<void> {
@@ -59,21 +82,33 @@ export class SyncService {
 
   state(): SyncState {
     const engine = this.engine
+    const ended = this.options.config && !this.account ? this.ended : null
     return {
       available: !!this.options.config,
       email: this.account?.email ?? null,
       status: engine ? engine.status : 'off',
       lastSyncedAt: engine?.lastSyncedAt ?? null,
       pending: this.account ? this.repo.pendingCount() : 0,
-      message: this.message
+      message: ended ? ENDED_MESSAGES[ended.reason] : this.message,
+      needsSignIn: !!ended,
+      previousEmail: ended?.email ?? null
     }
+  }
+
+  /** Signed in, so saves go to the server too. */
+  isOn(): boolean {
+    return !!this.engine
   }
 
   /* ----------------------------------------------------------- Triggers */
 
-  /** A local edit was saved. */
-  localChange(): void {
-    this.engine?.localChange()
+  /** A local edit was saved. `soon` for anything but typing, which goes without the typing pause. */
+  localChange(options?: { soon?: boolean }): void {
+    const engine = this.engine
+    if (!engine) return
+    engine.localChange(options)
+    // Nothing goes out while offline or paused, so keep the waiting count current.
+    if ((engine.status === 'offline' || engine.status === 'error') && this.repo.pendingCount() !== this.shownPending) this.emit()
   }
 
   /** The app came back to the foreground or the Mac woke up. */
@@ -101,8 +136,14 @@ export class SyncService {
   }
 
   async syncNow(): Promise<SyncResult> {
-    if (!this.engine) return { ok: false, error: 'Sync is off.' }
-    return attempt(() => this.engine!.sync())
+    const engine = this.engine
+    if (!engine) return { ok: false, error: 'Sync is off.' }
+    try {
+      await engine.sync()
+      return { ok: true }
+    } catch (error) {
+      return { ok: false, error: error instanceof OfflineError ? SYNC_OFFLINE : errorMessage(error) }
+    }
   }
 
   /* ------------------------------------------------------------- Account */
@@ -111,7 +152,7 @@ export class SyncService {
     return attempt(async () => {
       const client = await this.connect()
       await client.sendCode(email.trim())
-    })
+    }, SIGN_IN_FAILED)
   }
 
   async verifyCode(email: string, code: string): Promise<SyncResult> {
@@ -126,21 +167,24 @@ export class SyncService {
       }
       this.message = null
       await this.begin(account)
-    })
+    }, SIGN_IN_FAILED)
   }
 
   /** Stop syncing on this Mac. Local notes are untouched and keep working. */
   async signOut(): Promise<void> {
-    await this.end({ forget: true })
+    // Settings shows Off at once; a request still in flight finishes (or times out) after.
+    const ending = this.end({ forget: true })
     this.message = null
+    this.setEnded(null)
     this.emit()
+    await ending
     await (await this.loaded())?.signOut().catch((error) => console.error('Sign out failed', error))
   }
 
   async deleteAccount(): Promise<SyncResult> {
     const client = await this.loaded()
     if (!client || !this.account) return { ok: false, error: 'Sync is off.' }
-    const result = await attempt(() => client.deleteAccount())
+    const result = await attempt(() => client.deleteAccount(), DELETE_FAILED)
     if (!result.ok) return result
     this.repo.deleteMeta(SYNCED_WITH)
     this.repo.deleteMeta(CURSOR)
@@ -155,16 +199,21 @@ export class SyncService {
     const client = await this.connect()
     this.repo.setMeta(ACCOUNT, JSON.stringify(account))
     this.account = account
+    this.setEnded(null)
     const engine = new SyncEngine(this.repo, client, {
       onRemoteChanges: (items) => this.options.onRemoteChanges(items),
       onStatus: (_status, error) => {
         if (this.engine !== engine) return
-        this.message = error && !(error instanceof OfflineError) ? error.message : null
+        this.message = error && !(error instanceof OfflineError) ? errorMessage(error) : null
         this.emit()
+        if (error instanceof SessionError) this.checkSession(client, error.reason)
       }
     })
     this.engine = engine
-    void client.listen(account, (seq) => engine.remoteChange(seq)).catch((error) => console.error('Sync hints unavailable', error))
+    void client.listen(account, (seq) => engine.remoteChange(seq), (live) => engine.setLive(live)).catch((error) => {
+      console.error('Sync hints unavailable', error)
+      engine.setLive(false)
+    })
     engine.start()
     this.emit()
   }
@@ -175,22 +224,37 @@ export class SyncService {
     this.engine = null
     this.account = null
     if (options.forget) this.repo.deleteMeta(ACCOUNT)
+    // Stop first: from here on, a request still in flight can't write anything.
+    const stopping = engine?.stop()
     ;(await this.loaded())?.unlisten()
-    await engine?.stop()
+    await stopping
+  }
+
+  /**
+   * The server refused the session. Ask the auth server, at most every `CHECK_EVERY`;
+   * if the session is over, the client signs out and `onSignedOut` ends sync.
+   */
+  private checkSession(client: SyncClient, reason: SessionEnd): void {
+    if (Date.now() - this.checkedAt < CHECK_EVERY) return
+    this.checkedAt = Date.now()
+    void client.checkSession(reason).catch((error) => console.error('Couldn’t check the sync session', error))
   }
 
   /** Load the Supabase client on first use (once, however many calls race to it). */
   private connect(): Promise<SyncClient> {
     const config = this.options.config
-    if (!config) return Promise.reject(new Error('Sync isn’t available in this build.'))
+    if (!config) return Promise.reject(new SyncError('Sync isn’t available in this build.'))
     const connect = this.options.connect ?? (async (c, s) => new (await import('../../shared/sync/supabase')).SupabaseSync(c, s))
     if (!this.client) {
       this.client = connect(config, this.sessionStore()).then((client) => {
-        // The server ended the session (signed out everywhere, or account deleted elsewhere).
-        client.onSignedOut(() => {
-          if (!this.account) return
-          this.message = 'You were signed out. Sign in again to keep syncing.'
-          void this.end({ forget: true }).then(() => this.emit())
+        // The server ended the session: it expired or was revoked, or the account was
+        // deleted elsewhere. Sync stops, every note stays, and Settings offers to sign in again.
+        client.onSignedOut((reason) => {
+          const account = this.account
+          if (!account) return
+          this.setEnded({ email: account.email, reason })
+          void this.end({ forget: true })
+          this.emit()
         })
         return client
       })
@@ -230,16 +294,35 @@ export class SyncService {
     }
   }
 
+  private readEnded(): Ended | null {
+    try {
+      const value = JSON.parse(this.repo.getMeta(ENDED) ?? 'null') as Ended | null
+      return value && typeof value.email === 'string' && (value.reason === 'expired' || value.reason === 'deleted') ? value : null
+    } catch {
+      return null
+    }
+  }
+
+  private setEnded(ended: Ended | null): void {
+    if (!ended && !this.ended) return
+    this.ended = ended
+    if (ended) this.repo.setMeta(ENDED, JSON.stringify(ended))
+    else this.repo.deleteMeta(ENDED)
+  }
+
   private emit(): void {
-    this.options.onState(this.state())
+    const state = this.state()
+    this.shownPending = state.pending
+    this.options.onState(state)
   }
 }
 
-async function attempt(fn: () => Promise<void>): Promise<SyncResult> {
+/** Run an account action. Failures come back in words, never as raw server text. */
+async function attempt(fn: () => Promise<void>, fallback?: string): Promise<SyncResult> {
   try {
     await fn()
     return { ok: true }
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    return { ok: false, error: errorMessage(error, fallback) }
   }
 }

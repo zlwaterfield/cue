@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import type { Item } from '../types'
-import { OfflineError, type PullResult, type PushResult, type SyncTransport } from './engine'
+import type { ISODate, Item } from '../types'
+import { OfflineError, SessionError, SyncError, type PullResult, type PushResult, type SessionEnd, type SyncTransport } from './engine'
+import { DELETE_FAILED, SIGN_IN_FAILED, SYNC_PAUSED } from './status'
 
 /**
  * Everything that talks to Supabase: email sign-in, the push/pull transport, and
@@ -30,13 +31,56 @@ export interface Account {
   email: string
 }
 
+/** No request waits forever. Sign-in gets 10 s; a sync batch (500 rows, about 150 KB) gets 20 s. */
+export const AUTH_TIMEOUT = 10_000
+export const REQUEST_TIMEOUT = 20_000
+
+/**
+ * Give every request a deadline, covering the whole response, body included, so a
+ * connection that stalls halfway can't hang sync. A timed-out request fails like a lost
+ * connection: postgrest-js reports it as status 0, auth-js as a retryable fetch error.
+ */
+export function withTimeout(fetcher: typeof fetch): typeof fetch {
+  return async (input, init = {}) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    const controller = new AbortController()
+    // Settles only on abort. Racing it means even a fetch that ignores its signal gives up.
+    let fail: (reason: unknown) => void = () => {}
+    const aborted = new Promise<never>((_, reject) => (fail = reject))
+    aborted.catch(() => {})
+    const abort = (reason: unknown): void => {
+      fail(reason)
+      controller.abort(reason)
+    }
+    const caller = init.signal
+    if (caller?.aborted) abort(caller.reason)
+    else caller?.addEventListener('abort', () => abort(caller.reason), { once: true })
+    const timer = setTimeout(() => abort(timeoutError()), url.includes('/auth/v1/') ? AUTH_TIMEOUT : REQUEST_TIMEOUT)
+    try {
+      const response = await Promise.race([fetcher(input, { ...init, signal: controller.signal }), aborted])
+      const body = [101, 204, 205, 304].includes(response.status) ? null : await Promise.race([response.text(), aborted])
+      return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers })
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+}
+
+function timeoutError(): Error {
+  const error = new Error('The request timed out.')
+  error.name = 'AbortError'
+  return error
+}
+
 export class SupabaseSync implements SyncTransport {
   private readonly client: SupabaseClient
   private listening = 0
+  /** Why the session is ending, while `checkSession` decides. */
+  private ending: SessionEnd | null = null
 
   constructor(config: SyncConfig, store: SessionStore) {
     this.client = createClient(config.url, config.key, {
-      global: config.fetch ? { fetch: config.fetch } : {},
+      global: { fetch: withTimeout(config.fetch ?? ((input, init) => fetch(input, init))) },
       auth: {
         storage: {
           getItem: (key) => store.get(key),
@@ -62,15 +106,40 @@ export class SupabaseSync implements SyncTransport {
   async verifyCode(email: string, code: string): Promise<Account> {
     const { data, error } = await this.client.auth.verifyOtp({ email, token: code, type: 'email' })
     if (error) throw friendlyAuthError(error)
-    if (!data.user) throw new Error('Sign-in didn’t complete. Try again.')
+    if (!data.user) throw new SyncError('Sign-in didn’t complete. Try again.')
     return { id: data.user.id, email: data.user.email ?? email }
   }
 
-  /** Called if the server ends the session (e.g. the account was deleted elsewhere). */
-  onSignedOut(callback: () => void): void {
+  /**
+   * Called if the server ends the session: it expired or was revoked (signed out
+   * everywhere), or the account was deleted elsewhere.
+   */
+  onSignedOut(callback: (reason: SessionEnd) => void): void {
     this.client.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') callback()
+      if (event === 'SIGNED_OUT') callback(this.ending ?? 'expired')
     })
+  }
+
+  /**
+   * A request was refused for its session (`SessionError`): ask the auth server whether
+   * the session still stands, and sign out on this device only if it clearly doesn't.
+   * An expired token gets one refresh first. Network trouble and server errors never
+   * sign anyone out.
+   */
+  async checkSession(reason: SessionEnd): Promise<void> {
+    this.ending = reason
+    try {
+      const { error } = await this.client.auth.getUser()
+      if (!error || !sessionGone(error)) return
+      if (error.code === 'user_not_found') this.ending = 'deleted'
+      else {
+        const { error: refreshError } = await this.client.auth.refreshSession()
+        if (!refreshError || !sessionGone(refreshError)) return
+      }
+      await this.client.auth.signOut({ scope: 'local' })
+    } finally {
+      this.ending = null
+    }
   }
 
   /**
@@ -90,7 +159,9 @@ export class SupabaseSync implements SyncTransport {
   /** Delete the account and its server copy. Sign out afterwards. */
   async deleteAccount(): Promise<void> {
     const { error, status } = await this.client.rpc('sync_delete_account')
-    if (error) throw transportError(error, status)
+    if (!error) return
+    const failure = transportError(error, status)
+    throw failure instanceof OfflineError ? failure : new SyncError(DELETE_FAILED)
   }
 
   /* ------------------------------------------------------------- Transport */
@@ -107,14 +178,29 @@ export class SupabaseSync implements SyncTransport {
     return data as PullResult
   }
 
+  /** A date range straight from the table; row-level security limits it to this account. */
+  async pullDates(from: ISODate, to: ISODate): Promise<Item[]> {
+    const { data, error, status } = await this.client
+      .from('items')
+      .select('id,date,parentId:parent_id,position,type,text,done,createdAt:created_at,updatedAt:updated_at,deleted,version')
+      .gte('date', from)
+      .lte('date', to)
+      .limit(1000)
+      // The engine retries with its own backoff.
+      .retry(false)
+    if (error) throw transportError(error, status)
+    return data as Item[]
+  }
+
   /* -------------------------------------------------------------- Realtime */
 
   /**
    * Listen for "something changed" hints on the account's private channel. Called
    * with the new seq for each hint, and with nothing whenever the channel (re)connects,
-   * since hints sent while disconnected are lost.
+   * since hints sent while disconnected are lost. `onLive` follows whether the channel
+   * is connected, so the engine can check more often while it isn't.
    */
-  async listen(account: Account, onChange: (seq?: number) => void): Promise<void> {
+  async listen(account: Account, onChange: (seq?: number) => void, onLive?: (live: boolean) => void): Promise<void> {
     const generation = ++this.listening
     // Load the stored session first: a private channel rejects a join made without it.
     await this.client.realtime.setAuth()
@@ -126,7 +212,10 @@ export class SupabaseSync implements SyncTransport {
         onChange(Number.isFinite(seq) ? seq : undefined)
       })
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') onChange()
+        if (status === 'SUBSCRIBED') {
+          onLive?.(true)
+          onChange()
+        } else onLive?.(false)
       })
   }
 
@@ -136,27 +225,45 @@ export class SupabaseSync implements SyncTransport {
   }
 }
 
-function transportError(error: { message: string; code?: string }, status: number): Error {
-  // postgrest-js reports a failed fetch (no network, DNS, TLS) as status 0.
-  if (status === 0) return new OfflineError(error.message)
-  if (status === 401 || status === 403) return new Error('Your sync session has expired. Sign in again.')
-  if (status >= 500) return new Error(`The sync server isn’t responding (${status}).`)
-  return new Error(error.message)
+/** Codes PostgREST and the migration use for a token or session the server won't accept. */
+const SESSION_CODES = ['PGRST301', 'PGRST303', '28000']
+
+/** What a failed request means, in words. The raw error goes to the console, never the UI. */
+export function transportError(error: { message: string; code?: string }, status: number): SyncError {
+  // postgrest-js reports a failed fetch (no network, DNS, TLS, a timeout) as status 0.
+  if (status === 0) return new OfflineError('Can’t reach the sync server. Check your connection.')
+  // The only foreign key is the account itself: it no longer exists.
+  if (error.code === '23503') return new SessionError('deleted')
+  if (status === 401 || status === 403 || SESSION_CODES.includes(error.code ?? '')) return new SessionError('expired')
+  if (status >= 500) return new SyncError('The sync server isn’t responding. Cue will keep trying.')
+  console.warn('Sync request failed', status, error)
+  return new SyncError(SYNC_PAUSED)
 }
 
-function friendlyAuthError(error: { message: string; code?: string; status?: number; name?: string }): Error {
+/** Answers that mean the session is over. Rate limits, network trouble and server errors don't. */
+function sessionGone(error: { status?: number; code?: string; name?: string }): boolean {
+  return (
+    error.name === 'AuthSessionMissingError' ||
+    [401, 403, 404].includes(error.status ?? 0) ||
+    ['user_not_found', 'session_not_found', 'session_expired', 'refresh_token_not_found', 'refresh_token_already_used'].includes(error.code ?? '')
+  )
+}
+
+function friendlyAuthError(error: { message: string; code?: string; status?: number; name?: string }): SyncError {
+  if ((error.status ?? 0) >= 500) return new SyncError('The sync server isn’t responding. Try again in a moment.')
   if (error.name === 'AuthRetryableFetchError' || error.status === 0) {
     return new OfflineError('Can’t reach the sync server. Check your connection.')
   }
   switch (error.code) {
     case 'otp_expired':
-      return new Error('That code is wrong or has expired. Check it, or send a new one.')
+      return new SyncError('That code is wrong or has expired. Check it, or send a new one.')
     case 'over_email_send_rate_limit':
     case 'over_request_rate_limit':
-      return new Error('Too many codes requested. Wait a minute, then try again.')
+      return new SyncError('Too many codes requested. Wait a minute, then try again.')
     case 'email_address_invalid':
     case 'validation_failed':
-      return new Error('That doesn’t look like an email address.')
+      return new SyncError('That doesn’t look like an email address.')
   }
-  return new Error(error.message)
+  console.warn('Sign-in failed', error)
+  return new SyncError(SIGN_IN_FAILED)
 }

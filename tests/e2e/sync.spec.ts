@@ -125,9 +125,14 @@ test.describe('with a sync server', () => {
     await turnOnSync(b.page, email)
     await a.app.close()
 
-    // Saved on this Mac but quit before the usual pause-then-upload.
-    await b.page.keyboard.type('Written just before quitting')
-    await expect.poll(() => b.page.evaluate(() => window.cue!.sync.getState()).then((s) => s.pending)).toBeGreaterThan(0)
+    // A new line goes out at once. Typing is saved on this Mac, but quit before the usual
+    // pause-then-upload.
+    const state = () => b.page.evaluate(() => window.cue!.sync.getState())
+    const synced = (await state()).lastSyncedAt ?? 0
+    await b.page.keyboard.type('Written')
+    await expect.poll(() => state().then((s) => (s.lastSyncedAt ?? 0) > synced && s.pending === 0)).toBe(true)
+    await b.page.keyboard.type(' just before quitting')
+    await expect.poll(() => state().then((s) => s.pending)).toBeGreaterThan(0)
     await b.app.close()
 
     a = await launch(a.dataDir, env())

@@ -1,13 +1,15 @@
+import { addDays, todayISO } from '../dates'
 import type { Repository } from '../repository'
-import type { Item } from '../types'
+import type { ISODate, Item } from '../types'
+import { SYNC_PAUSED } from './status'
 
 /**
  * The client half of the sync protocol (docs/SYNC.md): push the outbox, then pull
  * everything newer than a durable cursor. It knows nothing about Supabase; the
  * transport does. Tests run it against `MemorySyncServer`.
  *
- * It's built to stay out of the way. Runs are single-flight. Local edits are batched
- * into one push shortly after typing pauses. Remote rows are merged in small
+ * It's built to stay out of the way. Runs are single-flight. Typing is batched into one
+ * push shortly after it pauses; other edits go at once. Remote rows are merged in small
  * transactions that yield between batches, so saves from the editor are never stuck
  * behind a large download. Every failure is retried with backoff, and nothing is lost
  * because the outbox and cursor live in SQLite.
@@ -30,10 +32,41 @@ export interface SyncTransport {
   push(records: Item[]): Promise<PushResult>
   /** Records changed after `since`, oldest first. */
   pull(since: number, limit: number): Promise<PullResult>
+  /** Current records dated `from` to `to`, tombstones included, at most 1,000. */
+  pullDates?(from: ISODate, to: ISODate): Promise<Item[]>
 }
 
+/**
+ * A failure described in words a person can act on. The transport throws only these;
+ * anything else is unexpected, and shows as a calm generic pause (`errorMessage`).
+ */
+export class SyncError extends Error {}
+
 /** The server couldn't be reached. Shown as "Offline" rather than as an error. */
-export class OfflineError extends Error {}
+export class OfflineError extends SyncError {}
+
+/** Why the server stopped accepting this session. */
+export type SessionEnd = 'expired' | 'deleted'
+
+/**
+ * The server refused the session: it expired or was revoked, or the account is gone.
+ * The services ask the auth server to confirm before signing out (`checkSession`).
+ */
+export class SessionError extends SyncError {
+  constructor(readonly reason: SessionEnd) {
+    super(SYNC_PAUSED)
+  }
+}
+
+/** Thrown inside a run that outlived `stop`, so its late result is dropped. */
+class StoppedError extends Error {}
+
+/** The words to show for a failure: its own if it has them, else a generic line. */
+export function errorMessage(error: unknown, fallback = SYNC_PAUSED): string {
+  if (error instanceof SyncError) return error.message
+  console.warn('Sync failed', error)
+  return fallback
+}
 
 export type EngineStatus = 'idle' | 'syncing' | 'offline' | 'error'
 
@@ -41,6 +74,8 @@ export interface EngineHooks {
   /** Records from other devices, after they're stored. */
   onRemoteChanges?: (items: Item[]) => void
   onStatus?: (status: EngineStatus, error: Error | null) => void
+  /** Joining an account: the days around today are stored, ahead of the full download. */
+  onRecentReady?: () => void
 }
 
 export interface EngineTiming {
@@ -53,6 +88,8 @@ export interface EngineTiming {
   maxBackoff: number
   /** Safety-net pull in case a realtime hint was missed. */
   poll: number
+  /** How often to check instead while realtime hints aren't arriving (`setLive(false)`). */
+  pollWithoutHints: number
   batchSize: number
 }
 
@@ -62,10 +99,15 @@ const DEFAULT_TIMING: EngineTiming = {
   backoff: 1000,
   maxBackoff: 60_000,
   poll: 5 * 60_000,
+  pollWithoutHints: 30_000,
   batchSize: 500
 }
 
 const CURSOR = 'sync_cursor'
+/** Joining an account downloads today ± this many days first. */
+const RECENT_DAYS = 7
+/** How long `stop` waits for a run in progress. A later result is dropped. */
+const STOP_WAIT = 1000
 
 type Timer = ReturnType<typeof setTimeout>
 
@@ -84,6 +126,8 @@ export class SyncEngine {
   private hintSeq = 0
   private failures = 0
   private stopped = false
+  private live = true
+  private recentPulled = false
   status: EngineStatus = 'idle'
   lastSyncedAt: number | null = null
 
@@ -99,25 +143,43 @@ export class SyncEngine {
   /** Begin syncing: once now, then on every trigger until `stop`. */
   start(): void {
     this.stopped = false
-    if (this.pollTimer) clearInterval(this.pollTimer)
-    this.pollTimer = setInterval(() => this.remoteChange(), this.timing.poll)
+    this.schedulePoll()
     void this.sync().catch(() => {})
   }
 
-  /** Stop scheduling and wait for any run in progress. Pending changes stay queued. */
+  /**
+   * Stop scheduling, and give a run in progress a moment to finish. A request can take
+   * until its timeout, so this doesn't wait for one: once stopped, a late result is
+   * dropped without touching the outbox or the cursor. Pending changes stay queued.
+   */
   async stop(): Promise<void> {
     this.stopped = true
     for (const timer of [this.pushTimer, this.retryTimer]) if (timer) clearTimeout(timer)
     if (this.pollTimer) clearInterval(this.pollTimer)
     this.pushTimer = this.retryTimer = this.pollTimer = null
     this.burstStartedAt = null
-    await Promise.allSettled([this.active, this.next])
+    let timer: Timer | undefined
+    await Promise.race([
+      Promise.allSettled([this.active, this.next]),
+      new Promise((resolve) => (timer = setTimeout(resolve, STOP_WAIT)))
+    ])
+    clearTimeout(timer)
   }
 
-  /** A local edit was saved. Pushes once typing pauses, or after `maxWait` at the latest. */
-  localChange(): void {
-    // While failing, the retry timer owns the schedule; typing shouldn't add requests.
+  /**
+   * A local edit was saved. Typing is pushed once it pauses, or after `maxWait` at the
+   * latest. Anything else (`soon`: a new line, a move, a toggle) is pushed right away.
+   */
+  localChange({ soon = false }: { soon?: boolean } = {}): void {
+    // While failing, the retry timer owns the schedule; edits shouldn't add requests.
     if (this.stopped || this.failures > 0) return
+    if (soon) {
+      if (this.pushTimer) clearTimeout(this.pushTimer)
+      this.pushTimer = null
+      this.burstStartedAt = null
+      void this.execute().catch(() => {})
+      return
+    }
     const now = Date.now()
     this.burstStartedAt ??= now
     const delay = Math.max(0, Math.min(this.timing.debounce, this.burstStartedAt + this.timing.maxWait - now))
@@ -158,6 +220,21 @@ export class SyncEngine {
     return this.execute()
   }
 
+  /**
+   * Whether realtime hints are arriving. While they aren't (the channel is down, or a
+   * proxy blocks it), check for changes every `pollWithoutHints` instead of every `poll`.
+   */
+  setLive(live: boolean): void {
+    if (this.stopped || live === this.live) return
+    this.live = live
+    this.schedulePoll()
+  }
+
+  private schedulePoll(): void {
+    if (this.pollTimer) clearInterval(this.pollTimer)
+    this.pollTimer = setInterval(() => this.remoteChange(), this.live ? this.timing.poll : this.timing.pollWithoutHints)
+  }
+
   /** Single flight: one run at a time, and requests made during a run share one follow-up. */
   private execute(): Promise<void> {
     if (this.stopped) return Promise.resolve()
@@ -187,12 +264,15 @@ export class SyncEngine {
       await this.pushAll()
       if (this.needsPull || this.hintSeq > this.cursor()) {
         this.needsPull = false
+        if (this.cursor() === 0 && !this.recentPulled && this.transport.pullDates) await this.pullRecent()
         await this.pullAll()
       }
       this.failures = 0
       this.lastSyncedAt = Date.now()
       this.setStatus('idle', null)
     } catch (caught) {
+      // Stopped meanwhile: the result no longer matters, and nothing is retried.
+      if (this.stopped) return
       const error = caught instanceof Error ? caught : new Error(String(caught))
       this.needsPull = true
       this.failures += 1
@@ -215,6 +295,7 @@ export class SyncEngine {
       if (!batch.length) return
       const cursor = this.cursor()
       const { before, after } = await this.transport.push(batch)
+      this.checkStopped()
       // Only the versions that were sent are acknowledged; edits made meanwhile stay queued.
       this.repo.acknowledge(batch)
       if (after < cursor) {
@@ -234,19 +315,42 @@ export class SyncEngine {
       }
       if (batch.length < this.timing.batchSize) return
       await yieldToEventLoop()
+      this.checkStopped()
     }
+  }
+
+  /**
+   * Joining an account (cursor 0): store the days around today first, so the pages
+   * someone is looking at fill in before the full download. The feed still runs from
+   * the start afterwards, and `applyRemote` skips what this already stored.
+   */
+  private async pullRecent(): Promise<void> {
+    const today = todayISO()
+    const records = await this.transport.pullDates!(addDays(today, -RECENT_DAYS), addDays(today, RECENT_DAYS))
+    this.checkStopped()
+    const { applied } = this.repo.applyRemote(records)
+    this.recentPulled = true
+    if (applied.length) this.hooks.onRemoteChanges?.(applied)
+    this.hooks.onRecentReady?.()
   }
 
   private async pullAll(): Promise<void> {
     for (;;) {
       const { records, cursor, hasMore } = await this.transport.pull(this.cursor(), this.timing.batchSize)
+      this.checkStopped()
       const { applied } = this.repo.applyRemote(records)
       // The cursor only advances once the batch is stored.
       this.repo.setMeta(CURSOR, String(cursor))
       if (applied.length) this.hooks.onRemoteChanges?.(applied)
       if (!hasMore) return
       await yieldToEventLoop()
+      this.checkStopped()
     }
+  }
+
+  /** Called after every wait: a run that outlived `stop` must not write anything. */
+  private checkStopped(): void {
+    if (this.stopped) throw new StoppedError()
   }
 
   private cursor(): number {

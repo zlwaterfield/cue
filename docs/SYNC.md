@@ -46,18 +46,34 @@ two Postgres functions.** Item-level last-write-wins, ordered by hybrid logical 
 
 - **Single flight.** One run at a time: push the outbox in batches of 500, then pull if needed.
   Triggers that arrive during a run share one follow-up run.
-- **Local edits** are pushed 600 ms after typing pauses, or every 3 s during continuous
-  typing. A burst of keystrokes is one request.
+- **Typing** is pushed 600 ms after it pauses, or every 3 s during continuous typing. A burst
+  of keystrokes is one request. **Every other edit** (a new line, a move, an indent, a
+  toggle, a delete, a paste, an undo) is pushed at once, so it reaches other devices in about
+  60 ms instead of after the pause. A save counts as typing when only the text changed
+  (`isTextOnlyChange`).
 - **Remote edits** arrive as a realtime hint carrying the new feed position (`seq`). The engine
   pulls only if that's past its cursor, so its own pushes, which echo back, cost nothing. It
   also pulls on launch, when the channel reconnects, when the Mac wakes or Cue comes to the
-  front after a minute away, and every 5 minutes as a safety net.
+  front after a minute away, and every 5 minutes as a safety net. While the realtime channel
+  is down (`setLive(false)`), it checks every 30 seconds instead.
+- **Joining an account** (cursor 0) first fetches today ± 7 days straight from the table
+  (`pullDates`), so the pages you're looking at fill in before the full download. The feed
+  still runs from the start afterwards, and records already stored are skipped.
 - **No echo downloads.** `sync_push` returns the account's highest `seq` before and after the
   write. If "before" equals the client's cursor, nothing else happened in between, so the client
   moves its cursor to "after" instead of downloading its own changes.
 - **Failures** retry with exponential backoff (1 s doubling to 60 s, with jitter). While
-  failing, typing doesn't add requests. Nothing is lost: the outbox and cursor live in SQLite,
+  failing, edits don't add requests. Nothing is lost: the outbox and cursor live in SQLite,
   and the cursor advances only after a batch is stored.
+- **No request waits forever.** Every request has a deadline that covers the whole response:
+  10 s for sign-in, 20 s for sync (a 500-row batch is about 150 KB). A timed-out request
+  fails like a lost connection and is retried. Stopping sync waits at most a second for a run
+  in progress; a request that answers later is dropped without touching the outbox or the
+  cursor.
+- **Errors in words.** The transport turns every failure into a sentence
+  (`transportError`): no connection is Offline, a refused session is a `SessionError`, a
+  server error is "The sync server isn’t responding", and anything else is "Sync paused".
+  Raw server, SQL and network text goes to the console only, never to the UI.
 - **Never in the way.** Network I/O is async. Each batch is merged in its own transaction and
   the engine yields between batches. With 5 years of notes (36,545 items), the longest stretch
   sync holds the main process is about 8 ms, during the very first full download. A normal edit
@@ -89,12 +105,25 @@ the same path an import uses, with one rule: **an edit in progress always wins.*
 - **Turning sync on** for the first time uploads everything already on the Mac. Turning it off
   keeps every note locally. Turning it back on with the same account sends only what changed
   meanwhile. Switching to a different account uploads everything to it.
-- **Network** goes through Electron's `net.fetch` (Chromium's stack), so sync follows the
-  Mac's proxy and certificate settings.
-- **Signed out by the server** (the account was deleted elsewhere, or the session was revoked):
-  sync stops, notes stay, and Settings explains what happened.
+- **Network.** Uploads, downloads and sign-in use Electron's `net.fetch`, so they follow the
+  Mac's proxy and certificate settings. The realtime hint socket uses Node's WebSocket, which
+  doesn't; when it can't connect, Cue checks for changes every 30 seconds. A connection the
+  server resets can't freeze the app: `src/main/guard.ts`, imported first, keeps Node's
+  network stack from throwing where nothing can catch it.
+- **Signed out by the server.** A token outlives a deleted account, so the first sign is a
+  refused push (the row's account no longer exists). On a `SessionError` the service asks the
+  auth server, at most every 30 s, whether the session still stands (`checkSession`, which
+  tries one token refresh first). Only a clear answer signs out; network trouble and server
+  errors never do. Then sync stops, every note stays, and the state says so: `needsSignIn`,
+  `previousEmail`, and "Your sync session ended. Sign in again to keep syncing." or "Your sync
+  account was deleted. Notes on this Mac stay here." That survives a restart until someone
+  signs in again or turns sync off. Signing back in to the same account sends only what
+  changed.
 
 ### UI
+
+The words are shared by the Mac and iPhone (`src/shared/sync/status.ts`): `indicator` for the
+title bar or header, `statusLine` for Settings, `syncedAgo` for the time.
 
 - **Settings → Sync**: off, then your email, then the code, then on. When on, it shows "Synced
   just now", a pending-change count while offline, **Sync Now**, **Turn Off Sync** and
@@ -184,18 +213,21 @@ npx supabase stop
 ```
 
 - **`pnpm test`** covers the engine without a server: scheduling, echo suppression, backoff,
-  server reset, the service lifecycle, the editor's in-progress rule, and a randomized
-  three-device convergence test. That test replays 400 random offline edits, moves, deletes
-  and reconnects, then checks that every replica ends with exactly the newest write of every
-  item.
+  server reset, stopping with a request hung, the first download's recent days, the service
+  lifecycle, signing out when the server ends the session, request timeouts, the error
+  wording, the editor's in-progress rule, and a randomized three-device convergence test.
+  That test replays 400 random offline edits, moves, deletes and reconnects, then checks that
+  every replica ends with exactly the newest write of every item.
 - **`tests/integration`** runs the real protocol against Supabase. It covers sign-in by
   emailed code, realtime delivery (about 30 ms after the typing pause, locally), no echo
-  downloads, account isolation under RLS, LWW and skipping malformed records, a gap-free feed
-  under concurrent pushes, 5,000 items (up ~0.2 s, down ~0.1 s locally), session restore and
-  account deletion.
+  downloads, account isolation under RLS, LWW and skipping malformed records, reading a
+  range of days, a gap-free feed under concurrent pushes, 5,000 items (up ~0.2 s, down
+  ~0.1 s locally), session restore, account deletion, and a device noticing its account was
+  deleted on another.
 - **`tests/e2e/sync.spec.ts`** drives two real Cue apps. It checks that sync is off by
   default, that typing is undisturbed while the other Mac edits the same day, turning sync
-  off, a quick quit still uploading, and catching up on launch.
+  off, a quick quit still uploading, catching up on launch, and that a network resetting
+  every connection leaves Cue responsive and Offline.
 
 ## Mobile
 
@@ -208,19 +240,25 @@ The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outb
   anything, and its database is a local copy of the account. Signing out checks that
   nothing is left unsent, then removes the notes and outbox from the phone, but keeps the
   device id and clock (`Repository.clearNotes`). Signing in to a different account than
-  the one the database holds starts from empty. If the server ends the session, the notes
-  stay until someone signs in again, so unsent edits aren't lost.
-- **Faster pushes.** 450 ms after typing pauses (2 s at most), as soon as focus leaves a
-  line, and when the app leaves the screen. That last push runs inside a short iOS
-  background task (`modules/cue-native`), so it finishes before the app is suspended.
+  the one the database holds starts from empty. If the server ends the session (confirmed
+  the Mac's way, `checkSession`), the phone shows sign-in with "Your sync session ended.
+  Sign in again to keep syncing." or "Your account was deleted on another device.", and the
+  notes stay until someone signs in again, so unsent edits aren't lost.
+  `MobileSync.unsentFromPreviousAccount()` counts the edits a different account would
+  remove.
+- **Faster pushes.** 450 ms after typing pauses (2 s at most), at once for any other edit,
+  as soon as focus leaves a line, and when the app leaves the screen. That last push runs
+  inside a short iOS background task (`modules/cue-native`), so it finishes before the app
+  is suspended.
 - **Pull on return.** Realtime hints don't reach a suspended app, so coming back to the
   foreground pulls immediately, and the realtime channel reconnects on its own.
   The session refresh timer runs only in the foreground (`SupabaseSync.setForeground`).
 - **The session lives in the Keychain**, readable only on this device, after first unlock.
   A fresh install clears any session a previous install left there.
 - **The first download** of a large account runs in the background while today's page
-  shows. Five years of notes (36,994 items) took about 4 s against the local server in a
-  development build. The header says "Getting your notes…" until it's done.
+  shows. Today ± 7 days arrive first (`SyncStatus.recent`), then the rest. Five years of
+  notes (36,994 items) took about 4 s against the local server in a development build. The
+  header says "Getting your notes…" until it's done (`SyncStatus.downloading`).
 
 The end-to-end flows in `mobile/e2e` test sync against the local stack. One has another
 device sign in to the same account over HTTP and call `sync_push`, then checks that the

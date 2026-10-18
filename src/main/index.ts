@@ -8,7 +8,7 @@ import type { ExportResult, ImportResult, Item, Settings, ThemePreference } from
 import { openDatabase } from './db'
 import { buildMenu } from './menu'
 import { backupJSON, exportMarkdown, importJSON, readText, runDailyBackup } from './portability'
-import { Repository } from '../shared/repository'
+import { isTextOnlyChange, Repository } from '../shared/repository'
 import { SyncService } from './sync/service'
 import type { SyncConfig } from '../shared/sync/supabase'
 
@@ -215,16 +215,28 @@ function broadcast(channel: string, payload: unknown): void {
   for (const win of BrowserWindow.getAllWindows()) win.webContents.send(channel, payload)
 }
 
+/**
+ * Store edits from the editor. With sync on, anything but typing (a new line, a move, a
+ * toggle, a delete) goes to the server right away rather than after the typing pause.
+ */
+function saveItems(items: Item[]): Item[] {
+  const soon =
+    sync.isOn() &&
+    items.some((item) => {
+      const existing = typeof item?.id === 'string' ? repo.get(item.id) : null
+      return !existing || !isTextOnlyChange(existing, item)
+    })
+  const saved = repo.saveItems(items)
+  if (saved.length) sync.localChange({ soon })
+  return saved
+}
+
 function registerIpc(): void {
   ipcMain.handle('items:load', (_e, dates: string[]) => repo.loadDates(dates))
-  ipcMain.handle('items:save', (_e, items: Item[]) => {
-    const saved = repo.saveItems(items)
-    if (saved.length) sync.localChange()
-    return saved.map(({ id, version }) => ({ id, version }))
-  })
+  ipcMain.handle('items:save', (_e, items: Item[]) => saveItems(items).map(({ id, version }) => ({ id, version })))
   ipcMain.on('items:saveSync', (event, items: Item[]) => {
     try {
-      if (repo.saveItems(items).length) sync.localChange()
+      saveItems(items)
       event.returnValue = true
     } catch (error) {
       console.error('Synchronous save failed', error)
