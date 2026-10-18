@@ -1,4 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
+import { createServer, type AddressInfo } from 'node:net'
+import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { signInCode, syncServer, testEmail } from '../syncServer'
 import { caret, focusedText, launch, lines, outline, today } from './app'
 
@@ -14,6 +17,49 @@ test('sync is off until you turn it on, and Cue works the same', async () => {
   expect(await outline(cue.page)).toBe('Just this Mac')
   await cue.app.close()
 })
+
+test('a network that resets every connection never freezes Cue', async () => {
+  test.setTimeout(60_000)
+  // Accepts each connection, then resets it, as some firewalls and proxies do. Before
+  // src/main/guard.ts, the realtime socket's reset threw where nothing could catch it,
+  // and Electron's blocking alert froze the app.
+  const server = createServer((socket) => socket.resetAndDestroy())
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const env = { CUE_SUPABASE_URL: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, CUE_SUPABASE_KEY: 'unused' }
+  let cue = await launch(undefined, env)
+  await cue.app.close()
+  signedIn(cue.dataDir, 'reset@example.com')
+
+  cue = await launch(cue.dataDir, env)
+  await cue.page.keyboard.type('Still typing')
+  await cue.page.waitForTimeout(10_000)
+  expect(await cue.page.evaluate(() => window.cue!.sync.getState())).toMatchObject({ email: 'reset@example.com', status: 'offline' })
+  await expect(cue.page.locator('.sync-status')).toHaveText('Offline')
+  expect(await outline(cue.page)).toBe('Still typing')
+  await cue.app.close()
+  server.close()
+})
+
+/** Leave this Mac signed in, as far as it knows, without a server to sign in with. */
+function signedIn(dataDir: string, email: string): void {
+  const base64 = (value: object): string => Buffer.from(JSON.stringify(value)).toString('base64url')
+  const expiresAt = Math.floor(Date.now() / 1000) + 3600
+  const user = { id: '00000000-0000-4000-8000-000000000001', email }
+  const session = {
+    access_token: `${base64({ alg: 'HS256', typ: 'JWT' })}.${base64({ sub: user.id, exp: expiresAt, role: 'authenticated' })}.signature`,
+    refresh_token: 'refresh',
+    token_type: 'bearer',
+    expires_in: 3600,
+    expires_at: expiresAt,
+    user: { ...user, aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() }
+  }
+  const db = new DatabaseSync(join(dataDir, 'cue.sqlite'))
+  const put = db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)')
+  put.run('sync_account', JSON.stringify(user))
+  put.run('sync_user', user.id)
+  put.run('sync_session:session', JSON.stringify(session))
+  db.close()
+}
 
 test.describe('with a sync server', () => {
   test.skip(!syncServer, 'Set CUE_SUPABASE_URL and CUE_SUPABASE_KEY (docs/SYNC.md)')

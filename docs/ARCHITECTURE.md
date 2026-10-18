@@ -3,6 +3,7 @@
 ```
 ┌──────────────────────── Electron main process ────────────────────────┐
 │  index.ts      window, lifecycle, IPC, dialogs, context menu          │
+│  guard.ts      first import: network errors never freeze the app      │
 │  menu.ts       native menu generated from shared/commands.ts          │
 │  db.ts         SQLite (node:sqlite), WAL, synchronous=FULL             │
 │  sync/service  optional sync: account, lifecycle, Keychain session    │
