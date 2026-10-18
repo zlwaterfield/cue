@@ -32,18 +32,26 @@ export interface Account {
   email: string
 }
 
-/** No request waits forever. Sign-in gets 10 s; a sync batch (500 rows, about 150 KB) gets 20 s. */
+/**
+ * No request waits forever. Sign-in gets 10 s. A sync request gets 20 s plus the time its
+ * data takes at the slowest link sync waits for, 4 bytes a millisecond (about 32 kbps): a
+ * 500-row push of about 150 KB gets about 58 s.
+ */
 export const AUTH_TIMEOUT = 10_000
 export const REQUEST_TIMEOUT = 20_000
+export const MIN_BYTES_PER_MS = 4
 
 /**
  * Give every request a deadline, covering the whole response, body included, so a
- * connection that stalls halfway can't hang sync. A timed-out request fails like a lost
+ * connection that stalls halfway can't hang sync. A sync request has two windows: until
+ * the answer starts, enough to upload its body; then enough for the length the answer
+ * declares. Sign-in has one window for everything. A timed-out request fails like a lost
  * connection: postgrest-js reports it as status 0, auth-js as a retryable fetch error.
  */
 export function withTimeout(fetcher: typeof fetch): typeof fetch {
   return async (input, init = {}) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    const auth = url.includes('/auth/v1/')
     const controller = new AbortController()
     // Settles only on abort. Racing it means even a fetch that ignores its signal gives up.
     let fail: (reason: unknown) => void = () => {}
@@ -56,9 +64,16 @@ export function withTimeout(fetcher: typeof fetch): typeof fetch {
     const caller = init.signal
     if (caller?.aborted) abort(caller.reason)
     else caller?.addEventListener('abort', () => abort(caller.reason), { once: true })
-    const timer = setTimeout(() => abort(timeoutError()), url.includes('/auth/v1/') ? AUTH_TIMEOUT : REQUEST_TIMEOUT)
+    // postgrest-js always sends its body as a JSON string.
+    const upload = typeof init.body === 'string' ? init.body.length : 0
+    let timer = setTimeout(() => abort(timeoutError()), auth ? AUTH_TIMEOUT : REQUEST_TIMEOUT + upload / MIN_BYTES_PER_MS)
     try {
       const response = await Promise.race([fetcher(input, { ...init, signal: controller.signal }), aborted])
+      if (!auth) {
+        clearTimeout(timer)
+        const download = Number(response.headers.get('content-length')) || 0
+        timer = setTimeout(() => abort(timeoutError()), REQUEST_TIMEOUT + download / MIN_BYTES_PER_MS)
+      }
       const body = [101, 204, 205, 304].includes(response.status) ? null : await Promise.race([response.text(), aborted])
       return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers })
     } finally {

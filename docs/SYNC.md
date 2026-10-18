@@ -65,11 +65,13 @@ two Postgres functions.** Item-level last-write-wins, ordered by hybrid logical 
 - **Failures** retry with exponential backoff (1 s doubling to 60 s, with jitter). While
   failing, edits don't add requests. Nothing is lost: the outbox and cursor live in SQLite,
   and the cursor advances only after a batch is stored.
-- **No request waits forever.** Every request has a deadline that covers the whole response:
-  10 s for sign-in, 20 s for sync (a 500-row batch is about 150 KB). A timed-out request
-  fails like a lost connection and is retried. Stopping sync waits at most a second for a run
-  in progress; a request that answers later is dropped without touching the outbox or the
-  cursor.
+- **No request waits forever.** Every request has a deadline that covers the whole response.
+  Sign-in gets 10 s. A sync request gets 20 s plus the time to upload its body at 32 kbps,
+  so a 500-row batch (about 150 KB) has about 58 s to get through a slow link, while a hung
+  request still gives up after about 20 s. Once the answer starts, it gets 20 s plus the time
+  its declared length takes at that rate. A timed-out request fails like a lost connection
+  and is retried. Stopping sync waits at most a second for a run in progress; a request that
+  answers later is dropped without touching the outbox or the cursor.
 - **Errors in words.** The transport turns every failure into a sentence
   (`transportError`): no connection is Offline, a refused session is a `SessionError`, a
   server error is "The sync server isn’t responding", and anything else is "Sync paused".

@@ -5,6 +5,10 @@ import { AUTH_TIMEOUT, REQUEST_TIMEOUT, SupabaseSync, withTimeout, type SessionS
 /** A server that accepts the connection and never answers. */
 const silent = (): Promise<Response> => new Promise(() => {})
 
+/** An answer whose body stops after its first few bytes. */
+const stalledAnswer = (headers?: HeadersInit): Response =>
+  new Response(new ReadableStream({ start: (controller) => controller.enqueue(new TextEncoder().encode('{"rec')) }), { status: 200, headers })
+
 function memoryStore(): SessionStore {
   const values = new Map<string, string>()
   return { get: (k) => values.get(k) ?? null, set: (k, v) => void values.set(k, v), remove: (k) => void values.delete(k) }
@@ -52,10 +56,30 @@ describe('request timeouts', () => {
 
   it('covers a response that stalls halfway through its body', async () => {
     vi.useFakeTimers()
-    const stalled = async (): Promise<Response> =>
-      new Response(new ReadableStream({ start: (controller) => controller.enqueue(new TextEncoder().encode('{"rec')) }), { status: 200 })
-    const { outcome } = watch(withTimeout(stalled)('http://sync.test/rest/v1/rpc/sync_pull'))
+    const { outcome } = watch(withTimeout(async () => stalledAnswer())('http://sync.test/rest/v1/rpc/sync_pull'))
     await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT)
+    expect(await outcome).toBe('AbortError')
+  })
+
+  it('gives a big push the time to upload at 32 kbps', async () => {
+    vi.useFakeTimers()
+    const push = withTimeout(silent)('http://sync.test/rest/v1/rpc/sync_push', { method: 'POST', body: 'x'.repeat(150_000) })
+    const { state, outcome } = watch(push)
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT + 37_499)
+    expect(state.settled).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(await outcome).toBe('AbortError')
+  })
+
+  it('gives an answer its own window once it starts, as long as its length needs', async () => {
+    vi.useFakeTimers()
+    // Starts just inside the request's deadline, declares 80 KB, then stalls.
+    const late = (): Promise<Response> =>
+      new Promise((resolve) => setTimeout(() => resolve(stalledAnswer({ 'Content-Length': '80000' })), REQUEST_TIMEOUT - 1))
+    const { state, outcome } = watch(withTimeout(late)('http://sync.test/rest/v1/rpc/sync_pull', { method: 'POST' }))
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT - 1 + REQUEST_TIMEOUT + 19_999)
+    expect(state.settled).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
     expect(await outcome).toBe('AbortError')
   })
 
@@ -83,7 +107,8 @@ describe('request timeouts', () => {
     const client = new SupabaseSync({ url: 'http://sync.test', key: 'key', fetch: silent }, memoryStore())
     const push = client.push([]).catch((error: Error) => error)
     const send = client.sendCode('me@example.com').catch((error: Error) => error)
-    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT)
+    // The push's small body adds a few milliseconds to its deadline.
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT + 1_000)
     const [pushed, sent] = await Promise.all([push, send])
     expect(pushed).toBeInstanceOf(OfflineError)
     expect(sent).toBeInstanceOf(OfflineError)
