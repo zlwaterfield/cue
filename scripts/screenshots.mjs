@@ -32,7 +32,7 @@ const press = async (...keys) => {
 }
 
 // Today
-await type('Slow Saturday. Coffee, errands, then the long run.')
+await type('Slow morning. Coffee, errands, then the long run.')
 await press('Enter')
 await type('[x] Pick up dry cleaning')
 await press('Enter')

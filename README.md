@@ -59,7 +59,7 @@ Cue 0.1 is a working macOS app (Apple silicon). Here is everything it does right
   indent, move, complete, convert, copy, cut or delete them together.
 
 <p align="center">
-  <img src="docs/images/move-to-date.png" alt="Moving a to-do with ⇧⌘D: typing &quot;fri&quot; resolves to Friday, October 23, with a calendar alongside" width="80%">
+  <img src="docs/images/move-to-date.png" alt="Moving a to-do with ⇧⌘D: typing &quot;fri&quot; resolves to Fri, Oct 23 (in 5 days), with a calendar alongside" width="80%">
 </p>
 
 **Finding**
