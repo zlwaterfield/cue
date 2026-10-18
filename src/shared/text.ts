@@ -57,3 +57,11 @@ export function matchRanges(text: string, terms: string[]): Array<[number, numbe
   }
   return merged
 }
+
+/** What both apps say when `isEmailAddress` fails, and when the sync server rejects an address. */
+export const NOT_AN_EMAIL = 'That doesn’t look like an email address.'
+
+/** Worth asking the sync server for a code: something@something.something, with no spaces. */
+export function isEmailAddress(text: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text.trim())
+}

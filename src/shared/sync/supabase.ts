@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { NOT_AN_EMAIL } from '../text'
 import type { ISODate, Item } from '../types'
 import { OfflineError, SessionError, SyncError, type PullResult, type PushResult, type SessionEnd, type SyncTransport } from './engine'
 import { DELETE_FAILED, SIGN_IN_FAILED, SYNC_PAUSED } from './status'
@@ -262,7 +263,7 @@ function friendlyAuthError(error: { message: string; code?: string; status?: num
       return new SyncError('Too many codes requested. Wait a minute, then try again.')
     case 'email_address_invalid':
     case 'validation_failed':
-      return new SyncError('That doesn’t look like an email address.')
+      return new SyncError(NOT_AN_EMAIL)
   }
   console.warn('Sign-in failed', error)
   return new SyncError(SIGN_IN_FAILED)
