@@ -11,6 +11,7 @@
   --bg-elevated: #FFFFFF; /* Palette, sheets */
   --bg-subtle: #F5F5F6; /* Keycaps, segmented controls */
   --bg-hover: #0000000B; /* #000000 @ 4.5% — Hover fill */
+  --bg-selected: #FFFFFF; /* Selected segment */
   --text: #1C1C1E; /* Primary text */
   --text-2: #6C6C72; /* Secondary text */
   --text-3: #8E8E94; /* Tertiary, placeholders, done items */
@@ -21,6 +22,7 @@
   --accent-soft: #2C2C311A; /* #2C2C31 @ 10% — Search highlight, focus ring */
   --selection: #2C2C3112; /* #2C2C31 @ 7% — Selected-lines band */
   --text-selection: #2C2C3129; /* #2C2C31 @ 16% — Text selection */
+  --scrim: #0000001A; /* #000000 @ 10% — Behind the palette and sheets */
   --toast-bg: #1F1F23; /* Toast */
   --toast-text: #F2F2F4; /* Toast */
 }
@@ -32,6 +34,7 @@
     --bg-elevated: #232326; /* Palette, sheets */
     --bg-subtle: #2C2C30; /* Keycaps, segmented controls */
     --bg-hover: #FFFFFF0F; /* #FFFFFF @ 6% — Hover fill */
+    --bg-selected: #3A3A3F; /* Selected segment */
     --text: #ECECEF; /* Primary text */
     --text-2: #9D9DA4; /* Secondary text */
     --text-3: #76767D; /* Tertiary, placeholders, done items */
@@ -42,6 +45,7 @@
     --accent-soft: #E6E6EA24; /* #E6E6EA @ 14% — Search highlight, focus ring */
     --selection: #E6E6EA14; /* #E6E6EA @ 8% — Selected-lines band */
     --text-selection: #E6E6EA38; /* #E6E6EA @ 22% — Text selection */
+    --scrim: #00000061; /* #000000 @ 38% — Behind the palette and sheets */
     --toast-bg: #333338; /* Toast */
     --toast-text: #F2F2F4; /* Toast */
   }
@@ -53,6 +57,7 @@
   --bg-elevated: #232326; /* Palette, sheets */
   --bg-subtle: #2C2C30; /* Keycaps, segmented controls */
   --bg-hover: #FFFFFF0F; /* #FFFFFF @ 6% — Hover fill */
+  --bg-selected: #3A3A3F; /* Selected segment */
   --text: #ECECEF; /* Primary text */
   --text-2: #9D9DA4; /* Secondary text */
   --text-3: #76767D; /* Tertiary, placeholders, done items */
@@ -63,6 +68,7 @@
   --accent-soft: #E6E6EA24; /* #E6E6EA @ 14% — Search highlight, focus ring */
   --selection: #E6E6EA14; /* #E6E6EA @ 8% — Selected-lines band */
   --text-selection: #E6E6EA38; /* #E6E6EA @ 22% — Text selection */
+  --scrim: #00000061; /* #000000 @ 38% — Behind the palette and sheets */
   --toast-bg: #333338; /* Toast */
   --toast-text: #F2F2F4; /* Toast */
 }

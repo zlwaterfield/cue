@@ -184,7 +184,7 @@ function Segmented<T extends string | number>({
           <Pressable
             key={String(option)}
             onPress={() => onChange(option)}
-            style={[styles.segment, selected && { backgroundColor: c.bgElevated, shadowOpacity: 0.08 }]}
+            style={[styles.segment, selected && { backgroundColor: c.bgSelected, shadowOpacity: 0.08 }]}
             accessibilityRole="button"
             accessibilityState={{ selected }}
           >

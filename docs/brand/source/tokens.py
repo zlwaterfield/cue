@@ -7,7 +7,8 @@ TOKENS = [
     ('--bg-elevated',    '#FFFFFF', 1,     '#232326', 1,     'Palette, sheets', ''),
     ('--bg-subtle',      '#F5F5F6', 1,     '#2C2C30', 1,     'Keycaps, segmented controls', 'dark was #242427 — invisible on --bg-elevated (1.01:1); now 1.13:1'),
     ('--bg-hover',       '#000000', 0.045, '#FFFFFF', 0.06,  'Hover fill', ''),
-    ('--text',           '#1C1C1E', 1,     '#ECECEF', 1,     'Primary text', ''),
+    ('--bg-selected',    '#FFFFFF', 1,     '#3A3A3F', 1,     'Selected segment', 'new: dark used --bg-elevated, darker than its --bg-subtle track'),
+    ('--text',          '#1C1C1E', 1,     '#ECECEF', 1,     'Primary text', ''),
     ('--text-2',         '#6C6C72', 1,     '#9D9DA4', 1,     'Secondary text', ''),
     ('--text-3',         '#8E8E94', 1,     '#76767D', 1,     'Tertiary, placeholders, done items', 'was #A6A6AC / #626268 (2.4–2.9:1); raised to a 3:1 floor'),
     ('--line',           '#000000', 0.07,  '#FFFFFF', 0.075, 'Hairlines, day separators', ''),
@@ -17,6 +18,7 @@ TOKENS = [
     ('--accent-soft',    '#2C2C31', 0.10,  '#E6E6EA', 0.14,  'Search highlight, focus ring', ''),
     ('--selection',      '#2C2C31', 0.07,  '#E6E6EA', 0.08,  'Selected-lines band', ''),
     ('--text-selection', '#2C2C31', 0.16,  '#E6E6EA', 0.22,  'Text selection', ''),
+    ('--scrim',          '#000000', 0.10,  '#000000', 0.38,  'Behind the palette and sheets', 'new: light was rgba(20,20,30,.1), a blue cast'),
     ('--toast-bg',       '#1F1F23', 1,     '#333338', 1,     'Toast', 'dark was #2C2C31 — too close to --bg-elevated'),
     ('--toast-text',     '#F2F2F4', 1,     '#F2F2F4', 1,     'Toast', ''),
 ]

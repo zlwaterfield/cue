@@ -9,6 +9,7 @@
   --bg-elevated: #ffffff;
   --bg-hover: rgba(0, 0, 0, 0.045);
   --bg-subtle: #f5f5f6;
+  --bg-selected: #ffffff;
   --text: #1c1c1e;
   --text-2: #6c6c72;
   --text-3: #8e8e94;
@@ -20,7 +21,7 @@
   --accent-soft: rgba(44, 44, 49, 0.1);
   --selection: rgba(44, 44, 49, 0.07);
   --text-selection: rgba(44, 44, 49, 0.16);
-  --scrim: rgba(20, 20, 30, 0.1);
+  --scrim: rgba(0, 0, 0, 0.1);
   --shadow-pop: 0 0 0 0.5px rgba(0, 0, 0, 0.1), 0 18px 48px -12px rgba(0, 0, 0, 0.24), 0 4px 14px -6px rgba(0, 0, 0, 0.1);
   --toast-bg: #1f1f23;
   --toast-text: #f2f2f4;
@@ -38,6 +39,7 @@
     --bg-elevated: #232326;
     --bg-hover: rgba(255, 255, 255, 0.06);
     --bg-subtle: #2c2c30;
+    --bg-selected: #3a3a3f;
     --text: #ececef;
     --text-2: #9d9da4;
     --text-3: #76767d;
@@ -224,7 +226,7 @@ button:focus-visible {
 }
 
 .segmented button.is-active {
-  background: var(--bg-elevated);
+  background: var(--bg-selected);
   color: var(--text);
   box-shadow:
     0 0 0 0.5px var(--line-strong),
