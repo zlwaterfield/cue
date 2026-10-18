@@ -50,7 +50,7 @@ export function Header() {
           <SymbolView name="chevron.down" size={12} weight="semibold" tintColor={c.text3} />
         </Pressable>
         <View style={styles.actions}>
-          <SyncIndicator />
+          <SyncIndicator compact={!isToday} />
           {!isToday && (
             <Pressable
               onPress={() => void editor.goTo(today)}
@@ -187,14 +187,17 @@ function useHeld(active: boolean, ms: number): boolean {
 /**
  * Sync shows only when it can't keep up: offline, paused, or the first download onto
  * this phone. A long sync fades in "Syncing…"; quick ones never take space. The words
- * are the Mac title bar's (`shared/sync/status`).
+ * are the Mac title bar's (`shared/sync/status`). Beside the Today pill, and during the
+ * first download (the page itself says "Getting your notes…"), only the dot shows, as in
+ * a narrow Mac window; VoiceOver still reads the words.
  */
-function SyncIndicator() {
+function SyncIndicator({ compact }: { compact: boolean }) {
   const c = useColors()
   const state = useStore(sync.state, (s) => s)
   const shown = indicator(state)
   const held = useHeld(!!shown?.delayed, INDICATOR_DELAY)
   if (!shown || (shown.delayed && !held)) return null
+  const dotOnly = compact || (state.downloading && state.status !== 'offline' && state.status !== 'error')
   return (
     <Animated.View entering={shown.delayed ? FadeIn.duration(INDICATOR_FADE) : undefined}>
       <Pressable
@@ -203,12 +206,14 @@ function SyncIndicator() {
         accessibilityRole="button"
         accessibilityLabel={shown.label}
         accessibilityHint="Opens Settings"
-        style={styles.sync}
+        style={[styles.sync, dotOnly && styles.syncDotOnly]}
       >
-        {!shown.delayed && <View style={[styles.syncDot, { backgroundColor: c.text2 }]} />}
-        <Text style={[styles.syncText, { color: c.text2 }, !shown.delayed && styles.syncAttention]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
-          {shown.label}
-        </Text>
+        {(dotOnly || !shown.delayed) && <View style={[styles.syncDot, { backgroundColor: c.text2 }]} />}
+        {!dotOnly && (
+          <Text style={[styles.syncText, { color: c.text2 }, !shown.delayed && styles.syncAttention]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+            {shown.label}
+          </Text>
+        )}
       </Pressable>
     </Animated.View>
   )
@@ -223,6 +228,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 8,
     // The month lines up with the day's title and text.
     paddingLeft: metrics.gutter + metrics.marker,
     paddingRight: metrics.gutter - 6
@@ -269,6 +275,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginRight: 2
+  },
+  // The dot alone is still a 24 pt target, like the Mac's narrow title bar.
+  syncDotOnly: {
+    minWidth: 24,
+    minHeight: 24,
+    justifyContent: 'center'
   },
   syncDot: {
     width: 6,
