@@ -209,10 +209,10 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
   })
   // The line being edited lifts only by its marker: a long press on its text belongs to
   // the caret and the loupe. A finger already moving sideways is a swipe, however slowly
-  // it started.
+  // it started: the lift gives way after 8 pt sideways (a long press alone allows 10).
   const bodyLift = usePanGesture({
     activateAfterLongPress: LIFT_DELAY,
-    failOffsetX: [-10, 10],
+    failOffsetX: [-8, 8],
     enabled: !ghost && !focused,
     onActivate: liftStart,
     onUpdate: liftMove,

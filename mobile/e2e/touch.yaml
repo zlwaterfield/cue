@@ -73,10 +73,11 @@ name: Touch
     above:
       id: "0/todo-done:Alpha"
 
-# Long-press Bravo (now last) and drag it right: it nests under Alpha.
+# Long-press Bravo (now last) and drag it right: it nests under Alpha. The finger has to
+# all but hold still until the line lifts; one already moving sideways is a swipe.
 - swipe:
     start: "50%,40%"
-    end: "64%,40%"
-    duration: 1500
+    end: "60%,40%"
+    duration: 3000
 - assertVisible:
     id: "1/todo-done:Bravo"
