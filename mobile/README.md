@@ -143,6 +143,9 @@ simulator, against the local sync server:
 - **account**: sign out removes the phone's copy; signing back in brings it back
 - **account-switch**: after signing in to a different account, Undo can't bring back the
   first account's lines, on the phone or on the server
+- **account-deleted**: the account is deleted on another device. A phone that writes signs
+  out with the reason at its next push and warns before a sign-in that would remove an unsent
+  line. A phone that only reads notices on coming back to the foreground.
 
 Each flow starts from a clean install and a new account.
 
