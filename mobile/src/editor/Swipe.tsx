@@ -24,6 +24,11 @@ export const swipe = {
 
 export const SWIPE_ACT = 72
 export const SWIPE_DELETE_FRACTION = 0.58
+/**
+ * A line let go springs home as quickly as a lively spring would, but stops there: going
+ * past would flash the other side's underlay.
+ */
+export const SWIPE_HOME = { stiffness: 400, damping: 34, mass: 1, overshootClamping: true }
 
 const ADVANCE_ICONS: SFSymbol[] = ['checklist', 'checkmark', 'arrow.uturn.backward']
 

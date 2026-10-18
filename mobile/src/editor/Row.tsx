@@ -15,7 +15,7 @@ import { editor } from './controller'
 import { beginDrag, drag, dragTop, resetDrag, scrollState, updateDrag } from './drag'
 import { useItem } from './hooks'
 import { Marker } from './Marker'
-import { swipe, SWIPE_ACT, SWIPE_DELETE_FRACTION, type SwipeKind } from './Swipe'
+import { swipe, SWIPE_ACT, SWIPE_DELETE_FRACTION, SWIPE_HOME, type SwipeKind } from './Swipe'
 
 const LIFT_DELAY = 340
 /** Where a line not in its day's layout waits, out of sight. */
@@ -253,13 +253,13 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
       const x = swipe.x.value
       if (x >= SWIPE_ACT) {
         scheduleOnRN(advance, id)
-        swipe.x.value = withSpring(0, { damping: 20, stiffness: 260 })
+        swipe.x.value = withSpring(0, SWIPE_HOME)
       } else if (x <= -deleteAt) {
         swipe.x.value = withTiming(-width, { duration: 160 }, () => scheduleOnRN(remove, id))
       } else if (x <= -SWIPE_ACT) {
         swipe.x.value = withTiming(-width, { duration: 160 }, () => scheduleOnRN(toTomorrow, id))
       } else {
-        swipe.x.value = withSpring(0, { damping: 20, stiffness: 260 })
+        swipe.x.value = withSpring(0, SWIPE_HOME)
       }
     }
   })
