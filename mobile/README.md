@@ -124,6 +124,8 @@ simulator, against the local sync server:
 - **sync**: a line from the phone reaches the account, and a line pushed by another device
   appears on the phone within 3 s with no refresh
 - **account**: sign out removes the phone's copy; signing back in brings it back
+- **account-switch**: after signing in to a different account, Undo can't bring back the
+  first account's lines, on the phone or on the server
 
 Each flow starts from a clean install and a new account.
 

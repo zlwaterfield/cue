@@ -48,6 +48,28 @@ async function setup(...items: Item[]) {
   return { store, undo, edit, remote, undoOnce, redoOnce }
 }
 
+describe('UndoManager', () => {
+  it('forgets everything on clear()', () => {
+    const undo = new UndoManager()
+    const item = newItem()
+    const entry = (): UndoEntry => ({
+      label: 'Edit',
+      changes: [{ before: item, after: { ...item, text: 'x' } }],
+      selectionBefore: { kind: 'none' },
+      selectionAfter: { kind: 'none' },
+      at: Date.now()
+    })
+    undo.record(entry())
+    undo.record(entry())
+    undo.popUndo()
+    expect(undo.canUndo && undo.canRedo).toBe(true)
+    undo.clear()
+    expect(undo.canUndo).toBe(false)
+    expect(undo.canRedo).toBe(false)
+    expect(undo.popUndo()).toBeUndefined()
+  })
+})
+
 describe('revert (undo and redo reverse only what the action changed)', () => {
   it('keeps another device’s newer text when a completion is undone and redone', async () => {
     const report = newItem({ id: 'r', date: DAY, type: 'todo', text: 'write report' })

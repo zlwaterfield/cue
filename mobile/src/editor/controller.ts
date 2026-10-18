@@ -75,6 +75,29 @@ export class Editor {
   private stripped = new Map<string, string>()
   scroller: Scroller | null = null
 
+  constructor() {
+    itemStore.onReset(() => this.reset())
+  }
+
+  /**
+   * The notes on this phone were removed (signed out, or another account signed in).
+   * Nothing from before may act on whoever's notes come next: no undo history, no ghost
+   * ids, no caret, no page left on a day from the previous account.
+   */
+  private reset(): void {
+    this.undo.clear()
+    this.toastEntry = undefined
+    this.ghosts.clear()
+    this.layouts.clear()
+    this.carets.clear()
+    this.stripped.clear()
+    this.pending = null
+    if (this.frame) cancelAnimationFrame(this.frame)
+    this.frame = 0
+    const today = todayISO()
+    ui.set({ today, date: today, focusedId: null, toast: null, flash: null, dragging: false })
+  }
+
   /* ============================================================== Days */
 
   layout(date: ISODate): DayLayout {

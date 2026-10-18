@@ -86,6 +86,12 @@ export class UndoManager {
   get canRedo(): boolean {
     return this.redoStack.length > 0
   }
+
+  /** Forget all history, e.g. when the notes it refers to leave the device. */
+  clear(): void {
+    this.undoStack = []
+    this.redoStack = []
+  }
 }
 
 /** What `revert` reads: the editor's item store. */

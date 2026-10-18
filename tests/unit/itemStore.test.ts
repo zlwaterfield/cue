@@ -83,4 +83,17 @@ describe('ItemStore.reset (an account signs out of the phone)', () => {
     await flushTimers()
     expect(saves).toHaveLength(0)
   })
+
+  it('tells onReset listeners once everything is forgotten', async () => {
+    const item = newItem({ id: 'a', date: DAY })
+    const { backend } = controlledBackend([item])
+    const store = new ItemStore(backend)
+    await store.ensureLoaded([DAY])
+    const seen: Array<boolean> = []
+    const stop = store.onReset(() => seen.push(store.get('a') === undefined && !store.isLoaded(DAY)))
+    store.reset()
+    stop()
+    store.reset()
+    expect(seen).toEqual([true])
+  })
 })

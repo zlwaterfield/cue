@@ -151,6 +151,7 @@ export class ItemStore {
   private dateListeners = new Map<ISODate, Set<Listener>>()
   /** Records from elsewhere that arrived while a local save of the same item was in flight. */
   private racing = new Map<string, Item>()
+  private resetListeners = new Set<Listener>()
   readonly persistence: PersistenceQueue
 
   constructor(private readonly backend: StoreBackend) {
@@ -207,6 +208,12 @@ export class ItemStore {
       set!.delete(listener)
       if (!set!.size) this.dateListeners.delete(date)
     }
+  }
+
+  /** Called after `reset()`, so anything that refers to the forgotten items can forget them too. */
+  onReset(listener: Listener): () => void {
+    this.resetListeners.add(listener)
+    return () => this.resetListeners.delete(listener)
   }
 
   /* ---------------------------------------------------------------- Loading */
@@ -308,6 +315,7 @@ export class ItemStore {
     this.loading.clear()
     this.racing.clear()
     this.notify(items, dates)
+    for (const l of this.resetListeners) l()
   }
 
   /* ---------------------------------------------------------------- Writes */

@@ -242,11 +242,12 @@ The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outb
   anything, and its database is a local copy of the account. Signing out checks that
   nothing is left unsent, then removes the notes and outbox from the phone, but keeps the
   device id and clock (`Repository.clearNotes`). Signing in to a different account than
-  the one the database holds starts from empty. If the server ends the session (confirmed
-  the Mac's way, `checkSession`), sync stops at once and, as soon as typing pauses for a
-  second, the phone shows sign-in with "Your sync session ended. Sign in again to keep
-  syncing." or "Your account was deleted on another device." The notes stay until someone
-  signs in again, so unsent edits aren't lost.
+  the one the database holds starts from empty. The editor forgets everything about the
+  notes that left (undo history, the page shown, the caret) through `ItemStore.onReset`.
+  If the server ends the session (confirmed the Mac's way, `checkSession`), sync stops at
+  once and, as soon as typing pauses for a second, the phone shows sign-in with "Your sync
+  session ended. Sign in again to keep syncing." or "Your account was deleted on another
+  device." The notes stay until someone signs in again, so unsent edits aren't lost.
   `MobileSync.unsentFromPreviousAccount()` counts the edits a different account would
   remove.
 - **Faster pushes.** 450 ms after typing pauses (2 s at most), at once for any other edit,
