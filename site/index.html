@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cue — every day is a page</title>
+<meta name="description" content="Cue is a quiet, keyboard-first daily notes and to-do app for the Mac. A personal project, in early alpha.">
+<meta property="og:title" content="Cue — every day is a page">
+<meta property="og:description" content="A quiet, keyboard-first daily notes and to-do app for the Mac. A personal project, in early alpha.">
+<meta property="og:image" content="images/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#FAFAFB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#18181A" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400&display=swap" rel="stylesheet">
+<style>
+/* Tokens from docs/brand/tokens/tokens.css. Monochrome graphite, no hue. */
+:root {
+  color-scheme: light;
+  --bg: #FAFAFB; /* Paper, the marketing ground */
+  --bg-subtle: #F0F0F2;
+  --bg-hover: #0000000B;
+  --text: #1C1C1E;
+  --text-2: #6C6C72;
+  --text-3: #8E8E94;
+  --line: #00000012;
+  --line-strong: #0000003D;
+  --accent: #2C2C31;
+  --on-accent: #FFFFFF;
+  --text-selection: #2C2C3129;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #18181A; /* Night */
+    --bg-subtle: #2C2C30;
+    --bg-hover: #FFFFFF0F;
+    --text: #ECECEF;
+    --text-2: #9D9DA4;
+    --text-3: #76767D;
+    --line: #FFFFFF13;
+    --line-strong: #FFFFFF42;
+    --accent: #E6E6EA;
+    --on-accent: #18181A;
+    --text-selection: #E6E6EA38;
+  }
+}
+
+* { box-sizing: border-box; }
+::selection { background: var(--text-selection); }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 17px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+p { margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+.narrow { max-width: 680px; margin: 0 auto; }
+
+nav { display: flex; align-items: center; justify-content: space-between; height: 76px; }
+nav .lockup { display: block; height: 26px; width: auto; color: var(--text); }
+nav .links a { font-size: 15px; color: var(--text-2); text-decoration: none; }
+nav .links a:hover { color: var(--text); }
+
+.serif { font-family: "Newsreader", "New York", ui-serif, Georgia, serif; font-weight: 400;
+  letter-spacing: -0.02em; font-optical-sizing: auto; }
+
+header { text-align: center; padding: 64px 0 40px; }
+.status { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px;
+  border: 1px solid var(--line-strong); border-radius: 999px; font-size: 13px; color: var(--text-2); }
+.status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--text-2); }
+h1 { font-size: clamp(46px, 7.4vw, 84px); line-height: 1.02; margin: 26px 0 22px; text-wrap: balance; }
+.caret { display: inline-block; width: 0.055em; height: 0.92em; margin-left: 0.06em; vertical-align: -0.1em;
+  background: var(--accent); border-radius: 0.03em; animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .caret { animation: none; } }
+.lede { max-width: 560px; margin: 0 auto; font-size: 20px; color: var(--text-2); text-wrap: balance; }
+kbd { font: 500 0.8em ui-monospace, "SF Mono", Menlo, monospace; padding: 2px 6px; border-radius: 6px;
+  background: var(--bg-subtle); color: var(--text); border: 1px solid var(--line); white-space: nowrap; }
+
+.shot { margin: 8px auto 0; max-width: 980px; }
+.shot img { display: block; width: 100%; height: auto; }
+
+section { padding: 72px 0; border-top: 1px solid var(--line); }
+section:first-of-type { border-top: 0; }
+h2 { font-size: clamp(32px, 4.4vw, 44px); line-height: 1.1; margin: 0 0 24px; }
+.prose p { color: var(--text-2); font-size: 18px; }
+.prose p + p { margin-top: 16px; }
+.prose strong { color: var(--text); font-weight: 500; }
+
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px 56px; margin-top: 8px; }
+.grid h3 { font-size: 17px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.005em; }
+.grid p { color: var(--text-2); font-size: 16px; }
+.num { color: var(--text); font-variant-numeric: tabular-nums; }
+.not { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--text-2); font-size: 16px; }
+
+.btn { display: inline-flex; align-items: center; height: 44px; padding: 0 18px; border-radius: 12px;
+  font-size: 16px; font-weight: 500; text-decoration: none; margin-top: 32px; }
+.btn.primary { background: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { opacity: .9; }
+.btn:focus-visible, nav a:focus-visible, footer a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 32px 0 48px; border-top: 1px solid var(--line); font-size: 14px; color: var(--text-2); }
+footer .symbol { display: block; width: 20px; height: 20px; color: var(--text); }
+footer .left { display: flex; align-items: center; gap: 12px; }
+footer a { text-decoration: none; }
+footer a:hover { color: var(--text); }
+
+@media (max-width: 720px) {
+  header { padding: 40px 0 24px; }
+  .lede { font-size: 18px; }
+  section { padding: 56px 0; }
+  .grid { grid-template-columns: 1fr; gap: 28px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a href="./" aria-label="Cue home"><svg class="lockup" xmlns="http://www.w3.org/2000/svg" width="197" height="98.4" viewBox="4.14 -79.2 197 98.4" role="img" aria-label="Cue"><path d="M36.54 -62.76Q42.9 -62.76 46.86 -61.41Q50.82 -60.059999999999995 52.65 -57.92999999999999Q54.48 -55.8 54.48 -53.4Q54.48 -51.419999999999995 53.61 -49.949999999999996Q52.739999999999995 -48.48 51.269999999999996 -47.67Q49.8 -46.86 47.879999999999995 -46.86Q47.339999999999996 -46.86 46.23 -48.12Q45.12 -49.379999999999995 43.53 -51.239999999999995Q41.94 -53.1 39.989999999999995 -54.96Q38.04 -56.82 35.879999999999995 -58.08Q33.72 -59.339999999999996 31.439999999999998 -59.339999999999996Q27.54 -59.339999999999996 24.509999999999998 -57.03Q21.48 -54.72 19.8 -49.769999999999996Q18.12 -44.82 18.12 -36.9Q18.12 -26.88 20.43 -20.669999999999998Q22.74 -14.459999999999999 27.269999999999996 -11.64Q31.799999999999997 -8.82 38.4 -8.82Q43.26 -8.82 47.519999999999996 -10.71Q51.78 -12.6 55.08 -16.68L56.16 -15.84Q52.44 -9.48 48.66 -5.7Q44.879999999999995 -1.92 40.739999999999995 -0.30000000000000004Q36.6 1.3199999999999998 31.68 1.3199999999999998Q23.759999999999998 1.3199999999999998 17.52 -2.25Q11.28 -5.819999999999999 7.709999999999999 -12.72Q4.14 -19.62 4.14 -29.64Q4.14 -36.839999999999996 6.57 -42.87Q9.0 -48.9 13.41 -53.37Q17.82 -57.839999999999996 23.73 -60.3Q29.64 -62.76 36.54 -62.76ZM79.32 -19.32Q79.32 -15.6 80.58 -13.17Q81.84 -10.74 84.39 -9.54Q86.94 -8.34 91.02 -8.34Q95.16 -8.34 98.91 -9.6Q102.66 -10.86 105.36 -12.48L106.14 -11.1Q101.46000000000001 -7.199999999999999 98.13 -4.77Q94.8 -2.34 92.13 -1.02Q89.46000000000001 0.3 87.0 0.75Q84.53999999999999 1.2 81.66 1.2Q73.2 1.2 69.21000000000001 -3.4499999999999997Q65.22 -8.1 65.22 -17.82V-56.1L55.44 -58.5V-60.78L79.86 -61.98L79.32 -56.339999999999996ZM102.96000000000001 1.74 102.6 -9.66V-56.1L92.88 -58.5V-60.78L117.36 -61.98L116.69999999999999 -56.339999999999996V-7.08Q117.24 -6.779999999999999 118.38 -6.27Q119.52 -5.76 120.93 -5.13Q122.34 -4.5 123.69 -3.9Q125.03999999999999 -3.3 126.0 -2.88V-1.44L103.5 1.74ZM158.22 -62.76Q164.94 -62.76 169.82999999999998 -60.03Q174.72 -57.3 177.54 -52.05Q180.35999999999999 -46.8 180.95999999999998 -39.24H140.94V-43.08H173.57999999999998L167.4 -40.5Q166.86 -47.28 165.51 -51.42Q164.16 -55.559999999999995 161.91 -57.51Q159.66 -59.46 156.35999999999999 -59.46Q152.04 -59.46 148.95 -56.91Q145.85999999999999 -54.36 144.20999999999998 -49.230000000000004Q142.56 -44.1 142.56 -36.36Q142.56 -26.58 145.05 -20.49Q147.54 -14.399999999999999 152.31 -11.61Q157.07999999999998 -8.82 163.98 -8.82Q167.28 -8.82 170.34 -9.69Q173.4 -10.559999999999999 176.16 -12.329999999999998Q178.92 -14.1 181.14 -16.8L182.28 -15.959999999999999Q178.38 -9.54 174.48 -5.76Q170.57999999999998 -1.98 166.29 -0.33000000000000007Q162.0 1.3199999999999998 156.95999999999998 1.3199999999999998Q148.8 1.3199999999999998 142.38 -2.25Q135.96 -5.819999999999999 132.26999999999998 -12.72Q128.57999999999998 -19.62 128.57999999999998 -29.58Q128.57999999999998 -38.519999999999996 132.06 -46.08Q135.54 -53.64 142.17000000000002 -58.2Q148.8 -62.76 158.22 -62.76Z" fill="currentColor"/><rect x="192" y="-79.2" width="8.64" height="98.4" rx="4.32" fill="currentColor"/></svg></a>
+    <div class="links"><a href="https://github.com/zlwaterfield/cue">GitHub</a></div>
+  </nav>
+
+  <header>
+    <span class="status">Early alpha · not stable yet</span>
+    <h1 class="serif">Every day is a page.<span class="caret" aria-hidden="true"></span></h1>
+    <p class="lede">Cue is a quiet, keyboard-first place for daily notes and to-dos on the Mac.
+      Open it and start typing into today.</p>
+  </header>
+
+  <picture class="shot">
+    <source media="(prefers-color-scheme: dark)" srcset="images/week-dark.webp">
+    <img src="images/week-light.webp" width="2192" height="1592"
+      alt="Cue's week view: today's notes, to-dos and nested bullets, with tomorrow below">
+  </picture>
+
+  <main>
+    <section class="narrow prose">
+      <h2 class="serif">Why I built it</h2>
+      <p>I wanted one place to put the day. Not a project manager or a second brain, just a page
+        for today that I could open and type into without deciding where anything goes first.</p>
+      <p>Every tool I tried wanted a project, a tag or a priority before it would take a note. So I
+        built <strong>Cue, for myself</strong>: days are the only structure, the keyboard does
+        everything, and it's ready before I've finished thinking of what to write.</p>
+    </section>
+
+    <section class="narrow">
+        <h2 class="serif">What makes it different</h2>
+        <div class="grid">
+          <div>
+            <h3>The day is the only folder</h3>
+            <p>Things belong to dates, not projects. No tags, priorities or dashboards.
+              Whatever didn't get done moves to tomorrow with <kbd>⌘D</kbd>.</p>
+          </div>
+          <div>
+            <h3>Keyboard first</h3>
+            <p><kbd>Tab</kbd> nests, <kbd>⌘↩</kbd> completes, and <kbd>⌘K</kbd> does everything
+              else, including dates like “move to fri”. The mouse still works.</p>
+          </div>
+          <div>
+            <h3>Fast, and measured</h3>
+            <p>Ready to type <span class="num">259 ms</span> after launch, even with five years
+              of notes. A keystroke renders in about <span class="num">3 ms</span>. Every number
+              has a budget and a test.</p>
+          </div>
+          <div>
+            <h3>Yours, on your Mac</h3>
+            <p>One SQLite file, saved as you type. No account and no telemetry, and Markdown
+              export any time. Sync is optional and off by default.</p>
+          </div>
+        </div>
+        <p class="not">Cue stays small on purpose: no reminders, recurring tasks, collaboration
+          or AI features.</p>
+    </section>
+
+    <section class="narrow prose">
+      <h2 class="serif">Where it's at</h2>
+      <p><strong>It isn't stable yet.</strong> Cue is an early alpha: the storage format can
+        still change, and there are no signed downloads. I use it as my daily driver anyway, and fix
+        what breaks as I go. An iPhone app is in the works too.</p>
+      <p>One day I'll launch it properly. For now it's a fun little thing I use every day. If
+        you're curious, the code is open and you can build it yourself.</p>
+      <a class="btn primary" href="https://github.com/zlwaterfield/cue">View on GitHub</a>
+    </section>
+  </main>
+
+  <footer>
+    <div class="left">
+      <svg class="symbol" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="13.5" width="9" height="3" rx="1.5" fill="currentColor"/><rect x="16.5" y="3" width="3" height="18" rx="1.5" fill="currentColor"/></svg>
+      <span>Made by <a href="https://github.com/zlwaterfield">Zach Waterfield</a></span>
+    </div>
+    <span>Open source, MIT · <a href="https://github.com/zlwaterfield/cue">GitHub</a></span>
+  </footer>
+</div>
+</body>
+</html>
