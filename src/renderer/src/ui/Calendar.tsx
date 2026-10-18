@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { addDays, addMonths, MONTHS, parts, startOfMonth, startOfWeek } from '@shared/dates'
+import { addDays, addMonths, longDate, MONTHS, parts, startOfMonth, startOfWeek } from '@shared/dates'
 import type { ISODate } from '@shared/types'
 import { backend } from '../data/backend'
 
@@ -69,7 +69,7 @@ export function Calendar({
           if (day === selected) classes.push('is-selected')
           if (marked.has(day)) classes.push('has-items')
           return (
-            <button key={day} className={classes.join(' ')} onClick={() => onPick(day)} aria-label={day}>
+            <button key={day} className={classes.join(' ')} onClick={() => onPick(day)} aria-label={longDate(day)}>
               {p.day}
             </button>
           )

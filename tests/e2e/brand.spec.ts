@@ -48,3 +48,31 @@ test('About shows the wordmark and the alpha notice', async () => {
   await page.keyboard.press('Escape')
   await expect(about).toHaveCount(0)
 })
+
+test('the brand caret blinks while the hidden native one stays still', async () => {
+  const { page } = cue
+  await expect.poll(async () => (await caretState(cue)).shown).toBe(true)
+  // Solid for a moment after each move, then blinking again.
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector('.cue-caret')!).animationIterationCount)).toBe('infinite')
+  const native = await page.evaluate(() => {
+    const style = getComputedStyle(document.activeElement!)
+    return { animation: style.getPropertyValue('caret-animation'), color: style.caretColor }
+  })
+  expect(native).toEqual({ animation: 'manual', color: 'rgba(0, 0, 0, 0)' })
+})
+
+test('a selected segment is lighter than its track in dark mode, as in light', async () => {
+  const { page } = cue
+  const luminance = (color: string): number => {
+    const [r, g, b] = color.match(/\d+/g)!.map(Number)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+  }
+  for (const colorScheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme })
+    const { track, pill } = await page.evaluate(() => ({
+      track: getComputedStyle(document.querySelector('.titlebar .segmented')!).backgroundColor,
+      pill: getComputedStyle(document.querySelector('.titlebar .segmented .is-active')!).backgroundColor
+    }))
+    expect(luminance(pill), `${colorScheme}: ${pill} on ${track}`).toBeGreaterThan(luminance(track))
+  }
+})

@@ -138,11 +138,16 @@ Shortcut deviations from the brief:
 ## Accessibility notes
 
 - Body text, secondary text and the accent meet WCAG AA in both modes (`docs/brand/tokens/contrast.md`).
+  Metadata people read (dates, hints, group headers, the sync status) uses `--text-2`.
 - Completed to-dos and placeholders use `--text-3` (3.26:1 light, 3.48–3.93:1 dark). That is
   deliberate, since completed items should recede, but it is a known AA exception. The strict
-  alternative is to render done items in `--text-2`.
+  alternative is to render done items in `--text-2`. Out-of-month calendar days, the year in
+  "October 2026" and decorative glyphs use it too.
 - Checkbox outlines (`--line-strong`, 24% / 26%) sit below the 3:1 non-text guideline, a
-  judgment call for a calm page. Keyboard focus on controls gets a clearly visible ring.
+  judgment call for a calm page. A to-do's whole 24 × 30 marker cell is its click target.
+- Keyboard focus on controls gets a 2 px outline. Segmented controls are radio groups: one Tab
+  stop, arrow keys to choose.
+- ⌘+ / ⌘− / ⌘0 zoom the window (View menu).
 - The caret doesn't blink when macOS Reduce Motion is on, and every animation is disabled
   under `prefers-reduced-motion`.
 

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { COMMANDS, shortcutKeys, type CommandGroup } from '@shared/commands'
 import { parseDateInput } from '@shared/dateParse'
-import { addDays, diffDays, friendlyDate, longDate, nextWeekday, startOfWeek } from '@shared/dates'
+import { addDays, friendlyDate, longDate, nextWeekday, relativeLabel, shortDate, startOfWeek } from '@shared/dates'
 import { matchRanges, searchTerms } from '@shared/text'
 import type { ISODate, ItemType, SearchResult } from '@shared/types'
 import { backend } from '../data/backend'
@@ -40,17 +40,24 @@ export function Palette() {
   return <PalettePanel key={`${overlay.mode}:${overlay.dateAction ?? ''}`} overlay={overlay} />
 }
 
-function relative(date: ISODate, today: ISODate): string {
-  const d = diffDays(today, date)
-  if (d === 0) return 'today'
-  if (d === 1) return 'tomorrow'
-  if (d === -1) return 'yesterday'
-  if (d > 0) return d < 14 ? `in ${d} days` : d < 60 ? `in ${Math.round(d / 7)} weeks` : `in ${Math.round(d / 30)} months`
-  return -d < 14 ? `${-d} days ago` : -d < 60 ? `${Math.round(-d / 7)} weeks ago` : `${Math.round(-d / 30)} months ago`
+/** How far away a date is, unless its label already says so ("Today"). */
+function distance(date: ISODate, label: string, today: ISODate): string | undefined {
+  const relative = relativeLabel(date, today)
+  return relative === label.toLowerCase() ? undefined : relative
 }
 
+/** The editor's markers, small: a checked box for done to-dos, nothing for text. */
 export function TypeGlyph({ type, done }: { type: ItemType; done: boolean }) {
-  if (type === 'todo') return <span className={`glyph glyph-todo${done ? ' is-done' : ''}`} aria-label={done ? 'Completed to-do' : 'To-do'} />
+  if (type === 'todo')
+    return (
+      <span className={`glyph glyph-todo${done ? ' is-done' : ''}`} aria-label={done ? 'Completed to-do' : 'To-do'}>
+        {done && (
+          <svg viewBox="0 0 16 16" aria-hidden>
+            <path d="M4.2 8.4l2.4 2.4 5.2-5.6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </span>
+    )
   if (type === 'bullet') return <span className="glyph glyph-bullet" aria-label="Bullet" />
   return <span className="glyph glyph-text" aria-label="Text" />
 }
@@ -78,10 +85,13 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
   const settings = useStore(ui, (s) => s.settings)
   const [query, setQuery] = useState(overlay.query ?? '')
   const [index, setIndex] = useState(0)
-  const [results, setResults] = useState<SearchResult[]>([])
+  // Results remember their query, so a query still in flight never reads as "No matches".
+  const [found, setFound] = useState<{ query: string; results: SearchResult[] }>({ query: '', results: [] })
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const hasTarget = useMemo(() => controller.targets().length > 0, [])
+  /** The day the lines being moved are on. */
+  const source = useMemo(() => itemStore.get(controller.targets()[0] ?? '')?.date, [])
   const mode = overlay.mode
 
   useLayoutEffect(() => {
@@ -96,9 +106,10 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
     const timer = setTimeout(async () => {
       // Search reads the database, so let just-made edits land first.
       await itemStore.persistence.settle()
-      const found = query.trim() ? await backend.search(query, 60) : []
+      const q = query.trim()
+      const results = q ? await backend.search(query, 60) : []
       if (!cancelled) {
-        setResults(found)
+        setFound({ query: q, results })
         setIndex(0)
       }
     }, 30)
@@ -128,8 +139,9 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
 
   const entries: Entry[] = useMemo(() => {
     if (mode === 'search') {
-      const terms = searchTerms(query)
-      return results.map((r) => ({
+      // Until this query's results arrive, the last query's stay up.
+      const terms = searchTerms(found.query)
+      return (query.trim() ? found.results : []).map((r) => ({
         key: r.id,
         icon: <TypeGlyph type={r.type} done={r.done} />,
         title: (
@@ -160,12 +172,12 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
         icon: <CalendarIcon />,
         title: label ? (
           <>
-            {label} <span className="muted">· {friendlyDate(date, today)}</span>
+            {label} <span className="muted">· {shortDate(date, today)}</span>
           </>
         ) : (
           longDate(date)
         ),
-        hint: relative(date, today),
+        hint: distance(date, label ?? '', today),
         run: () => pickDate(date, action)
       })
       const quick: Array<[string, ISODate]> = [
@@ -177,9 +189,12 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
       if (action === 'go') quick.splice(2, 0, ['Yesterday', addDays(today, -1)])
       const list: Entry[] = []
       if (parsed) list.push(entry(parsed))
+      // Each date once ("Next weekday" is often "Next week"), and never the day the lines are on.
+      const listed = new Set([parsed, action === 'move' ? source : undefined])
       for (const [label, date] of quick) {
-        if (date === parsed) continue
+        if (listed.has(date)) continue
         if (query.trim() && fuzzyScore(query, label) === null) continue
+        listed.add(date)
         list.push(entry(date, label))
       }
       return list
@@ -230,7 +245,7 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
         key: `go:${date}`,
         icon: <CalendarIcon />,
         title: `Go to ${friendlyDate(date, today)}`,
-        hint: relative(date, today),
+        hint: distance(date, friendlyDate(date, today), today),
         run: () => pickDate(date, 'go')
       }
       const future = parseDateInput(q, today, { weekStartsOn: settings.weekStartsOn, prefer: 'future' }) ?? date
@@ -238,7 +253,7 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
         key: `move:${future}`,
         icon: <CalendarIcon />,
         title: `Move to ${friendlyDate(future, today)}`,
-        hint: relative(future, today),
+        hint: distance(future, friendlyDate(future, today), today),
         run: () => pickDate(future, 'move')
       }
       // "move to fri" moves; "go to fri" or just "fri" goes.
@@ -258,7 +273,7 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
       run: () => switchMode({ kind: 'palette', mode: 'search', query: q })
     })
     return list
-  }, [mode, query, results, today, settings.weekStartsOn, hasTarget, overlay.dateAction])
+  }, [mode, query, found, today, settings.weekStartsOn, hasTarget, source, overlay.dateAction])
 
   const clamped = Math.min(index, Math.max(0, entries.length - 1))
 
@@ -297,6 +312,19 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
           : 'Go to… try “fri”, “next mon”, “oct 31”'
         : 'Type a command, a date, or search…'
 
+  // "No matches" waits for this query's own results.
+  const q = query.trim()
+  const empty =
+    mode === 'search'
+      ? q
+        ? found.query === q
+          ? 'No matches'
+          : null
+        : 'Find anything you’ve written'
+      : mode === 'date'
+        ? 'Try “friday”, “in 3 days”, or “2026-10-31”'
+        : 'No matching commands'
+
   const highlightedDate = mode === 'date' ? (entries[clamped]?.date ?? null) : null
   let lastGroup: string | undefined
 
@@ -323,11 +351,7 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
         </div>
         <div className="palette-body">
           <div className="palette-list" ref={listRef} role="listbox">
-            {entries.length === 0 && (
-              <div className="palette-empty">
-                {mode === 'search' ? (query.trim() ? 'No matches' : 'Find anything you’ve written') : mode === 'date' ? 'Try “friday”, “in 3 days”, or “2026-10-31”' : 'No matching commands'}
-              </div>
-            )}
+            {entries.length === 0 && empty && <div className="palette-empty">{empty}</div>}
             {entries.map((entry, i) => {
               const header = entry.group && entry.group !== lastGroup ? entry.group : null
               lastGroup = entry.group

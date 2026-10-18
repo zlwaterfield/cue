@@ -3,7 +3,7 @@ import type { ISODate } from '@shared/types'
 import { controller } from './controller'
 import { getOffsets, setOffsets } from './dom'
 import { updateLinks } from './highlights'
-import { useIsSelected, useItem } from './hooks'
+import { useIsSelected, useItem, useSelectionDepth } from './hooks'
 import * as ops from '@shared/editor/ops'
 import { beginItemDrag, beginTextPointer } from './pointer'
 
@@ -15,6 +15,7 @@ import { beginItemDrag, beginTextPointer } from './pointer'
 export const ItemRow = memo(function ItemRow({ id, depth, date }: { id: string; depth: number; date: ISODate }) {
   const item = useItem(id)
   const selected = useIsSelected(id)
+  const bandDepth = useSelectionDepth(id, date)
   const ref = useRef<HTMLDivElement | null>(null)
 
   const setRef = useCallback(
@@ -53,8 +54,10 @@ export const ItemRow = memo(function ItemRow({ id, depth, date }: { id: string; 
   if (selected) classes.push('is-selected')
   if (!text) classes.push('is-empty')
 
+  const style = { '--depth': depth, ...(bandDepth !== null && { '--sel-depth': bandDepth }) } as React.CSSProperties
+
   return (
-    <div className={classes.join(' ')} style={{ '--depth': depth } as React.CSSProperties} data-row-id={id} data-date={date}>
+    <div className={classes.join(' ')} style={style} data-row-id={id} data-date={date}>
       <span className="handle" onPointerDown={(e) => beginItemDrag(e, id)} aria-hidden title="Drag to move">
         <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
           <circle cx="2" cy="2" r="1.1" />
@@ -65,17 +68,15 @@ export const ItemRow = memo(function ItemRow({ id, depth, date }: { id: string; 
           <circle cx="6" cy="10" r="1.1" />
         </svg>
       </span>
-      <span className="marker" aria-hidden={item.type !== 'todo'}>
+      {/* A to-do's whole marker cell (24 × 30) toggles it, not just the 16 px box. */}
+      <span
+        className="marker"
+        aria-hidden={item.type !== 'todo'}
+        onMouseDown={item.type === 'todo' ? (e) => e.preventDefault() : undefined}
+        onClick={item.type === 'todo' ? toggle : undefined}
+      >
         {item.type === 'todo' ? (
-          <button
-            className="checkbox"
-            role="checkbox"
-            aria-checked={item.done}
-            aria-label={item.done ? 'Reopen' : 'Complete'}
-            tabIndex={-1}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={toggle}
-          >
+          <button className="checkbox" role="checkbox" aria-checked={item.done} aria-label={item.done ? 'Reopen' : 'Complete'} tabIndex={-1}>
             <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
               <path d="M4.2 8.4l2.4 2.4 5.2-5.6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>

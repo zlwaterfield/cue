@@ -1,5 +1,5 @@
-import { useSyncExternalStore } from 'react'
-import { diffDays, MONTHS, parts, shortDate } from '@shared/dates'
+import { useEffect, useState, useSyncExternalStore } from 'react'
+import { MONTHS, parts } from '@shared/dates'
 import { controller } from '../editor/controller'
 import { itemStore } from '../store/items'
 import { syncState } from '../store/sync'
@@ -11,12 +11,16 @@ export function Header() {
   const view = useStore(ui, (s) => s.view)
   const today = useStore(ui, (s) => s.today)
 
-  let title: string
+  // A day's own heading names it; the bar gives the month, like the calendar.
+  let title: React.ReactNode
   if (view.mode === 'week') title = 'This week'
   else {
-    const delta = diffDays(today, view.date)
     const { year, month } = parts(view.date)
-    title = Math.abs(delta) <= 1 ? shortDate(view.date) : `${MONTHS[month - 1]} ${year}`
+    title = (
+      <>
+        {MONTHS[month - 1]} <span className="view-title-year">{year}</span>
+      </>
+    )
   }
 
   const keep = (e: React.MouseEvent): void => e.preventDefault()
@@ -59,12 +63,28 @@ export function Header() {
   )
 }
 
+/** True once `active` has held for `ms`; false again the moment it stops. */
+function useHeld(active: boolean, ms: number): boolean {
+  const [held, setHeld] = useState(false)
+  useEffect(() => {
+    if (!active) return
+    const timer = setTimeout(() => setHeld(true), ms)
+    return () => {
+      clearTimeout(timer)
+      setHeld(false)
+    }
+  }, [active, ms])
+  return active && held
+}
+
 /**
  * Sync stays out of sight while it works. This shows only when it can't: offline,
- * or stopped and needing attention. A long sync (the first one) fades in "Syncing…".
+ * or stopped and needing attention. A long sync (the first one) fades in "Syncing…";
+ * a quick one (every push while typing) never takes space in the title bar.
  */
 function SyncIndicator() {
   const sync = useStore(syncState, (s) => s)
+  const longSync = useHeld(sync.status === 'syncing' && !!sync.email, 1200)
   let label: string
   let hint: string
   if (!sync.email) {
@@ -78,6 +98,7 @@ function SyncIndicator() {
     label = 'Sync paused'
     hint = sync.message ?? 'Sync will retry shortly.'
   } else if (sync.status === 'syncing') {
+    if (!longSync) return null
     label = 'Syncing…'
     hint = 'Syncing with your other devices.'
   } else {
@@ -90,6 +111,8 @@ function SyncIndicator() {
       onMouseDown={(e) => e.preventDefault()}
       onClick={() => controller.execute('app.settings')}
       title={hint}
+      // Narrow windows show only the dot.
+      aria-label={label}
     >
       {label}
     </button>
