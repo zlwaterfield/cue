@@ -37,11 +37,13 @@ export function Header() {
         <Pressable
           onPress={() => router.push('/calendar')}
           accessibilityRole="button"
-          accessibilityLabel="Go to a date"
+          accessibilityLabel={`${MONTHS[month - 1]} ${year}`}
+          accessibilityHint="Opens the calendar"
           style={styles.month}
           hitSlop={8}
         >
-          <Text style={[styles.monthText, { color: c.text }]}>
+          {/* At the largest text sizes the month gives way, so search and settings stay on screen. */}
+          <Text style={[styles.monthText, { color: c.text }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
             {MONTHS[month - 1]} <Text style={{ color: c.text3 }}>{year}</Text>
           </Text>
           <SymbolView name="chevron.down" size={12} weight="semibold" tintColor={c.text3} />
@@ -55,7 +57,9 @@ export function Header() {
               accessibilityRole="button"
               hitSlop={6}
             >
-              <Text style={[styles.todayText, { color: c.text }]}>Today</Text>
+              <Text style={[styles.todayText, { color: c.text }]} maxFontSizeMultiplier={1.3}>
+                Today
+              </Text>
             </Pressable>
           )}
           <IconButton icon="magnifyingglass" label="Search" onPress={() => router.push('/search')} />
@@ -148,9 +152,13 @@ function WeekStrip({ date, today }: { date: ISODate; today: ISODate }) {
               accessibilityLabel={longDate(day)}
               testID={`day-${day}`}
             >
-              <Text style={[styles.weekday, { color: isToday ? c.text : c.text3 }]}>{WEEKDAYS[weekday(day)].slice(0, 1)}</Text>
+              <Text style={[styles.weekday, { color: isToday ? c.text : c.text2 }]} maxFontSizeMultiplier={1.3}>
+                {WEEKDAYS[weekday(day)].slice(0, 1)}
+              </Text>
               <View style={[styles.dayNumber, selected && { backgroundColor: c.accent }, !selected && isToday && { borderColor: c.lineStrong, borderWidth: 1 }]}>
-                <Text style={[styles.dayText, { color: selected ? c.onAccent : c.text }, isToday && styles.todayDay]}>{parts(day).day}</Text>
+                <Text style={[styles.dayText, { color: selected ? c.onAccent : c.text }, isToday && styles.todayDay]} maxFontSizeMultiplier={1.3}>
+                  {parts(day).day}
+                </Text>
               </View>
               <View style={[styles.dot, { backgroundColor: marked.has(day) && !selected ? c.text3 : 'transparent' }]} />
             </Pressable>
@@ -185,7 +193,7 @@ const styles = StyleSheet.create({
     paddingTop: 2
   },
   bar: {
-    height: 44,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -196,9 +204,12 @@ const styles = StyleSheet.create({
   month: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
+    gap: 6,
+    flexShrink: 1,
+    minWidth: 0
   },
   monthText: {
+    flexShrink: 1,
     fontSize: 17,
     fontWeight: '600',
     letterSpacing: -0.2
@@ -206,7 +217,8 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4
+    gap: 4,
+    flexShrink: 0
   },
   icon: {
     width: 36,

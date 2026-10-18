@@ -9,7 +9,7 @@ import Animated, {
   useAnimatedStyle,
   useFrameCallback
 } from 'react-native-reanimated'
-import { diffDays, longDate, monthDay, relativeDayName } from '@shared/dates'
+import { diffDays, monthDay, relativeDayName, weekday, WEEKDAYS } from '@shared/dates'
 import type { ISODate } from '@shared/types'
 import { itemStore } from '../core/app'
 import { useStore } from '../core/store'
@@ -23,6 +23,17 @@ import { Row } from './Row'
 import { SwipeUnderlay } from './Swipe'
 
 const AnimatedScrollView = Animated.createAnimatedComponent(GestureScrollView)
+
+/**
+ * Under the title: the date, said once. "Sunday, October 18" under Today, Tomorrow and
+ * Yesterday; under a weekday, the date alone, and how far away it is past a week. The year
+ * only when it isn't this year.
+ */
+function subtitleFor(date: ISODate, today: ISODate): string {
+  const delta = diffDays(today, date)
+  if (Math.abs(delta) <= 1) return `${WEEKDAYS[weekday(date)]}, ${monthDay(date, today)}`
+  return `${monthDay(date, today)}${Math.abs(delta) < 7 ? '' : delta > 0 ? ` · in ${delta} days` : ` · ${-delta} days ago`}`
+}
 
 /** Scroll while a dragged line is held this close to the top or bottom edge. */
 const EDGE = 80
@@ -145,9 +156,8 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
 
   /* ---------------------------------------------------------- Rendering */
 
-  const delta = diffDays(today, date)
   const title = relativeDayName(date, today)
-  const subtitle = Math.abs(delta) <= 1 ? longDate(date) : `${monthDay(date, today)}${Math.abs(delta) < 7 ? '' : delta > 0 ? ` · in ${delta} days` : ` · ${-delta} days ago`}`
+  const subtitle = subtitleFor(date, today)
   const empty = rows.length === 0
 
   return (
@@ -163,10 +173,10 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
       contentInsetAdjustmentBehavior="never"
     >
       <View style={styles.head}>
-        <Text style={[styles.title, { color: c.text }]} accessibilityRole="header" testID="day-title">
+        <Text style={[styles.title, { color: c.text }]} accessibilityRole="header" testID="day-title" maxFontSizeMultiplier={1.4}>
           {title}
         </Text>
-        <Text style={[styles.subtitle, { color: c.text3 }]}>{subtitle}</Text>
+        <Text style={[styles.subtitle, { color: c.text2 }]}>{subtitle}</Text>
       </View>
       <Animated.View
         style={[styles.rows, container]}
@@ -201,9 +211,8 @@ const styles = StyleSheet.create({
     paddingBottom: 10
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -0.6
+    fontSize: 34,
+    fontWeight: '700'
   },
   subtitle: {
     fontSize: 15,

@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics'
 import { addDays, addMonths, friendlyDate, longDate, MONTHS, parts, startOfMonth, startOfWeek } from '@shared/dates'
 import { parseDateInput } from '@shared/dateParse'
 import type { ISODate } from '@shared/types'
-import { repo } from '../core/app'
+import { repo, sync } from '../core/app'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { metrics, useColors } from './theme'
@@ -70,7 +70,9 @@ function Month({
     const first = startOfWeek(month, weekStartsOn)
     return Array.from({ length: 42 }, (_, i) => addDays(first, i))
   }, [month, weekStartsOn])
-  const marked = useMemo(() => new Set(repo.datesWithItems(days[0], days[days.length - 1])), [days])
+  // Read again after each sync, so notes arriving from another device get their dot.
+  const synced = useStore(sync.state, (s) => s.lastSyncedAt)
+  const marked = useMemo(() => new Set(repo.datesWithItems(days[0], days[days.length - 1])), [days, synced])
   const { year, month: m } = parts(month)
   const labels = weekStartsOn === 1 ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
@@ -91,7 +93,7 @@ function Month({
       </View>
       <View style={styles.grid}>
         {labels.map((label, i) => (
-          <Text key={`l${i}`} style={[styles.label, { color: c.text3 }]}>
+          <Text key={`l${i}`} style={[styles.label, { color: c.text2 }]}>
             {label}
           </Text>
         ))}
