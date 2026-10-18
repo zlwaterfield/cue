@@ -7,7 +7,9 @@ import type { ExpoConfig } from 'expo/config'
  * or a Debug build starts, and `.env.production.local` for a Release build.
  *
  * Signing for a real iPhone is personal, so it comes from there too: CUE_APPLE_TEAM_ID,
- * and CUE_IOS_BUNDLE_ID if `app.cue` isn't available to your team.
+ * and CUE_IOS_BUNDLE_ID if `app.cue` isn't available to your team. The share extension
+ * signs as `<bundle ID>.share` with the App Group `group.<bundle ID>`; a team that can't
+ * have App Groups builds without it with CUE_SHARE_EXTENSION=off.
  */
 const config: ExpoConfig = {
   name: 'Cue',
@@ -33,6 +35,9 @@ const config: ExpoConfig = {
     'expo-router',
     'expo-sqlite',
     'expo-secure-store',
+    // "Cue" in the share sheet: a shared link or text becomes a new line in today. It needs
+    // the App Groups capability; CUE_SHARE_EXTENSION=off builds without it.
+    ...(process.env.CUE_SHARE_EXTENSION === 'off' ? [] : ['./plugins/share-extension']),
     [
       'expo-splash-screen',
       {

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as SplashScreen from 'expo-splash-screen'
 import { addDays } from '@shared/dates'
 import { itemStore, sync } from '../core/app'
+import { receiveShared } from '../core/inbox'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
@@ -33,16 +34,24 @@ export default function Day() {
       invited = true
       if (date === today && !focusedId && !itemStore.outline(today).length) editor.focus(editor.ghostId(today), 0)
     }
-    const unsubscribe = sync.state.subscribe(invite)
+    const unsubscribe = sync.state.subscribe(() => {
+      invite()
+      if (loaded) void receiveShared()
+    })
     void itemStore.ensureLoaded([addDays(today, -1), today, addDays(today, 1)]).then(() => {
       setReady(true)
       void SplashScreen.hideAsync()
       loaded = true
       invite()
+      // Links shared to Cue while it was away.
+      void receiveShared()
     })
     const timer = setInterval(() => editor.checkToday(), 30_000)
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') editor.checkToday()
+      if (state === 'active') {
+        editor.checkToday()
+        void receiveShared()
+      }
     })
     return () => {
       unsubscribe()

@@ -4,7 +4,7 @@ import { ui } from '../store/ui'
 import { backend } from '../data/backend'
 import { controller, ghostId } from './controller'
 import { offsetWithin, rangeFromPoint } from './dom'
-import { linkAt } from './highlights'
+import { linkAt } from '@shared/links'
 import * as ops from '@shared/editor/ops'
 
 /**

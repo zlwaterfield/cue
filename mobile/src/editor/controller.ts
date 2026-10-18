@@ -594,6 +594,34 @@ export class Editor {
     return { id: this.ghostId(item.date), start: 0 }
   }
 
+  /* ===================================================== Shared to Cue */
+
+  /**
+   * Links and text shared from other apps, added to the end of today, each one its own
+   * undoable step. A link becomes one line; text keeps its lines and list markers, as a
+   * paste does. The newest glows if today is on screen; otherwise a toast says where it went.
+   */
+  receiveShared(texts: string[]): void {
+    const { today } = ui.get()
+    let last: string | null = null
+    for (const text of texts) {
+      const lines = parseMarkdownLines(text)
+      if (!lines.length) continue
+      let created: string[] = []
+      this.undo.seal()
+      this.commit('Add from Share', (tx) => void (created = ops.insertLinesAfter(tx, today, null, lines)))
+      last = created[0] ?? last
+    }
+    if (!last) return
+    const id = last
+    if (ui.get().date === today) {
+      ui.set({ flash: { id, at: Date.now() } })
+      requestAnimationFrame(() => this.scroller?.reveal(today, id))
+    } else {
+      showToast(texts.length === 1 ? 'Added to today from Share' : `Added ${texts.length} to today from Share`)
+    }
+  }
+
   /* ===================================================== Drag and drop */
 
   /**
