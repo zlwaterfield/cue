@@ -29,8 +29,9 @@ export default function SettingsSheet() {
     setSyncing(true)
     const result = await sync.syncNow()
     setSyncing(false)
-    // Offline needs no alert: the status line already says so.
-    if (!result.ok && sync.state.get().status !== 'offline') Alert.alert('Couldn’t sync', result.error)
+    // Offline or paused needs no alert: the footnote already says why, as on the Mac.
+    const { status } = sync.state.get()
+    if (!result.ok && status !== 'offline' && status !== 'error') Alert.alert('Couldn’t sync', result.error)
   }
 
   const signOut = async (): Promise<void> => {
