@@ -27,6 +27,9 @@ export const ghostId = (date: ISODate): string => GHOST + date
 export const isGhost = (id: string): boolean => id.startsWith(GHOST)
 const ghostDate = (id: string): ISODate => id.slice(GHOST.length)
 
+/** Midnight waits this long after the last keystroke, so the line being typed stays put. */
+const ROLLOVER_QUIET_MS = 60_000
+
 type FocusResult = ops.CaretFocus | SelectionSnapshot | null | void
 
 interface CaretMemo {
@@ -57,6 +60,7 @@ class EditorController {
   private lastExecuted = { id: '', at: 0, source: '' }
   private toastEntry: UndoEntry | undefined
   private navigationSeq = 0
+  private lastInputAt = 0
   private selectionCache: { selection: Selection | null; ids: Set<string> } = { selection: null, ids: new Set() }
   composing = false
   sink: HTMLElement | null = null
@@ -519,6 +523,7 @@ class EditorController {
 
   /** Window-level keys: global shortcuts and block-selection mode. */
   onGlobalKeyDown = (e: KeyboardEvent): void => {
+    this.lastInputAt = performance.now()
     if (e.defaultPrevented || e.isComposing) return
     const state = ui.get()
     const command = commandFor(e)
@@ -641,6 +646,7 @@ class EditorController {
   /* =============================================================== Input */
 
   onItemInput(id: string, el: HTMLElement): void {
+    this.lastInputAt = performance.now()
     if (this.composing) return
     let text = el.textContent ?? ''
     if (/[\r\n]/.test(text)) {
@@ -681,6 +687,7 @@ class EditorController {
   }
 
   onGhostInput(date: ISODate, el: HTMLElement): void {
+    this.lastInputAt = performance.now()
     if (this.composing) return
     const text = (el.textContent ?? '').replace(/[\r\n]+/g, ' ')
     if (!text) return
@@ -704,10 +711,12 @@ class EditorController {
   }
 
   onCompositionStart(): void {
+    this.lastInputAt = performance.now()
     this.composing = true
   }
 
   onCompositionEnd(id: string, el: HTMLElement): void {
+    this.lastInputAt = performance.now()
     this.composing = false
     if (isGhost(id)) this.onGhostInput(ghostDate(id), el)
     else this.onItemInput(id, el)
@@ -1127,12 +1136,12 @@ class EditorController {
     window.addEventListener('beforeunload', () => itemStore.persistence.flushSync())
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') void itemStore.persistence.flush()
-      this.checkToday()
+      void this.checkToday()
     })
-    window.addEventListener('focus', () => this.checkToday())
+    window.addEventListener('focus', () => void this.checkToday())
     backend.onCommand((id) => this.execute(id, 'menu'))
     backend.onItemsChanged((items) => this.applyExternal(items))
-    setInterval(() => this.checkToday(), 30_000)
+    setInterval(() => void this.checkToday(), 30_000)
   }
 
   /** Records written elsewhere (sync, import). They may take away the line being edited. */
@@ -1186,11 +1195,27 @@ class EditorController {
     }
   }
 
-  /** Keep "today" correct when the app stays open past midnight. */
-  private checkToday(): void {
+  /**
+   * Keep "today" correct when the app stays open past midnight, without moving anything
+   * from under an edit: while composing, or within a minute of the last keystroke, it waits
+   * (the 30 s timer tries again), so a line typed across midnight stays on its day. Then
+   * the day view follows to the new today if it was showing the old one.
+   */
+  private async checkToday(): Promise<void> {
+    const writing = () => this.composing || performance.now() - this.lastInputAt < ROLLOVER_QUIET_MS
     const today = todayISO()
-    if (today === ui.get().today) return
-    void itemStore.ensureLoaded(this.datesFor({ mode: 'week' }, today)).then(() => ui.set({ today }))
+    if (today === ui.get().today || writing()) return
+    await itemStore.ensureLoaded(this.datesFor({ mode: 'week' }, today))
+    const { today: shown, view } = ui.get()
+    if (today === shown || writing()) return
+    const follow = view.mode === 'day' && view.date === shown
+    flushSync(() => {
+      ui.set({ today, ...(follow && { view: { mode: 'day', date: today } }) })
+    })
+    // The day the caret was on may have left the screen; never leave it nowhere.
+    const active = document.activeElement as HTMLElement | null
+    if (!ui.get().overlay && (!active || (!active.isContentEditable && active !== this.sink))) this.focusDefault()
+    refreshCaret()
   }
 }
 

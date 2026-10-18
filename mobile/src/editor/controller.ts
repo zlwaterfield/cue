@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics'
 import { addDays, friendlyDate, todayISO } from '@shared/dates'
 import * as ops from '@shared/editor/ops'
 import { dropTarget, subtreeEnd } from '@shared/editor/geometry'
+import { rollover } from '@shared/editor/rollover'
 import { Tx } from '@shared/editor/tx'
 import { revert, UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
 import { uuidv7 } from '@shared/ids'
@@ -73,6 +74,8 @@ export class Editor {
    * fast typing can arrive with the marker still in front; it's taken off again here.
    */
   private stripped = new Map<string, string>()
+  /** The old today's page after midnight, until it can follow to the new today. */
+  private following: ISODate | null = null
   scroller: Scroller | null = null
 
   constructor() {
@@ -95,6 +98,7 @@ export class Editor {
     this.pending = null
     if (this.frame) cancelAnimationFrame(this.frame)
     this.frame = 0
+    this.following = null
     const today = todayISO()
     ui.set({ today, date: today, focusedId: null, toast: null, flash: null, dragging: false })
   }
@@ -143,12 +147,17 @@ export class Editor {
     this.scroller?.reveal(date, id)
   }
 
-  /** Keep "today" right when the app stays open past midnight. */
+  /**
+   * Keep "today" right when the app stays open past midnight (every 30 s, and when the app
+   * comes back). Titles and the Today pill move on at once; the old today's page follows
+   * only once no line is being edited or dragged (see `rollover`).
+   */
   checkToday(): void {
-    const today = todayISO()
-    const { today: shown, date } = ui.get()
-    if (today === shown) return
-    void itemStore.ensureLoaded([today]).then(() => ui.set({ today, date: date === shown ? today : date }))
+    const { today, date, focusedId, dragging } = ui.get()
+    const next = rollover({ today, page: date, following: this.following }, todayISO(), !!focusedId || dragging)
+    this.following = next.following
+    if (next.today !== today) void itemStore.ensureLoaded([next.today]).then(() => ui.set({ today: next.today }))
+    if (next.page !== date) void this.goTo(next.page)
   }
 
   /* ============================================================= Focus */
@@ -161,7 +170,21 @@ export class Editor {
   }
 
   unregister(id: string, input: TextInputInstance | null): void {
-    if (this.inputs.get(id) === input) this.inputs.delete(id)
+    if (this.inputs.get(id) !== input) return
+    this.inputs.delete(id)
+    if (ui.get().focusedId !== id) return
+    // A line removed while being edited (deleted, moved, its page replaced) never reports
+    // a blur. Unless it's back a frame later, the caret is on whichever line took it, or
+    // nowhere, so the toolbar never acts on a line that isn't there.
+    requestAnimationFrame(() => {
+      if (ui.get().focusedId === id && !this.inputs.has(id)) this.leave(id, this.focusedInput())
+    })
+  }
+
+  /** The line whose input has focus, as far as JavaScript knows (its focus event may be on the way). */
+  private focusedInput(): string | null {
+    for (const [id, input] of this.inputs) if (input.isFocused()) return id
+    return null
   }
 
   /** The line being edited is gone from the page: stop editing it. */
