@@ -48,9 +48,10 @@ two Postgres functions.** Item-level last-write-wins, ordered by hybrid logical 
   Triggers that arrive during a run share one follow-up run.
 - **Typing** is pushed 600 ms after it pauses, or every 3 s during continuous typing. A burst
   of keystrokes is one request. **Every other edit** (a new line, a move, an indent, a
-  toggle, a delete, a paste, an undo) is pushed at once, so it reaches other devices in about
-  60 ms instead of after the pause. A save counts as typing when only the text changed
-  (`isTextOnlyChange`).
+  toggle, a delete, a paste) is pushed at once, so it reaches other devices in about 60 ms
+  instead of after the pause. A save counts as typing when only the text changed
+  (`isTextOnlyChange`). Undo and redo follow the same rule: undoing a structural edit is
+  pushed at once, undoing typing waits for the pause.
 - **Remote edits** arrive as a realtime hint carrying the new feed position (`seq`). The engine
   pulls only if that's past its cursor, so its own pushes, which echo back, cost nothing. It
   also pulls on launch, when the channel reconnects, when the Mac wakes or Cue comes to the
@@ -130,7 +131,9 @@ the same path an import uses, with one rule: **an edit in progress always wins.*
 - **A Mac that only reads** never has a push refused, and pulls succeed for a deleted
   account (there's just nothing new). So on launch, and when the Mac wakes or Cue comes to
   the front after a minute away, the service also runs `checkSession`, at most every 30
-  minutes.
+  minutes. This names a deleted account only while the Mac's access token is still good
+  (about an hour after it was last refreshed). After that, the refresh fails first and the
+  Mac says the session ended.
 
 ### UI
 
@@ -269,7 +272,9 @@ The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outb
   `MobileSync.unsentFromPreviousAccount()` counts the edits a different account would
   remove, and sign-in says so before it sends a code ("Some changes haven’t synced").
   Like the Mac, the phone also runs `checkSession` on launch and on coming back to the
-  foreground, at most every 30 minutes, so a phone that only reads finds out too.
+  foreground, at most every 30 minutes, so a phone that only reads finds out too. As on
+  the Mac, it names a deleted account only while its access token is still good; after
+  that it says the session ended.
 - **Faster pushes.** 450 ms after typing pauses (2 s at most), at once for any other edit,
   as soon as focus leaves a line, and when the app leaves the screen. That last push runs
   inside a short iOS background task (`modules/cue-native`), so it finishes before the app
