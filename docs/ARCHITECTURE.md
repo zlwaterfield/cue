@@ -96,8 +96,10 @@ sign in. See [SYNC.md](SYNC.md).
 - SQLite runs in WAL mode with `synchronous=FULL`: committed writes survive app
   crashes and power loss. A test kills the app with SIGKILL mid-session and checks
   that nothing is lost.
-- A consistent snapshot (`VACUUM INTO`) is taken once a day into
-  `~/Library/Application Support/Cue/Backups`, and the last 14 are kept.
+- A consistent snapshot is taken once a day into
+  `~/Library/Application Support/Cue/Backups`, and the last 14 are kept. SQLite's online
+  backup copies the pages on a worker thread, a hundred at a time, so saves never wait
+  behind it, and the copy only takes its real name once it's complete.
 - If the renderer crashes, the main process reloads it. The database is unaffected.
 
 ## Undo

@@ -60,13 +60,10 @@ function start(): void {
   Menu.setApplicationMenu(buildMenu({ isDev, syncAvailable: sync.state().available }))
   createWindow()
 
-  // A consistent snapshot per day, kept for two weeks, off the startup path.
+  // A consistent snapshot per day, kept for two weeks, off the startup path. SQLite copies
+  // it on a worker thread, so typing never waits for it.
   const backup = (): void => {
-    try {
-      runDailyBackup(db, join(dataDir, 'Backups'))
-    } catch (error) {
-      console.error('Backup failed', error)
-    }
+    void runDailyBackup(db, join(dataDir, 'Backups')).catch((error) => console.error('Backup failed', error))
   }
   setTimeout(backup, 10_000).unref?.()
   setInterval(backup, 6 * 60 * 60 * 1000).unref?.()
