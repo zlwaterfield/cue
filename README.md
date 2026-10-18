@@ -4,13 +4,13 @@
 </picture>
 
 <p align="center">
-  A fast, quiet, keyboard-first daily notes and to-do app for macOS.
+  <strong>Daily notes and to-dos for Mac and iOS.</strong><br>
+  Fast, quiet and keyboard-first.
 </p>
 
 > [!WARNING]
-> **Cue is in early alpha and is not ready for real use.** It's under active development, the
-> storage format may change without a migration, and **your notes could be lost at any time.**
-> Don't keep anything in Cue that you can't afford to lose. If you try it, export often
+> **Cue is an early alpha.** The storage format may still change and your notes could be
+> lost. Don't keep anything in Cue you can't afford to lose, and export often
 > (File ▸ Export as Markdown).
 
 <picture>
@@ -18,183 +18,55 @@
   <img src="docs/images/week-light.png" alt="Cue's week view: today's notes, to-dos and nested bullets, with tomorrow below">
 </picture>
 
-Every day in Cue is a lightweight page of text, bullets and to-dos. You open the app and start
-typing into today. Tab nests a line, ⌘↩ completes it, ⌘D pushes it to tomorrow, and ⌘K sends
-anything anywhere. There are no projects, tags, priorities or dashboards: only days, and the
-things you wrote on them.
+Every day in Cue is a page of text, bullets and to-dos. Open the app and start typing into
+today. There are no projects, tags or priorities: just days, and what you wrote on them.
 
-Cue is built around three ideas:
+- **The day is the only folder.** Things belong to dates. What didn't get done moves to
+  tomorrow with ⌘D.
+- **Keyboard first, mouse friendly.** Every action has a shortcut and lives in ⌘K.
+- **Fast and safe, or it isn't done.** Nothing waits on a save, and speed is measured
+  against budgets (see [Performance](#performance)).
 
-- **The day is the organizing unit.** Things belong to dates, not to folders.
-- **Keyboard first, mouse friendly.** Every action has a shortcut and appears in ⌘K.
-- **Fast and safe, or it isn't done.** Nothing waits on a save, and every change is on disk
-  within a few dozen milliseconds. Speed is measured, budgeted and tested (see
-  [Performance](#performance)).
+## Features
 
-## What it does today
+**Writing.** Text, bullets and to-dos, nested as deep as you like. Markdown shortcuts as you
+type (`- `, `[] `, `[x] `), and pasted Markdown lists become real nested items.
 
-Cue 0.1 is a working macOS app (Apple silicon). Here is everything it does right now.
-
-**Writing**
-
-- Plain text, bullets and to-dos, nested as deep as you like.
-- Enter continues the current type; Enter on an empty bullet exits the list; Backspace at the
-  start of a line removes formatting, then indentation, then joins it to the line above.
-- Markdown shortcuts as you type: `- ` makes a bullet, `[] ` a to-do, `[x] ` a done to-do. ⌘Z
-  straight afterwards undoes just the formatting.
-- Pasting multi-line text (including Markdown lists from other apps) creates real, nested items.
-- Links are highlighted, and ⌘-click opens them.
-
-**Organizing**
-
-- **Week view**: today, tomorrow and the rest of the week, all directly editable. Today is the
-  largest; the days after it are slightly more compact.
-- **Day view** for any date, with ⌘[ / ⌘] to step through days.
-- Complete or reopen with ⌘↩ or a click. Completed to-dos stay where they are.
-- Reorder with ⌥↑/⌥↓ or drag and drop, including onto another day. Children always move with
-  their parent.
-- Move to tomorrow (⌘D), the next weekday, next week, or any date (⇧⌘D). A small toast confirms
-  the move and offers Undo.
-- Select several lines with Esc then ⇧↑/⇧↓, by dragging across them, or with ⌘A twice. Then
-  indent, move, complete, convert, copy, cut or delete them together.
+**Organizing.** A week view with today on top, a day view for any date, and ⌘[ / ⌘] to step
+between them. Reorder with ⌥↑/⌥↓ or drag and drop, even onto another day. Move anything to
+tomorrow (⌘D) or any date (⇧⌘D), and select several lines to act on them together.
 
 <p align="center">
   <img src="docs/images/move-to-date.png" alt="Moving a to-do with ⇧⌘D: typing &quot;fri&quot; resolves to Fri, Oct 23 (in 5 days), with a calendar alongside" width="80%">
 </p>
 
-**Finding**
-
-- **⌘K command palette**: fuzzy search over every action, with shortcuts shown. It also
-  understands dates: type "move to fri" or "go to oct 31".
-- **Natural-language dates** anywhere a date is asked for: "tomorrow", "fri", "next mon",
-  "oct 31", "in 3 days", "+2w", "2026-10-31", with a calendar alongside.
-- **⌘F search** across every day you've ever written. It ignores case and accents and shows each
-  result's date and type; Enter opens the day with the caret on the match.
+**Finding.** ⌘K searches every command and understands dates ("move to fri", "go to oct 31").
+⌘F searches every day you've written, ignoring case and accents.
 
 <p align="center">
   <img src="docs/images/command-palette.png" alt="The ⌘K command palette understanding &quot;move to fri&quot; as a date" width="49%">
   <img src="docs/images/search.png" alt="⌘F search across days, with matches highlighted and each result's date" width="49%">
 </p>
 
-**Reliability**
+**Reliability.** Saves as you type, with undo and redo for everything. Edits survive a crash
+(the tests `kill -9` the app to check), a daily snapshot is kept for 14 days, and you can
+export to Markdown or JSON at any time.
 
-- Saves automatically in the background. A save never makes you wait, and there's no Save button.
-- **Undo and redo for everything**: typing, completion, conversion, reordering, moving between
-  days and deletion. Undo also puts the caret back where it was.
-- Local SQLite storage in WAL mode with full-sync commits, so edits survive a crash. The test
-  suite kills the app with `kill -9` mid-session and checks that nothing was lost.
-- A consistent snapshot of your data every day, with the last 14 kept.
-- Export everything as Markdown (one file per day) or as a full JSON backup. Importing a JSON
-  backup merges safely: it never duplicates items or brings deleted ones back.
+**Sync.** Optional on the Mac and off by default. Sign in with your email and a six-digit
+code, and edits reach your other devices about a second after you stop typing. It works
+offline and never interrupts typing.
 
-**Sync (optional)**
+**iPhone.** The same core as the Mac, built for touch: tap a bullet to make it a to-do, tap a
+box to check it, swipe to complete or send to tomorrow, and long-press to drag. It uses
+sync, so it needs an account. See [mobile/README.md](mobile/README.md).
 
-- Off by default. Cue works fully on one Mac, with no account and no network.
-- Turn it on in Settings with your email and a six-digit code, and your notes stay on every
-  device signed in to the same account. An edit appears on your other Mac about a second after
-  you stop typing.
-- It runs entirely in the background and never interrupts typing. Offline edits sync when
-  you're back online, and a line you're editing is never replaced underneath you.
-- Turning it off keeps every note on your Mac. You can delete your account and its server copy
-  from Settings.
-
-**Feel**
-
-- A single calm column, hanging bullets and checkboxes, and system typography, in monochrome
-  graphite with no hue.
-- The caret is the brand: a 2 px graphite bar with a calm, hard blink. It holds still while
-  you type, rests solid after about 10 seconds without moving (so an idle window costs no
-  energy), and doesn't blink at all with Reduce Motion on.
-- Light and dark appearance that follows macOS, or can be set by hand.
-- A native macOS menu bar, a native context menu with spelling suggestions, and window size
-  and position remembered between launches.
-
-## Performance
-
-Speed is a feature here, so it's measured rather than assumed. Each number below comes from
-`pnpm bench`, which drives the real packaged app, and each has a budget it must stay under.
-
-| | Result | Budget | Notes |
-| --- | --- | --- | --- |
-| Launch → ready to type, empty | 243 ms | ≤ 400 ms | median of 7 cold launches |
-| Launch → ready to type, 5 years of notes | 240 ms | ≤ 400 ms | 36,543 items |
-| Keystroke → frame rendered | 1.5 ms · p95 3.7 ms | ≤ 12 ms | handlers finish in 0.6 ms |
-| Enter → new line rendered | 2.0 ms · p95 5.4 ms | ≤ 16 ms | |
-| Tab / ⇧Tab → re-indented | 2.2 ms · p95 8.2 ms | ≤ 16 ms | |
-| ⌘↩ → to-do toggled | 7.6 ms · p95 11 ms | ≤ 16 ms | |
-| ⌥↑ / ⌥↓ → item moved | 6.4 ms · p95 9.8 ms | ≤ 16 ms | |
-| ⌘[ → previous day rendered | 10 ms · p95 13 ms | ≤ 50 ms | neighbors prefetched, as in use |
-| Search 36,543 items | 0.5 ms · p95 6.6 ms | ≤ 50 ms | p95 is a full scan with no matches |
-| Load a week of notes | 0.4 ms · p95 0.6 ms | ≤ 10 ms | renderer → SQLite → renderer |
-| Memory, idle after launch | 108 MB | | footprint, all processes combined |
-| UI code | 315 KB | | 97 KB gzipped, React included |
-| Database, 5 years of notes | 15 MB | | one SQLite file |
-| Download (.dmg) | 122 MB | | Electron runtime included |
-
-<sub>Measured on an Apple M4 Pro with 48 GB of RAM, macOS 26.6, using the packaged arm64 build
-on a 120 Hz display. Results vary by a few milliseconds from run to run. Latency budgets apply
-to the p95. Frame budgets are the display's refresh interval plus 4 ms for a keystroke and 8 ms
-for a command (12.3 and 16.3 ms at 120 Hz).</sub>
-
-**How it's measured**
-
-- **Launch** is the time from spawning the process to the moment the first screen accepts
-  typing, signaled by the app itself. The first launch of a new build is discarded, because
-  macOS checks a new binary once.
-- **Input latency** is the time from the keydown event to the next frame the renderer produces.
-  Keys are sent every 30 ms, a fast human pace, rather than in a synthetic burst. It includes
-  waiting for the display's next refresh, which the budgets allow for.
-- **Storage** round trips go renderer → main process → SQLite → back, against five years of
-  generated notes (`pnpm seed`).
-- **Memory** is the footprint (what Activity Monitor shows) summed over all of Cue's
-  processes, a few seconds after launch.
-
-**Why it's fast**
-
-- **Typing touches one line.** Each item has its own subscription, so a keystroke re-renders
-  exactly one row, and the edit is applied in memory before anything is written.
-- **Writes happen behind you.** Changes are coalesced and written within 40 ms; the window never
-  waits on the database.
-- **Only what's on screen is loaded.** Years of notes cost nothing until you navigate to them.
-- **No native modules or runtime dependencies.** Storage uses SQLite through Node's built-in
-  `node:sqlite`, and the UI is a single 95 KB (gzipped) bundle.
-
-**The trade-off**
-
-Cue runs on Electron because Chromium's text editing is the most reliable surface available for
-an editor like this, and because it lets the real app be tested end to end. The cost is a
-larger download and higher baseline memory than a native app would have. That is a known,
-deliberate trade, and the budgets above are how the rest stays honest.
-
-To reproduce the numbers, build the app first:
-
-```sh
-pnpm package
-pnpm bench            # prints the table above
-pnpm bench --check    # exits non-zero if anything misses its budget
-```
-
-## Getting started
-
-There are no signed downloads yet. To try Cue, build it from source on macOS (Apple silicon),
-with Node 24+ and pnpm installed. Local builds are ad-hoc signed, so they run on your Mac
-without an Apple Developer account:
-
-```sh
-git clone https://github.com/zlwaterfield/cue.git
-cd cue
-pnpm install
-pnpm dev                     # run with hot reload
-pnpm package                 # or build release/mac-arm64/Cue.app
-```
-
-Development builds run as "Cue Dev" (a branded copy of Electron's bundle is created the
-first time you run `pnpm dev`). They keep their data separate from the packaged app, in
-`~/Library/Application Support/Cue Dev`, so working on Cue can't touch your notes.
+**Feel.** One calm column in monochrome graphite, system typography, and light and dark
+appearance. The caret is the brand: it holds still while you type and rests after ten idle
+seconds.
 
 ## Keyboard
 
-| | |
+| Action | Shortcut |
 | --- | --- |
 | Command palette | ⌘K |
 | Search | ⌘F |
@@ -209,7 +81,7 @@ first time you run `pnpm dev`). They keep their data separate from the packaged 
 | Move to tomorrow | ⌘D |
 | Move to date | ⇧⌘D |
 | Delete item | ⇧⌘⌫ |
-| Select lines | Esc, then ⇧↑ / ⇧↓ (⌘A twice selects the whole day) |
+| Select lines | Esc, then ⇧↑ / ⇧↓ (⌘A twice for the whole day) |
 | Undo / redo | ⌘Z · ⇧⌘Z |
 | Every shortcut | ⌘/ |
 
@@ -217,108 +89,122 @@ first time you run `pnpm dev`). They keep their data separate from the packaged 
   <img src="docs/images/shortcuts.png" alt="The ⌘/ keyboard shortcuts sheet" width="80%">
 </p>
 
+## Performance
+
+Every number comes from `pnpm bench`, which drives the real packaged Mac app, and each has a
+budget it must stay under.
+
+| Measure | Result | Budget |
+| --- | --- | --- |
+| Launch → ready to type (5 years of notes) | 240 ms | ≤ 400 ms |
+| Keystroke → frame rendered | 1.5 ms · p95 3.7 ms | ≤ 12 ms |
+| Enter → new line rendered | 2.0 ms · p95 5.4 ms | ≤ 16 ms |
+| ⌘↩ → to-do toggled | 7.6 ms · p95 11 ms | ≤ 16 ms |
+| ⌘[ → previous day rendered | 10 ms · p95 13 ms | ≤ 50 ms |
+| Search 36,543 items | 0.5 ms · p95 6.6 ms | ≤ 50 ms |
+| Memory, idle after launch | 108 MB | |
+| Download (.dmg) | 122 MB | |
+
+<sub>Apple M4 Pro, macOS 26.6, packaged arm64 build on a 120 Hz display. Budgets apply to the
+p95. `pnpm bench` prints the full table, including indent, reorder, storage and bundle size.</sub>
+
+It's fast because a keystroke re-renders exactly one line, writes happen in the background
+within 40 ms, and only the days on screen are loaded. Cue runs on Electron because Chromium's
+text editing is the most reliable base for an editor like this. The cost is a bigger download
+and more memory than a native app, and the budgets keep the rest honest.
+
+```sh
+pnpm package
+pnpm bench            # prints the table
+pnpm bench --check    # exits non-zero if anything misses its budget
+```
+
+## Getting started
+
+There are no downloads yet, so build Cue from source on an Apple silicon Mac with Node 24+ and
+pnpm:
+
+```sh
+git clone https://github.com/zlwaterfield/cue.git
+cd cue
+pnpm install
+pnpm dev        # run with hot reload
+pnpm package    # or build release/mac-arm64/Cue.app
+```
+
+Development builds run as "Cue Dev" and keep their data separate from the packaged app, so
+working on Cue can't touch your notes.
+
+For the iPhone app, see [mobile/README.md](mobile/README.md). It needs Xcode 26 and a sync
+server.
+
 ## Your data
 
-- Everything stays on your Mac, in a single SQLite file at
-  `~/Library/Application Support/Cue/cue.sqlite`. Daily snapshots are kept in `Backups/` beside
-  it.
-- Cue has no accounts and no telemetry, and it doesn't talk to any server.
-- You can always get your notes out: File ▸ Export as Markdown writes one readable file per
-  day, and Export JSON Backup writes everything.
-- Set `CUE_USER_DATA=/some/folder` to run Cue against a different data folder.
+- On the Mac, everything lives in one SQLite file at
+  `~/Library/Application Support/Cue/cue.sqlite`, with daily snapshots in `Backups/`.
+- No telemetry. Without sync, Cue never talks to a server.
+- With sync on, your notes are also stored in your Supabase account. Turning sync off keeps
+  every note on your Mac, and you can delete the account from Settings.
+- File ▸ Export as Markdown writes one file per day; Export JSON Backup writes everything.
 
 ## How it's built
 
-- **App:** Electron 44, React 19 and TypeScript, built with electron-vite.
-- **Editor:** each line is its own plain-text editable. An in-memory item store is the source
-  of truth, and undo and redo are handled by the app rather than the browser.
-- **Storage:** the main process owns SQLite behind a narrow, typed interface. The window never
-  sees SQL.
-- **Sync:** every item has a stable UUIDv7 id, a hybrid-logical-clock version and a tombstone
-  flag for deletions. Local changes queue in an outbox written in the same transaction. An
-  optional Supabase backend (Postgres, Auth, Realtime) syncs items newest-edit-wins, from the
-  main process, without touching the editor.
-- **iPhone:** Expo and React Native, sharing `src/shared` (storage, sync, editing) with the Mac
-  app. See [mobile/README.md](mobile/README.md).
+- **Mac:** Electron, React 19 and TypeScript. Storage is SQLite through Node's built-in
+  `node:sqlite`, owned by the main process.
+- **iPhone:** Expo and React Native.
+- **Shared core:** both apps share `src/shared`: the data model, storage, sync engine and
+  every editing operation.
+- **Sync:** an optional Supabase backend (Postgres, Auth, Realtime), newest edit wins per
+  item.
 
 More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SYNC.md](docs/SYNC.md) and
-[docs/ACCEPTANCE.md](docs/ACCEPTANCE.md). The brand (logo, app icon, color tokens, usage guide,
-and README, social and DMG artwork) lives in [docs/brand](docs/brand).
+[docs/ACCEPTANCE.md](docs/ACCEPTANCE.md). The brand kit lives in [docs/brand](docs/brand).
 
 ## Roadmap
 
-Cue is being built in the open, in this order. Nothing below is promised to a date.
+Nothing here is promised to a date.
 
-**Done: 0.1 alpha, desktop core**
-Everything in [What it does today](#what-it-does-today), plus unit and end-to-end tests,
-performance budgets, and the brand ([docs/brand](docs/brand)).
+**Done (0.2 alpha):** the Mac app, optional sync across devices, and the iPhone app on the
+same core.
 
-**Next: beta, safe for daily use**
-- A stable storage format with tested migrations, and a way to restore from any daily snapshot
-  inside the app.
-- Signed, notarized builds with automatic updates, and a Liquid Glass app icon built in
-  Icon Composer from the brand's layers ([docs/brand/app-icon](docs/brand/app-icon/ICON-COMPOSER.md)).
-- Performance budgets enforced in CI on every pull request.
-- Polish from real-world use: collapsing nested items, an optional `/` menu for line types, and
-  Intel and universal builds.
+**Next (beta, safe for daily use):**
+- A stable storage format with tested migrations, and restoring a snapshot from inside the app.
+- Signed Mac downloads with automatic updates, and TestFlight builds for iPhone.
+- Sign in with Apple, and per-field merging so edits to one line on two devices both survive.
+- Performance budgets in CI, and measured on real iPhones.
+- Polish: collapsing nested items, and Intel and universal Mac builds.
 
-**In progress: sync and accounts**
-- Done: optional sync across Macs ([docs/SYNC.md](docs/SYNC.md)) on Supabase, with a small
-  push/pull protocol, newest-edit-wins per item, realtime updates, email sign-in, a quiet
-  status indicator and account deletion.
-- Next: Sign in with Apple, and per-field merging, so that completing a to-do on one device
-  and editing its text on another both survive.
+**Exploring:** end-to-end encryption, customizable shortcuts, Windows and Linux.
 
-**In progress: iPhone**
-- An iPhone app ([mobile/](mobile)) on the same core as the Mac: the data model, storage,
-  sync engine and every editing operation are shared code, not a port. Sync is required
-  there, and edits reach your other devices about a second after you pause.
-- Built for touch: tap a bullet to make it a to-do, tap a box to check it off, swipe right
-  to advance a line and left to send it to tomorrow, and long-press to drag lines (sideways
-  to nest). A toolbar above the keyboard switches line types in one tap.
-- Next: TestFlight builds, and measuring launch and typing on real devices against
-  budgets, as the Mac does.
-
-**Exploring**
-End-to-end encryption of note text, customizable shortcuts, and Windows and Linux builds
-(Electron makes these possible; they're not a focus yet).
-
-**Not planned**
-Cue stays small on purpose. Projects, tags, priorities, due times, reminders, recurring tasks,
-attachments, collaboration, AI features, dashboards and gamification are out of scope.
+**Not planned:** projects, tags, priorities, reminders, recurring tasks, attachments,
+collaboration, AI features and dashboards. Cue stays small on purpose.
 
 ## Contributing
 
-Issues and pull requests are welcome. Cue is early, so for anything bigger than a fix, open an
-issue first.
+Issues and pull requests are welcome. For anything bigger than a fix, open an issue first.
 
 ```sh
-pnpm test         # unit tests: dates, outline, storage, sync, every editor operation
-pnpm test:e2e     # end-to-end tests that drive the real app
-pnpm test:sync    # sync against a real Supabase (see docs/SYNC.md)
+pnpm test         # unit tests
+pnpm test:e2e     # end-to-end tests against the real app
+pnpm test:sync    # sync against a local Supabase (see docs/SYNC.md)
 pnpm typecheck
 pnpm bench        # performance against the budgets
 ```
 
-The iPhone app has its own setup and end-to-end tests: see [mobile/README.md](mobile/README.md).
-
 A few rules keep Cue the way it is:
 
-- **Every action is a command.** Add it to `src/shared/commands.ts` so it gets a shortcut, a
-  palette entry and a menu item together.
-- **Performance is a requirement, not a nicety.** If a change touches typing, navigation, search
-  or startup, run `pnpm bench` and keep it under budget.
-- **Data safety comes first.** All reads and writes go through the repository, migrations only
-  ever append, and anything that could lose data needs a test.
-- **Less, but better.** New features should make the daily page better without adding fields,
-  panels or settings to the main screen.
+- **Every action is a command** in `src/shared/commands.ts`, so it gets a shortcut, a palette
+  entry and a menu item together.
+- **Performance is a requirement.** If a change touches typing, navigation, search or
+  startup, run `pnpm bench`.
+- **Data safety comes first.** Reads and writes go through the repository, migrations only
+  append, and anything that could lose data needs a test.
+- **Less, but better.** Make the daily page better without adding fields, panels or settings.
 
 ## License
 
 The code is [MIT](LICENSE) © 2026 Zach Waterfield.
 
-The Cue name, logo and app icon (the artwork in [docs/brand](docs/brand)) are not covered
-by the MIT license. You're welcome to use them to refer to Cue, for example in an article or
-a link. Please don't use them for your own app or service, or in a way that suggests it's
-made or endorsed by Cue. If you distribute a modified version, give it a different name and
-icon.
+The Cue name, logo and app icon ([docs/brand](docs/brand)) aren't covered by the MIT license.
+You're welcome to use them to refer to Cue, but not for your own app or in a way that suggests
+endorsement. If you distribute a modified version, give it a different name and icon.

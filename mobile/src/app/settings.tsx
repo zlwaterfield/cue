@@ -119,7 +119,7 @@ export default function SettingsSheet() {
       <View style={styles.about}>
         <SvgXml xml={lockup(c.text3)} width={56} height={28} />
         <Text style={[styles.version, { color: c.text2 }]}>
-          Version {Constants.expoConfig?.version ?? '0.1.0'} · alpha. Your notes sync across your devices.
+          Version {Constants.expoConfig?.version ?? '0.2.0'} · alpha. Your notes sync across your devices.
         </Text>
       </View>
     </ScrollView>
