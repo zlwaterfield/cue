@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { StyleSheet, TextInput, View, useWindowDimensions, type TextInputInstance } from 'react-native'
 import { GestureDetector, useCompetingGestures, usePanGesture, useTapGesture } from 'react-native-gesture-handler'
 import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated'
@@ -17,7 +17,7 @@ import { useItem } from './hooks'
 import { Marker } from './Marker'
 import { swipe, SWIPE_ACT, SWIPE_DELETE_FRACTION, type SwipeKind } from './Swipe'
 
-const LIFT_DELAY = 260
+const LIFT_DELAY = 340
 /** Where a line not in its day's layout waits, out of sight. */
 const HIDDEN = -10_000
 
@@ -113,6 +113,21 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
     [id]
   )
 
+  // iOS doesn't shrink a text view whose text is replaced with something shorter (Return
+  // in the middle of a paragraph, an edit from another device), and the row would keep
+  // the old height. Typing shrinks it fine. So when the text got shorter without typing,
+  // the input is remounted once it isn't being edited, and measures itself again.
+  const text = item?.text ?? ''
+  const typed = useRef(text)
+  const [generation, setGeneration] = useState(0)
+  useLayoutEffect(() => {
+    if (text.length >= typed.current.length) typed.current = text
+    else if (!focused) {
+      typed.current = text
+      setGeneration((g) => g + 1)
+    }
+  }, [text, focused])
+
   /* ------------------------------------------------------------ Position */
 
   // Each line keeps its own offsets and animates only when its own target changes, so a
@@ -193,9 +208,11 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
     onFinalize: liftEnd
   })
   // The line being edited lifts only by its marker: a long press on its text belongs to
-  // the caret and the loupe.
+  // the caret and the loupe. A finger already moving sideways is a swipe, however slowly
+  // it started.
   const bodyLift = usePanGesture({
     activateAfterLongPress: LIFT_DELAY,
+    failOffsetX: [-10, 10],
     enabled: !ghost && !focused,
     onActivate: liftStart,
     onUpdate: liftMove,
@@ -280,6 +297,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
     >
       <View style={[styles.line, { paddingLeft: metrics.gutter + depth * metrics.indent }]}>
         {flash ? <Glow at={flash} /> : null}
+        {/* The whole marker column takes the tap, the gutter to its left included. */}
         <GestureDetector gesture={markerGesture}>
           <View style={styles.markerHit} collapsable={false}>
             <Marker type={item?.type ?? 'text'} done={!!done} />
@@ -293,9 +311,13 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
               which it must be to take focus.) */}
           <View style={styles.body} collapsable={false} pointerEvents={focused ? 'auto' : 'box-only'}>
             <TextInput
+              key={generation}
               ref={setRef}
-              value={item?.text ?? ''}
-              onChangeText={(text) => editor.onChangeText(id, date, text)}
+              value={text}
+              onChangeText={(value) => {
+                typed.current = value
+                editor.onChangeText(id, date, value)
+              }}
               onSelectionChange={(e) => editor.onSelection(id, e.nativeEvent.selection)}
               onSubmitEditing={() => editor.onSubmit(id)}
               onKeyPress={(e) => {
@@ -360,7 +382,9 @@ const styles = StyleSheet.create({
     borderRadius: 8
   },
   markerHit: {
-    width: metrics.marker
+    width: metrics.gutter + metrics.marker,
+    marginLeft: -metrics.gutter,
+    paddingLeft: metrics.gutter
   },
   body: {
     flex: 1,

@@ -27,13 +27,13 @@ name: Touch
 - tapOn:
     id: tool-hide
 
-# Tap the bullet: it becomes a to-do. Tap the box: done.
+# Tap the bullet: it becomes a to-do. Tap the box, here in the margin beside it: done.
 - tapOn:
     point: "6%,36%"
 - assertVisible:
     id: "0/todo:Bravo"
 - tapOn:
-    point: "6%,36%"
+    point: "3%,36%"
 - assertVisible:
     id: "0/todo-done:Bravo"
 

@@ -1,5 +1,5 @@
 import { memo, useState, type ReactNode } from 'react'
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
+import { StyleSheet, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native'
 import Animated, { FadeIn, withSpring } from 'react-native-reanimated'
 import Svg, { Path } from 'react-native-svg'
 import type { ItemType } from '@shared/types'
@@ -21,26 +21,34 @@ const drawCheck = FadeIn.duration(160)
  * The hanging marker: a dot for bullets, a box for to-dos, nothing for text. Changing type
  * or checking a box gives a small, quick pop. At rest it's plain views, with nothing for
  * the animation system to track, so a day of many lines stays light.
+ *
+ * It sits on the centre of the first line's capitals at every text size. iOS puts a line's
+ * extra height above the glyphs, so that centre is the line's bottom less about 0.59 em.
  */
 export const Marker = memo(function Marker({ type, done }: { type: ItemType; done: boolean }) {
   const c = useColors()
+  const { fontScale } = useWindowDimensions()
   // Only changes pop; a day opening doesn't.
   const [shown, setShown] = useState({ type, done, changes: 0 })
   if (shown.type !== type || shown.done !== done) setShown({ type, done, changes: shown.changes + 1 })
 
+  const capCentre = metrics.rowPadding + metrics.lineHeight * fontScale - metrics.fontSize * fontScale * 0.593
+  const box = Math.min(24, Math.max(BOX, Math.round(BOX * fontScale)))
+
   return (
-    <View style={styles.marker} pointerEvents="none">
+    <View style={[styles.marker, { height: metrics.lineHeight * fontScale + 2 * metrics.rowPadding }]} pointerEvents="none">
       {type === 'bullet' ? (
-        <Glyph changes={shown.changes} style={[styles.dot, { backgroundColor: c.text2 }]} />
+        <Glyph changes={shown.changes} style={[styles.dot, { marginTop: capCentre - 3, backgroundColor: c.text2 }]} />
       ) : type === 'todo' ? (
         <Glyph
           changes={shown.changes}
           style={[
             styles.box,
+            { width: box, height: box, borderRadius: (box * 5.5) / BOX, marginTop: capCentre - box / 2 },
             done ? { backgroundColor: c.accent, borderColor: c.accent } : { borderColor: c.lineStrong }
           ]}
         >
-          {done && <Check color={c.onAccent} draw={shown.changes > 0} />}
+          {done && <Check color={c.onAccent} size={box - 2} draw={shown.changes > 0} />}
         </Glyph>
       ) : null}
     </View>
@@ -57,9 +65,9 @@ function Glyph({ changes, style, children }: { changes: number; style: StyleProp
   )
 }
 
-function Check({ color, draw }: { color: string; draw: boolean }) {
+function Check({ color, size, draw }: { color: string; size: number; draw: boolean }) {
   const svg = (
-    <Svg width={BOX - 2} height={BOX - 2} viewBox="0 0 16 16">
+    <Svg width={size} height={size} viewBox="0 0 16 16">
       <Path d="M4.2 8.4l2.4 2.4 5.2-5.6" fill="none" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   )
@@ -68,9 +76,7 @@ function Check({ color, draw }: { color: string; draw: boolean }) {
 
 const styles = StyleSheet.create({
   marker: {
-    width: metrics.marker,
-    height: metrics.lineHeight + 2 * metrics.rowPadding,
-    justifyContent: 'center'
+    width: metrics.marker
   },
   dot: {
     width: 6,
@@ -80,10 +86,7 @@ const styles = StyleSheet.create({
     opacity: 0.8
   },
   box: {
-    width: BOX,
-    height: BOX,
     marginLeft: 1,
-    borderRadius: 5.5,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center'
