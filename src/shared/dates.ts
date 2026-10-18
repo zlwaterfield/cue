@@ -154,6 +154,29 @@ export function longDate(date: ISODate): string {
   return `${WEEKDAYS[weekday(date)]}, ${MONTHS[month - 1]} ${day}, ${year}`
 }
 
+/**
+ * The line under a day's title (`relativeDayName`). Today, Tomorrow and Yesterday get
+ * their weekday and date: "Saturday, October 17". Other days are titled by weekday, so
+ * this is the date, plus how far away it is beyond a week: "October 30 · in 13 days".
+ * The year shows only when it isn't today's.
+ */
+export function daySubtitle(date: ISODate, today: ISODate): string {
+  const delta = diffDays(today, date)
+  if (Math.abs(delta) <= 1) return `${WEEKDAYS[weekday(date)]}, ${monthDay(date, today)}`
+  if (Math.abs(delta) < 7) return monthDay(date, today)
+  return `${monthDay(date, today)} · ${relativeLabel(date, today)}`
+}
+
+/** How far a date is from today: "today", "tomorrow", "in 3 days", "2 weeks ago", "in 4 months". */
+export function relativeLabel(date: ISODate, today: ISODate): string {
+  const d = diffDays(today, date)
+  if (d === 0) return 'today'
+  if (d === 1) return 'tomorrow'
+  if (d === -1) return 'yesterday'
+  if (d > 0) return d < 14 ? `in ${d} days` : d < 60 ? `in ${Math.round(d / 7)} weeks` : `in ${Math.round(d / 30)} months`
+  return -d < 14 ? `${-d} days ago` : -d < 60 ? `${Math.round(-d / 7)} weeks ago` : `${Math.round(-d / 30)} months ago`
+}
+
 /** Compact label for lists: "Today", "Tomorrow", "Yesterday", "Fri, Oct 23", "Mar 3, 2025". */
 export function friendlyDate(date: ISODate, today: ISODate): string {
   const delta = diffDays(today, date)
