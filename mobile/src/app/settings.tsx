@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import Constants from 'expo-constants'
 import { router } from 'expo-router'
 import { SvgXml } from 'react-native-svg'
+import { statusLine } from '@shared/sync/status'
 import type { Settings } from '@shared/types'
 import { sync, updateSettings } from '../core/app'
 import { useStore } from '../core/store'
@@ -11,16 +12,7 @@ import { lockup } from '../ui/lockup'
 import { SheetTitle } from '../ui/Sheet'
 import { metrics, useColors } from '../ui/theme'
 
-function syncedLabel(at: number | null, now: number): string {
-  if (!at) return 'Not synced yet'
-  const seconds = Math.round((now - at) / 1000)
-  if (seconds < 45) return 'Synced just now'
-  const minutes = Math.round(seconds / 60)
-  if (minutes < 60) return `Synced ${minutes} min ago`
-  return `Synced at ${new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
-}
-
-/** Account and sync, appearance, and the week. */
+/** Account and sync, appearance, and the week. The sync words are the Mac's (`shared/sync/status`). */
 export default function SettingsSheet() {
   const c = useColors()
   const state = useStore(sync.state, (s) => s)
@@ -33,16 +25,12 @@ export default function SettingsSheet() {
     return () => clearInterval(timer)
   }, [])
 
-  let status = syncedLabel(state.lastSyncedAt, now)
-  if (state.downloading) status = 'Getting your notes…'
-  else if (state.status === 'offline') status = state.pending ? `Offline · ${state.pending} ${state.pending === 1 ? 'change' : 'changes'} waiting` : 'Offline'
-  else if (state.status === 'error') status = state.message ?? 'Sync paused. It will retry shortly.'
-
   const syncNow = async (): Promise<void> => {
     setSyncing(true)
     const result = await sync.syncNow()
     setSyncing(false)
-    if (!result.ok) Alert.alert('Couldn’t sync', result.error)
+    // Offline needs no alert: the status line already says so.
+    if (!result.ok && sync.state.get().status !== 'offline') Alert.alert('Couldn’t sync', result.error)
   }
 
   const signOut = async (): Promise<void> => {
@@ -58,9 +46,10 @@ export default function SettingsSheet() {
       ])
       return
     }
+    const waiting = unsent === 1 ? '1 change on this iPhone hasn’t' : `${unsent} changes on this iPhone haven’t`
     Alert.alert(
       'Some changes haven’t synced',
-      `${unsent} ${unsent === 1 ? 'change' : 'changes'} on this iPhone haven’t reached your account yet. If you sign out now, they’ll be lost.`,
+      `${waiting} reached your account yet. If you sign out now, they’ll be lost.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Sign Out Anyway', style: 'destructive', onPress: () => void finish() }
@@ -91,9 +80,8 @@ export default function SettingsSheet() {
     <ScrollView contentContainerStyle={styles.sheet}>
       <SheetTitle title="Settings" />
 
-      <Section title="Account">
-        <Row label={state.email ?? ''} />
-        <Row label={status} muted action={syncing ? 'Syncing…' : 'Sync Now'} onPress={syncNow} />
+      <Section title="Account" footnote={statusLine(state, now)}>
+        <Row label={state.email ?? ''} action="Sync Now" onPress={syncNow} disabled={syncing || state.status === 'syncing'} />
       </Section>
 
       <Section title="Appearance">
@@ -155,20 +143,28 @@ function Section({ title, footnote, children }: { title?: string; footnote?: str
   )
 }
 
-function Row({ label, muted, action, onPress }: { label: string; muted?: boolean; action?: string; onPress?: () => void }) {
+/** A row is a button, or, with an `action` word, a label with that button at its end. */
+function Row({ label, action, onPress, disabled }: { label: string; action?: string; onPress?: () => void; disabled?: boolean }) {
   const c = useColors()
-  const content = (
-    <>
-      <Text style={[styles.rowLabel, { color: muted ? c.text2 : c.text }]} numberOfLines={2}>
-        {label}
-      </Text>
-      {action ? <Text style={[styles.rowAction, { color: c.text }]}>{action}</Text> : null}
-    </>
+  const text = (
+    <Text style={[styles.rowLabel, { color: c.text }]} numberOfLines={2}>
+      {label}
+    </Text>
   )
-  if (!onPress) return <View style={styles.row}>{content}</View>
+  if (action) {
+    return (
+      <View style={styles.row}>
+        {text}
+        <Pressable onPress={onPress} disabled={disabled} hitSlop={12} accessibilityRole="button" accessibilityState={{ disabled: !!disabled }}>
+          {({ pressed }) => <Text style={[styles.rowAction, { color: c.text }, (pressed || disabled) && styles.rowDimmed]}>{action}</Text>}
+        </Pressable>
+      </View>
+    )
+  }
+  if (!onPress) return <View style={styles.row}>{text}</View>
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && { backgroundColor: c.bgHover }]} accessibilityRole="button">
-      {content}
+      {text}
     </Pressable>
   )
 }
@@ -246,6 +242,9 @@ const styles = StyleSheet.create({
   rowAction: {
     fontSize: 16,
     fontWeight: '600'
+  },
+  rowDimmed: {
+    opacity: 0.45
   },
   segmented: {
     flexDirection: 'row',

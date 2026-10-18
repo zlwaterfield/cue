@@ -261,7 +261,7 @@ The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outb
   session ended. Sign in again to keep syncing." or "Your account was deleted on another
   device." The notes stay until someone signs in again, so unsent edits aren't lost.
   `MobileSync.unsentFromPreviousAccount()` counts the edits a different account would
-  remove.
+  remove, and sign-in says so before it sends a code ("Some changes haven’t synced").
 - **Faster pushes.** 450 ms after typing pauses (2 s at most), at once for any other edit,
   as soon as focus leaves a line, and when the app leaves the screen. That last push runs
   inside a short iOS background task (`modules/cue-native`), so it finishes before the app
@@ -275,6 +275,9 @@ The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outb
   shows. Today ± 7 days arrive first (`SyncStatus.recent`), then the rest. Five years of
   notes (36,994 items) took about 4 s against the local server in a development build. The
   header says "Getting your notes…" until it's done (`SyncStatus.downloading`).
+- **The same words.** The header and Settings use `indicator` and `statusLine`, so the phone
+  says what the Mac says, down to "Syncing…" fading in only after 1.2 s. The one deliberate
+  difference is **Sign Out** (the phone needs an account) where the Mac has **Turn Off Sync**.
 
 The end-to-end flows in `mobile/e2e` test sync against the local stack. One has another
 device sign in to the same account over HTTP and call `sync_push`, then checks that the

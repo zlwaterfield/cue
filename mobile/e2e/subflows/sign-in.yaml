@@ -7,7 +7,7 @@ appId: app.cue
 - tapOn:
     id: "email"
 - inputText: ${EMAIL}
-- tapOn: "Send code"
+- tapOn: "Send Code"
 - extendedWaitUntil:
     visible: "Enter the code we sent to"
     timeout: 15000

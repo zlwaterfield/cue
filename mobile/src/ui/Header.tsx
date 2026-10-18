@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler'
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
 import { router } from 'expo-router'
 import { SymbolView, type SFSymbol } from 'expo-symbols'
 import * as Haptics from 'expo-haptics'
 import { addDays, dateRange, longDate, MONTHS, parts, startOfWeek, weekday, WEEKDAYS } from '@shared/dates'
+import { indicator, INDICATOR_DELAY, INDICATOR_FADE } from '@shared/sync/status'
 import type { ISODate } from '@shared/types'
 import { itemStore, sync } from '../core/app'
 import { useStore } from '../core/store'
@@ -169,22 +170,47 @@ function WeekStrip({ date, today }: { date: ISODate; today: ISODate }) {
   )
 }
 
+/** True once `active` has held for `ms`; false again the moment it stops. */
+function useHeld(active: boolean, ms: number): boolean {
+  const [held, setHeld] = useState(false)
+  useEffect(() => {
+    if (!active) return
+    const timer = setTimeout(() => setHeld(true), ms)
+    return () => {
+      clearTimeout(timer)
+      setHeld(false)
+    }
+  }, [active, ms])
+  return active && held
+}
+
 /**
  * Sync shows only when it can't keep up: offline, paused, or the first download onto
- * this phone. A long sync fades in "Syncing…"; quick ones never show.
+ * this phone. A long sync fades in "Syncing…"; quick ones never take space. The words
+ * are the Mac title bar's (`shared/sync/status`).
  */
 function SyncIndicator() {
   const c = useColors()
   const state = useStore(sync.state, (s) => s)
-  let label: string | null = null
-  if (state.downloading) label = 'Getting your notes…'
-  else if (state.status === 'offline') label = 'Offline'
-  else if (state.status === 'error') label = 'Sync paused'
-  if (!label) return null
+  const shown = indicator(state)
+  const held = useHeld(!!shown?.delayed, INDICATOR_DELAY)
+  if (!shown || (shown.delayed && !held)) return null
   return (
-    <Pressable onPress={() => router.push('/settings')} hitSlop={6} accessibilityRole="button">
-      <Text style={[styles.sync, { color: c.text3 }]}>{label}</Text>
-    </Pressable>
+    <Animated.View entering={shown.delayed ? FadeIn.duration(INDICATOR_FADE) : undefined}>
+      <Pressable
+        onPress={() => router.push('/settings')}
+        hitSlop={{ top: 12, bottom: 12, left: 6, right: 6 }}
+        accessibilityRole="button"
+        accessibilityLabel={shown.label}
+        accessibilityHint="Opens Settings"
+        style={styles.sync}
+      >
+        {!shown.delayed && <View style={[styles.syncDot, { backgroundColor: c.text2 }]} />}
+        <Text style={[styles.syncText, { color: c.text2 }, !shown.delayed && styles.syncAttention]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+          {shown.label}
+        </Text>
+      </Pressable>
+    </Animated.View>
   )
 }
 
@@ -237,9 +263,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600'
   },
+  // As on the Mac: a dot and weight 500 when sync needs a word, plain for a long sync.
   sync: {
-    fontSize: 13,
-    marginRight: 6
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginRight: 2
+  },
+  syncDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3
+  },
+  syncText: {
+    fontSize: 13
+  },
+  syncAttention: {
+    fontWeight: '500'
   },
   strip: {
     flexDirection: 'row',

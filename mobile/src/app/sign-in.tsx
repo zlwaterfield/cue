@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, KeyboardAvoidingView, Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native'
+import { AccessibilityInfo, ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 import * as SplashScreen from 'expo-splash-screen'
 import { SvgXml } from 'react-native-svg'
+import { isEmailAddress, NOT_AN_EMAIL } from '@shared/text'
 import { sync } from '../core/app'
 import { useStore } from '../core/store'
 import { lockup } from '../ui/lockup'
@@ -12,11 +13,12 @@ import { metrics, useColors } from '../ui/theme'
 /**
  * Cue on iPhone needs an account: the phone holds a copy of the notes, and sync keeps it
  * the same as every other device. Sign-in is the Mac's: an email, then a six-digit code.
- * iOS offers the code from Mail or Messages above the keyboard.
+ * iOS offers the code from Mail or Messages above the keyboard. The words are the Mac's.
  */
 export default function SignIn() {
   const c = useColors()
   const insets = useSafeAreaInsets()
+  // Why this phone was signed out, if the server ended the session.
   const notice = useStore(sync.state, (s) => s.message)
   const [step, setStep] = useState<'email' | 'code'>('email')
   const [email, setEmail] = useState('')
@@ -29,11 +31,12 @@ export default function SignIn() {
     void SplashScreen.hideAsync()
   }, [])
 
+  useEffect(() => {
+    if (error) AccessibilityInfo.announceForAccessibility(error)
+  }, [error])
+
   const sendCode = async (): Promise<void> => {
-    if (busy || !/\S+@\S+\.\S+/.test(email.trim())) {
-      setError('Enter your email address.')
-      return
-    }
+    if (busy) return
     setBusy(true)
     setError(null)
     const result = await sync.sendCode(email)
@@ -46,6 +49,32 @@ export default function SignIn() {
     setStep('code')
     setCode('')
     requestAnimationFrame(() => codeInput.current?.focus())
+  }
+
+  /** Before a code goes out, say so if signing in could remove changes the last account never got. */
+  const submitEmail = (): void => {
+    if (busy || !email.trim()) return
+    if (!isEmailAddress(email)) {
+      setError(NOT_AN_EMAIL)
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+      return
+    }
+    const unsent = sync.unsentFromPreviousAccount()
+    if (!unsent) {
+      void sendCode()
+      return
+    }
+    const waiting = unsent === 1 ? '1 change on this iPhone hasn’t' : `${unsent} changes on this iPhone haven’t`
+    // With the keyboard up after a server sign-out, iOS can present the alert out of sight.
+    Keyboard.dismiss()
+    Alert.alert(
+      'Some changes haven’t synced',
+      `${waiting} reached your account. Signing in to a different account, or to one that was deleted, removes ${unsent === 1 ? 'it' : 'them'}.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Continue', onPress: () => void sendCode() }
+      ]
+    )
   }
 
   const verify = async (value: string): Promise<void> => {
@@ -79,11 +108,15 @@ export default function SignIn() {
       <View style={styles.form}>
         {step === 'email' ? (
           <>
-            <Text style={[styles.label, { color: c.text }]}>Sign in to sync your notes</Text>
+            {notice && <Text style={[styles.notice, { color: c.text }]}>{notice}</Text>}
+            <View>
+              <Text style={[styles.label, { color: c.text }]}>Sign in to sync your notes</Text>
+              <Text style={[styles.help, { color: c.text2 }]}>Enter your email and we’ll send a six-digit code.</Text>
+            </View>
             <TextInput
               value={email}
               onChangeText={setEmail}
-              onSubmitEditing={sendCode}
+              onSubmitEditing={submitEmail}
               placeholder="you@example.com"
               placeholderTextColor={c.text3}
               autoFocus
@@ -98,7 +131,7 @@ export default function SignIn() {
               accessibilityLabel="Email"
               testID="email"
             />
-            <Button label="Send code" busy={busy} onPress={sendCode} />
+            <Button label="Send Code" busy={busy} disabled={!email.trim()} onPress={submitEmail} />
           </>
         ) : (
           <>
@@ -121,8 +154,8 @@ export default function SignIn() {
             />
             {busy && <ActivityIndicator color={c.text2} style={styles.spinner} />}
             <View style={styles.links}>
-              <Pressable onPress={sendCode} hitSlop={8} disabled={busy}>
-                <Text style={[styles.link, { color: c.text2 }]}>Send a new code</Text>
+              <Pressable onPress={sendCode} hitSlop={8} disabled={busy} accessibilityRole="button">
+                <Text style={[styles.link, { color: c.text2 }]}>Send a New Code</Text>
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -130,13 +163,18 @@ export default function SignIn() {
                   setError(null)
                 }}
                 hitSlop={8}
+                accessibilityRole="button"
               >
-                <Text style={[styles.link, { color: c.text2 }]}>Use a different email</Text>
+                <Text style={[styles.link, { color: c.text2 }]}>Use a Different Email</Text>
               </Pressable>
             </View>
           </>
         )}
-        {(error ?? notice) && <Text style={[styles.error, { color: c.text }]}>{error ?? notice}</Text>}
+        {error && (
+          <Text style={[styles.error, { color: c.text }]} accessibilityRole="alert" accessibilityLiveRegion="polite">
+            {error}
+          </Text>
+        )}
       </View>
 
       <Text style={[styles.footnote, { color: c.text3 }]}>
@@ -146,14 +184,15 @@ export default function SignIn() {
   )
 }
 
-function Button({ label, busy, onPress }: { label: string; busy: boolean; onPress: () => void }) {
+function Button({ label, busy, disabled, onPress }: { label: string; busy: boolean; disabled?: boolean; onPress: () => void }) {
   const c = useColors()
   return (
     <Pressable
       onPress={onPress}
-      disabled={busy}
+      disabled={busy || disabled}
       accessibilityRole="button"
-      style={({ pressed }) => [styles.button, { backgroundColor: c.accent, opacity: pressed || busy ? 0.75 : 1 }]}
+      accessibilityState={{ disabled: busy || !!disabled }}
+      style={({ pressed }) => [styles.button, { backgroundColor: c.accent, opacity: disabled ? 0.45 : pressed || busy ? 0.75 : 1 }]}
     >
       {busy ? <ActivityIndicator color={c.onAccent} /> : <Text style={[styles.buttonText, { color: c.onAccent }]}>{label}</Text>}
     </Pressable>
@@ -176,9 +215,20 @@ const styles = StyleSheet.create({
     marginTop: 48,
     gap: 12
   },
+  notice: {
+    fontSize: 15,
+    fontWeight: '500',
+    lineHeight: 20,
+    marginBottom: 8
+  },
   label: {
     fontSize: 17,
     fontWeight: '600'
+  },
+  help: {
+    fontSize: 15,
+    lineHeight: 20,
+    marginTop: 4
   },
   email: {
     fontSize: 15,
@@ -218,6 +268,7 @@ const styles = StyleSheet.create({
   },
   error: {
     fontSize: 15,
+    fontWeight: '500',
     marginTop: 4
   },
   footnote: {
