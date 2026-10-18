@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { router } from 'expo-router'
 import { SymbolView } from 'expo-symbols'
 import { friendlyDate } from '@shared/dates'
 import { matchRanges, searchTerms } from '@shared/text'
-import type { SearchResult } from '@shared/types'
+import type { ISODate, SearchResult } from '@shared/types'
 import { itemStore, repo } from '../core/app'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
@@ -12,38 +12,66 @@ import { editor } from '../editor/controller'
 import { Marker } from '../editor/Marker'
 import { metrics, useColors } from '../ui/theme'
 
+/** After the first character, search again once typing pauses this long. */
+const SETTLE = 100
+
+const open = (result: SearchResult): void => {
+  router.back()
+  void editor.show(result.id, result.date)
+}
+
 /** Search every day, newest first; case and accents don't matter. The Mac's search, same index. */
 export default function Search() {
   const c = useColors()
   const today = useStore(ui, (s) => s.today)
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<SearchResult[]>([])
+  // Results stay with the query that found them: while a newer one is on its way the last
+  // results stay up, and "No matches" is never said about a query that might match.
+  const [found, setFound] = useState<{ query: string; results: SearchResult[] }>({ query: '', results: [] })
+  const previous = useRef('')
 
   useEffect(() => {
+    const q = query.trim()
+    const first = !previous.current
+    previous.current = q
+    if (!q) {
+      setFound({ query: '', results: [] })
+      return
+    }
     let live = true
-    // Anything just typed is saved first, so it can be found.
-    void itemStore.persistence.settle().then(() => {
-      if (live) setResults(query.trim() ? repo.search(query, 100) : [])
-    })
+    const run = (): void =>
+      // Anything just typed is saved first, so it can be found.
+      void itemStore.persistence.settle().then(() => {
+        if (live) setFound({ query: q, results: repo.search(q, 100) })
+      })
+    const timer = setTimeout(run, first ? 0 : SETTLE)
     return () => {
       live = false
+      clearTimeout(timer)
     }
   }, [query])
 
-  const terms = searchTerms(query)
+  const terms = searchTerms(found.query).join(' ')
+  const renderItem = useCallback(
+    ({ item }: { item: SearchResult }) => <ResultRow result={item} terms={terms} today={today} onOpen={open} />,
+    [terms, today]
+  )
 
   return (
     <View style={styles.screen}>
       <View style={styles.bar}>
         <View style={[styles.field, { backgroundColor: c.bgSubtle }]}>
-          <SymbolView name="magnifyingglass" size={16} tintColor={c.text3} />
+          <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <SymbolView name="magnifyingglass" size={16} tintColor={c.text3} />
+          </View>
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search every day"
+            placeholder="Search all notes"
             placeholderTextColor={c.text3}
             autoFocus
             autoCorrect={false}
+            autoCapitalize="none"
             returnKeyType="search"
             clearButtonMode="while-editing"
             selectionColor={c.accent}
@@ -55,37 +83,49 @@ export default function Search() {
         </Pressable>
       </View>
       <FlatList
-        data={results}
+        data={found.results}
         keyExtractor={(r) => r.id}
+        renderItem={renderItem}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={5}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        // Typing on from a query with no matches can't find any either.
         ListEmptyComponent={
-          query.trim() ? <Text style={[styles.empty, { color: c.text3 }]}>Nothing found</Text> : undefined
+          found.query && query.trim().startsWith(found.query) ? <Text style={[styles.empty, { color: c.text2 }]}>No matches</Text> : undefined
         }
-        renderItem={({ item: result }) => (
-          <Pressable
-            onPress={() => {
-              router.back()
-              void editor.show(result.id, result.date)
-            }}
-            style={({ pressed }) => [styles.result, pressed && { backgroundColor: c.bgHover }]}
-          >
-            <Text style={[styles.date, { color: c.text3 }]}>{friendlyDate(result.date, today)}</Text>
-            <View style={styles.line}>
-              <Marker type={result.type} done={result.done} />
-              <Text
-                style={[styles.text, { color: result.type === 'todo' && result.done ? c.text3 : c.text }, result.type === 'todo' && result.done && styles.done]}
-                numberOfLines={3}
-              >
-                <Highlighted text={result.text} terms={terms} mark={c.accentSoft} />
-              </Text>
-            </View>
-          </Pressable>
-        )}
       />
     </View>
   )
 }
+
+const ResultRow = memo(function ResultRow({
+  result,
+  terms,
+  today,
+  onOpen
+}: {
+  result: SearchResult
+  /** The query's terms joined by spaces, so rows stay equal while the terms do. */
+  terms: string
+  today: ISODate
+  onOpen: (result: SearchResult) => void
+}) {
+  const c = useColors()
+  const done = result.type === 'todo' && result.done
+  return (
+    <Pressable onPress={() => onOpen(result)} style={({ pressed }) => [styles.result, pressed && { backgroundColor: c.bgHover }]} testID="search-result">
+      <Text style={[styles.date, { color: c.text2 }]}>{friendlyDate(result.date, today)}</Text>
+      <View style={styles.line}>
+        <Marker type={result.type} done={result.done} />
+        <Text style={[styles.text, { color: done ? c.text3 : c.text }, done && styles.done]} numberOfLines={3}>
+          <Highlighted text={result.text} terms={terms ? terms.split(' ') : []} mark={c.accentSoft} />
+        </Text>
+      </View>
+    </Pressable>
+  )
+})
 
 function Highlighted({ text, terms, mark }: { text: string; terms: string[]; mark: string }) {
   const ranges = matchRanges(text, terms)
