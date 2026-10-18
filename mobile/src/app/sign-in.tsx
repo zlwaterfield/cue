@@ -124,9 +124,9 @@ export default function SignIn() {
                 autoFocus
                 autoCapitalize="none"
                 autoCorrect={false}
-                autoComplete="email"
+                autoComplete="username"
                 keyboardType="email-address"
-                textContentType="emailAddress"
+                textContentType="username"
                 returnKeyType="send"
                 selectionColor={c.accent}
                 style={[styles.field, { color: c.text, backgroundColor: c.bgSubtle }]}
