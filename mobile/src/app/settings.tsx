@@ -1,8 +1,9 @@
 import { Children, useEffect, useState } from 'react'
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import Constants from 'expo-constants'
 import { router } from 'expo-router'
 import { SvgXml } from 'react-native-svg'
+import { reportIssueUrl } from '@shared/feedback'
 import { statusLine } from '@shared/sync/status'
 import type { Settings } from '@shared/types'
 import { sync, updateSettings } from '../core/app'
@@ -77,6 +78,13 @@ export default function SettingsSheet() {
     )
   }
 
+  const version = Constants.expoConfig?.version ?? '0.2.0'
+  const reportIssue = (): void => {
+    void Linking.openURL(reportIssueUrl(`iPhone, version ${version} (iOS ${Platform.Version})`)).catch(() => {
+      Alert.alert('Couldn’t open GitHub', 'Please try again.')
+    })
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.sheet}>
       <SheetTitle title="Settings" />
@@ -108,6 +116,10 @@ export default function SettingsSheet() {
         />
       </Section>
 
+      <Section footnote="Opens a new issue on GitHub with your version filled in.">
+        <Row label="Report an Issue…" action="" onPress={reportIssue} />
+      </Section>
+
       <Section>
         <Row label="Sign Out" action="" onPress={signOut} />
       </Section>
@@ -119,7 +131,7 @@ export default function SettingsSheet() {
       <View style={styles.about}>
         <SvgXml xml={lockup(c.text3)} width={56} height={28} />
         <Text style={[styles.version, { color: c.text2 }]}>
-          Version {Constants.expoConfig?.version ?? '0.2.0'} · alpha. Your notes sync across your devices.
+          Version {version} · alpha. Your notes sync across your devices.
         </Text>
       </View>
     </ScrollView>

@@ -139,6 +139,11 @@ working on Cue can't touch your notes.
 For the iPhone app, see [mobile/README.md](mobile/README.md). It needs Xcode 26 and a sync
 server.
 
+**Rather not build it yourself?** I'm open to a hosted version with sync run for you, free or
+very cheap, if there's enough interest. If you'd use it, add a 👍 to the
+[waitlist issue](https://github.com/zlwaterfield/cue/issues/13) and subscribe to hear if it
+happens.
+
 ## Your data
 
 - On the Mac, everything lives in one SQLite file at
@@ -172,6 +177,7 @@ automatic updates, and TestFlight builds for iPhone.
 **Exploring:**
 - **An MCP server**, so an assistant you already use can read your days and add to them.
 - **A hosted version**, so anyone can sign in and sync without running their own Supabase.
+  Join the [waitlist](https://github.com/zlwaterfield/cue/issues/13) if you'd use it.
 
 **Not planned:** projects, tags, priorities, reminders, recurring tasks, attachments,
 collaboration, AI built into the app and dashboards.
