@@ -138,6 +138,11 @@ working on Cue can't touch your notes.
 For the iPhone app, see [mobile/README.md](mobile/README.md). It needs Xcode 26 and a sync
 server.
 
+**Rather not build it yourself?** I'm open to a hosted version with sync run for you, free or
+very cheap, if there's enough interest. If you'd use it, add a 👍 to the
+[waitlist issue](https://github.com/zlwaterfield/cue/issues/13) and subscribe to hear if it
+happens.
+
 ## Your data
 
 - On the Mac, everything lives in one SQLite file at
@@ -174,7 +179,9 @@ same core.
 - Performance budgets in CI, and measured on real iPhones.
 - Polish: collapsing nested items, and Intel and universal Mac builds.
 
-**Exploring:** end-to-end encryption, customizable shortcuts, Windows and Linux.
+**Exploring:** a hosted version, so you don't need your own server (gauging interest in the
+[waitlist issue](https://github.com/zlwaterfield/cue/issues/13)), end-to-end encryption,
+customizable shortcuts, Windows and Linux.
 
 **Not planned:** projects, tags, priorities, reminders, recurring tasks, attachments,
 collaboration, AI features and dashboards. Cue stays small on purpose.
