@@ -1,15 +1,23 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Keyboard, Pressable, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type ViewInstance } from 'react-native'
-import { ScrollView as GestureScrollView } from 'react-native-gesture-handler'
+import { GestureDetector, ScrollView as GestureScrollView, usePanGesture } from 'react-native-gesture-handler'
 import Animated, {
+  Easing,
+  interpolate,
   scrollTo,
   useAnimatedKeyboard,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
-  useFrameCallback
+  useFrameCallback,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  type SharedValue
 } from 'react-native-reanimated'
-import { daySubtitle, relativeDayName } from '@shared/dates'
+import { scheduleOnRN } from 'react-native-worklets'
+import * as Haptics from 'expo-haptics'
+import { addDays, daySubtitle, relativeDayName } from '@shared/dates'
 import type { ISODate } from '@shared/types'
 import { itemStore } from '../core/app'
 import { useStore } from '../core/store'
@@ -20,13 +28,55 @@ import { drag, scrollState, updateDrag } from './drag'
 import { TOOLBAR_SPACE } from './Toolbar'
 import { useArriving, useOutline } from './hooks'
 import { Row } from './Row'
-import { SwipeUnderlay } from './Swipe'
+import { SWIPE_HOME, SwipeUnderlay } from './Swipe'
 
 const AnimatedScrollView = Animated.createAnimatedComponent(GestureScrollView)
 
 /** Scroll while a dragged line is held this close to the top or bottom edge. */
 const EDGE = 80
 const MAX_SPEED = 16
+
+/**
+ * Swiping the page itself, anywhere but on a line, turns to the next or previous day:
+ * left for the next, as a line swiped left goes to tomorrow. The page follows the finger
+ * at half speed, carries on out, and the new day comes in from the side it was pulled from.
+ */
+const TURN_AT = 60
+const TURN_OUT = 72
+const TURN_IN = 40
+/** Which side the next page to open comes in from: 1 the right (a later day), -1 the left. */
+let turning = 0
+
+const turnPage = (date: ISODate, days: number): void => {
+  void Haptics.selectionAsync()
+  turning = days
+  void editor.goTo(addDays(date, days))
+}
+
+/** The open parts of a page (its title and the space under the last line) turn it. */
+function Turn({ date, shift, children }: { date: ISODate; shift: SharedValue<number>; children: React.ReactElement }) {
+  const pan = usePanGesture({
+    activeOffsetX: [-12, 12],
+    failOffsetY: [-10, 10],
+    onUpdate: (e) => {
+      'worklet'
+      shift.value = e.translationX * 0.5
+    },
+    onDeactivate: (e) => {
+      'worklet'
+      const days = e.translationX < 0 ? 1 : -1
+      // Far enough, or flicked the way it was going.
+      const turn = Math.abs(e.translationX) > TURN_AT || e.velocityX * -days > 500
+      if (turn) {
+        shift.value = withTiming(-days * TURN_OUT, { duration: 140 })
+        scheduleOnRN(turnPage, date, days)
+      } else {
+        shift.value = withSpring(0, SWIPE_HOME)
+      }
+    }
+  })
+  return <GestureDetector gesture={pan}>{children}</GestureDetector>
+}
 
 /**
  * Views stay in the order they were first rendered; the layout places them. New lines go
@@ -57,6 +107,17 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
   const contentTop = useRef(0)
   const [loaded, setLoaded] = useState(() => itemStore.isLoaded(date))
   const arriving = useArriving(date)
+
+  // A page opened by a swipe slides in; any other way, it's simply there.
+  const shift = useSharedValue(turning * TURN_IN)
+  useEffect(() => {
+    turning = 0
+    if (shift.value) shift.value = withTiming(0, { duration: 220, easing: Easing.out(Easing.cubic) })
+  }, [shift])
+  const slide = useAnimatedStyle(() => ({
+    transform: [{ translateX: shift.value }],
+    opacity: interpolate(Math.abs(shift.value), [0, TURN_OUT], [1, 0.35], 'clamp')
+  }))
 
   useEffect(() => {
     if (loaded) return
@@ -160,7 +221,9 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
     <View ref={frame} style={styles.frame} onLayout={onViewport}>
     <AnimatedScrollView
       ref={scrollRef}
-      style={{ backgroundColor: c.bg }}
+      style={[{ backgroundColor: c.bg }, slide]}
+      // The space under the last line reaches the bottom of the screen, however short the day.
+      contentContainerStyle={styles.content}
       onScroll={onScroll}
       scrollEventThrottle={16}
       automaticallyAdjustKeyboardInsets
@@ -168,14 +231,16 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
       keyboardShouldPersistTaps="handled"
       contentInsetAdjustmentBehavior="never"
     >
-      <View style={styles.head}>
-        <Text style={[styles.title, { color: c.text }]} accessibilityRole="header" testID="day-title" maxFontSizeMultiplier={1.4}>
-          {title}
-        </Text>
-        <Text style={[styles.subtitle, { color: c.text2 }]} maxFontSizeMultiplier={2}>
-          {subtitle}
-        </Text>
-      </View>
+      <Turn date={date} shift={shift}>
+        <View style={styles.head}>
+          <Text style={[styles.title, { color: c.text }]} accessibilityRole="header" testID="day-title" maxFontSizeMultiplier={1.4}>
+            {title}
+          </Text>
+          <Text style={[styles.subtitle, { color: c.text2 }]} maxFontSizeMultiplier={2}>
+            {subtitle}
+          </Text>
+        </View>
+      </Turn>
       <Animated.View
         style={[styles.rows, container]}
         onLayout={(e) => (contentTop.current = e.nativeEvent.layout.y)}
@@ -190,12 +255,14 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
         )}
       </Animated.View>
       {/* Tapping the open space below the last line starts a new one. */}
-      <Pressable
-        style={{ minHeight: screenHeight * 0.45 }}
-        onPress={() => editor.focus(editor.ghostId(date), 0)}
-        disabled={waiting}
-        accessibilityLabel="New line"
-      />
+      <Turn date={date} shift={shift}>
+        <Pressable
+          style={[styles.below, { minHeight: screenHeight * 0.45 }]}
+          onPress={() => editor.focus(editor.ghostId(date), 0)}
+          disabled={waiting}
+          accessibilityLabel="New line"
+        />
+      </Turn>
     </AnimatedScrollView>
     </View>
   )
@@ -204,6 +271,12 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
 const styles = StyleSheet.create({
   frame: {
     flex: 1
+  },
+  content: {
+    flexGrow: 1
+  },
+  below: {
+    flexGrow: 1
   },
   head: {
     // Aligned with the text of the lines; markers hang in the margin to its left.

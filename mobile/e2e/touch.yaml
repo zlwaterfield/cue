@@ -1,6 +1,7 @@
 # Touch: tap a bullet to make it a to-do and a box to check it, swipe right to advance a
 # line (to-do, then done), swipe left to send it to tomorrow (with Undo), and long-press
-# to drag: up and down to reorder, sideways to nest.
+# to drag: up and down to reorder, sideways to nest. Swiping the page off the lines turns
+# to the next or previous day.
 #
 # The drag steps use screen positions measured on an iPhone 17 Pro.
 appId: app.cue
@@ -79,5 +80,23 @@ name: Touch
     start: "50%,40%"
     end: "60%,40%"
     duration: 3000
+- assertVisible:
+    id: "1/todo-done:Bravo"
+
+# Swipe the open page below the lines: left is tomorrow, right is back to today.
+- swipe:
+    start: "80%,75%"
+    end: "20%,75%"
+    duration: 300
+- assertVisible:
+    id: day-title
+    text: "Tomorrow"
+- swipe:
+    start: "20%,75%"
+    end: "80%,75%"
+    duration: 300
+- assertVisible:
+    id: day-title
+    text: "Today"
 - assertVisible:
     id: "1/todo-done:Bravo"

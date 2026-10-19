@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler'
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
@@ -15,9 +15,20 @@ import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
 import { metrics, useColors } from './theme'
 
+/**
+ * Another week opens on its first day, as a calendar's week does, or on today when it's
+ * this week, so swiping back from another week always comes home.
+ */
+/** The week strip's side margins; its seven days share the rest equally. */
+const STRIP_INSET = metrics.gutter - 8
+/** Half a two-digit day number in the strip ("12"), which sits centered in its column. */
+const HALF_DAY_NUMBER = 9
+
 const shiftWeek = (weeks: number): void => {
+  const { date, today, settings } = ui.get()
+  const start = addDays(startOfWeek(date, settings.weekStartsOn), 7 * weeks)
   void Haptics.selectionAsync()
-  void editor.goTo(addDays(ui.get().date, 7 * weeks))
+  void editor.goTo(startOfWeek(today, settings.weekStartsOn) === start ? today : start)
 }
 
 /**
@@ -31,10 +42,13 @@ export function Header() {
   const today = useStore(ui, (s) => s.today)
   const { year, month } = parts(date)
   const isToday = date === today
+  // The month starts where the week's first day number does.
+  const { width } = useWindowDimensions()
+  const inset = STRIP_INSET + (width - 2 * STRIP_INSET) / 14 - HALF_DAY_NUMBER
 
   return (
     <View style={[styles.header, { backgroundColor: c.bg }]}>
-      <View style={styles.bar}>
+      <View style={[styles.bar, { paddingLeft: inset }]}>
         <Pressable
           onPress={() => router.push('/calendar')}
           accessibilityRole="button"
@@ -229,8 +243,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
-    // The month lines up with the day's title and text.
-    paddingLeft: metrics.gutter + metrics.marker,
     paddingRight: metrics.gutter - 6
   },
   month: {
@@ -295,7 +307,7 @@ const styles = StyleSheet.create({
   },
   strip: {
     flexDirection: 'row',
-    paddingHorizontal: metrics.gutter - 8,
+    paddingHorizontal: STRIP_INSET,
     paddingBottom: 6
   },
   day: {

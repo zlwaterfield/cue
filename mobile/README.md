@@ -28,9 +28,10 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
   (holding a short background task until the upload finishes). It pulls the moment it
   comes back. A change from another device arrives as a realtime hint and is applied about
   15 ms after the other device's push lands (measured against the local server).
-- **One day at a time**, with a week strip above it. Tap a day to open it, swipe the strip
-  for other weeks, or tap the month for a calendar that also understands "fri", "oct 31",
-  "in 3 days".
+- **One day at a time**, with a week strip above it. Swipe the page (anywhere but on a
+  line) for the next or previous day, tap a day to open it, swipe the strip for other weeks
+  (opening on their first day, or on today in this week), or tap the month for a calendar
+  that also understands "fri", "oct 31", "in 3 days".
 
 ## Touch
 
@@ -42,6 +43,7 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 | Tap a box | Complete or reopen (the whole marker column takes the tap, the margin beside it too) |
 | Swipe right | Text or bullet → to-do → done (and back) |
 | Swipe left | Move to tomorrow (Undo in the toast); keep going to delete |
+| Swipe the page, off the lines | Left for the next day, right for the previous one |
 | Long-press, then drag | Reorder, taking children along. Drag sideways to nest or un-nest, one level at a time, within what the outline allows. A finger already moving sideways is a swipe, not a lift |
 | Toolbar floating above the keyboard | ☐ to-do and • bullet (tap the lit one for plain text), outdent, indent, undo, move to another day, hide the keyboard |
 | Type `- ` / `[] ` / `[x] ` | Bullet, to-do, done to-do, as on the Mac |
@@ -161,7 +163,8 @@ simulator, against the local sync server:
 
 - **writing**: the caret waiting in a new account's empty today, Return, Markdown
   shortcuts, toolbar types and indent, Backspace, undo
-- **touch**: marker taps, swipes, the undo toast, and drag to reorder and to nest
+- **touch**: marker taps, swipes, the undo toast, drag to reorder and to nest, and
+  swiping the page to the next and previous day
 - **search**: the prompt before typing, results as you type, "No matches", and opening a
   result
 - **sync**: a line from the phone reaches the account, and a line pushed by another device
