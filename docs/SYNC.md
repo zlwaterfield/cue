@@ -2,8 +2,8 @@
 
 Cue is local-first. Sync is **off by default**, and Cue on one Mac works exactly the same
 with it off: no account, no network, and the sync code isn't even loaded. Turning it on in
-Settings (email plus a six-digit code) keeps your notes on every device signed in to the same
-account. Sync works entirely in the background and never makes typing wait.
+Settings (Sign in with Apple, or your email plus a six-digit code) keeps your notes on every
+device signed in to the same account. Sync works entirely in the background and never makes typing wait.
 
 ## Decision
 
@@ -108,9 +108,20 @@ the same path an import uses, with one rule: **an edit in progress always wins.*
 - **Off by default.** Until someone signs in, it does nothing. `@supabase/supabase-js` is
   a separate chunk loaded only on sign-in, or at launch if this Mac was signed in. Startup is
   unaffected: sync starts after the first screen is ready.
-- **Sign-in** is an emailed six-digit code typed into Settings (no browser redirect). The
+- **Sign-in** is an emailed six-digit code typed into Settings, or Sign in with Apple. The
   session is kept in SQLite, encrypted with the macOS Keychain (`safeStorage`), and
   refreshed automatically.
+- **Sign in with Apple** opens Apple's page in the browser. Apple returns to the sync
+  server, which sends the browser on to a one-shot server on a loopback port
+  (`src/main/sync/browserReturn.ts`) with a one-time code. The code is exchanged with a
+  PKCE verifier that never leaves the Mac, so another app that sees it can't use it. The
+  server answers one path, once, and closes when the code arrives, on Cancel, or after 10
+  minutes. The browser tab then says to go back to Cue, and Cue comes to the front. A
+  loopback address works in development and needs nothing registered with macOS, unlike
+  a `cue://` link, which a development build and an installed Cue would both claim.
+- **One account, either way.** An Apple ID that shares its verified email with an
+  account made from emailed codes signs in to that account. "Hide My Email" makes a new
+  account with a private relay address.
 - **Turning sync on** for the first time uploads everything already on the Mac. Turning it off
   keeps every note locally. Turning it back on with the same account sends only what changed
   meanwhile. Switching to a different account uploads everything to it.
@@ -140,13 +151,17 @@ the same path an import uses, with one rule: **an edit in progress always wins.*
 The words are shared by the Mac and iPhone (`src/shared/sync/status.ts`): `indicator` for the
 title bar or header, `statusLine` for Settings, `syncedAgo` for the time.
 
-- **Settings → Sync**: off, then your email, then the code, then on. The email step checks
-  the address before asking for a code (`isEmailAddress`, the iPhone's check and words) and
-  has **Cancel**; the code step has **Send a New Code** and **Use a Different Email**. When on,
+- **Settings → Sync**: off, then **Continue with Apple** or your email, then (for email) the
+  code, then on. The email step checks the address before asking for a code
+  (`isEmailAddress`, the iPhone's check and words) and has **Cancel**; the code step has
+  **Send a New Code** and **Use a Different Email**. While Apple's page is open, it says
+  "Finish signing in with Apple in your browser." with **Cancel**; cancelling there or on
+  Apple's page goes back without an error. When on,
   it shows the account and the status line ("Synced just now", refreshed every 15 s; a
   pending-change count while offline or paused), **Sync Now**, **Turn Off Sync** and
   **Delete Account…**. If the server ended the session, it says why and offers **Sign In
-  Again…**, which goes straight to the code for the same account, or **Not Now**, which
+  Again…**, which goes straight to the code for the same account (or to Apple's page, if
+  it signed in with Apple), or **Not Now**, which
   dismisses it. A deleted account offers **Turn On Sync…** with any email instead. Builds
   without a sync server don't show it.
 - **Title bar**: nothing while sync is healthy, or for anyone who never turned it on. A quiet
@@ -211,7 +226,27 @@ functions are in [`supabase/migrations`](../supabase/migrations).
    Link" and "Confirm signup", with the subject "Your Cue sign-in code". `supabase/config.toml`
    sets them only for the local stack, and `db push` doesn't send them, so paste the file
    again whenever it changes. Set up custom SMTP so the emails come from your domain.
-4. Build Cue with the project URL and publishable (or anon) key. Put them in
+4. **Sign in with Apple** (optional). In the Apple Developer portal:
+   - The app's identifier (`app.cue`, or your `CUE_IOS_BUNDLE_ID`) needs the Sign in with
+     Apple capability. That's all the iPhone needs: it signs in natively and the server
+     checks Apple's identity token against the bundle ID.
+   - For the Mac, create a **Services ID** (for example `app.cue.signin`), turn on Sign in
+     with Apple for it with `app.cue` as the primary App ID, and add the domain
+     `<project>.supabase.co` and the return URL `https://<project>.supabase.co/auth/v1/callback`.
+   - Create a **Sign in with Apple key** and download its `.p8`. Turn it into a client
+     secret with Supabase's generator (in the Apple provider docs). Apple caps the secret
+     at six months, so set a reminder to make a new one; when it lapses, only the Mac's
+     Apple sign-in stops working.
+
+   Then in Supabase, **Auth → Providers → Apple**: enable it, set **Client IDs** to the
+   Services ID first, then the bundle ID (`app.cue.signin,app.cue`), and paste the secret.
+   Under **Auth → URL Configuration → Redirect URLs**, add
+   `http://127.0.0.1:*/auth/callback`, where the Mac's browser comes back. If people may
+   choose "Hide My Email", register your SMTP sending address under Sign in with Apple for
+   Email Communication, or emailed codes to a relay address never arrive. Without the
+   Apple provider, the iPhone and Mac say "This sync server doesn’t offer Sign in with
+   Apple. Use your email instead."
+5. Build Cue with the project URL and publishable (or anon) key. Put them in
    `.env.production.local`, at the repo root for the Mac and in `mobile/` for the iPhone:
 
    ```sh
@@ -251,7 +286,8 @@ npx supabase stop
   That test replays 400 random offline edits, moves, deletes and reconnects, then checks that
   every replica ends with exactly the newest write of every item.
 - **`tests/integration`** runs the real protocol against Supabase. It covers sign-in by
-  emailed code, realtime delivery (about 30 ms after the typing pause, locally), no echo
+  emailed code, starting Sign in with Apple with a PKCE challenge, refusing an Apple token
+  it can't verify, realtime delivery (about 30 ms after the typing pause, locally), no echo
   downloads, account isolation under RLS, LWW and skipping malformed records, reading a
   range of days, a gap-free feed under concurrent pushes, 5,000 items (up ~0.2 s, down
   ~0.1 s locally), session restore, account deletion, and a device noticing its account was
@@ -259,8 +295,10 @@ npx supabase stop
 - **`tests/e2e/sync.spec.ts`** drives two real Cue apps. It checks that sync is off by
   default, that typing is undisturbed while the other Mac edits the same day, turning sync
   off, a quick quit still uploading, catching up on launch, that a network resetting
-  every connection leaves Cue responsive and Offline, the email check, and signing in again
-  (or not) after the server ends the session.
+  every connection leaves Cue responsive and Offline, the email check, Sign in with Apple
+  waiting for the browser and cancelling there or in Cue, and signing in again (or not)
+  after the server ends the session. The local stack can't finish a Mac Apple sign-in
+  (Apple only returns to HTTPS), so a full one needs a hosted project.
 
 ## Mobile
 
@@ -270,7 +308,12 @@ The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outb
 (`src/shared/sqlite.ts`). Only the lifecycle differs:
 
 - **Sync is required.** There's no local-only mode. The phone signs in before showing
-  anything, and its database is a local copy of the account. Signing out checks that
+  anything, and its database is a local copy of the account.
+- **Sign in with Apple is native**: the system sheet, then `signInWithIdToken` with a
+  nonce (Apple gets only its SHA-256, so a token can't be replayed). The local stack
+  accepts tokens for `app.cue` (`supabase/config.toml`), so a simulator signed in to an
+  Apple Account can test it end to end. A build with `CUE_APPLE_SIGN_IN=off` (for a free
+  Personal Team, which can't have the capability) offers email codes only. Signing out checks that
   nothing is left unsent, then removes the notes and outbox from the phone, but keeps the
   device id and clock (`Repository.clearNotes`). Signing in to a different account than
   the one the database holds starts from empty. The editor forgets everything about the

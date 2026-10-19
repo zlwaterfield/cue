@@ -41,6 +41,9 @@ jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
 enable_signup = true
+# Sign in with Apple on the Mac comes back from the browser to a one-shot server on a
+# loopback port (src/main/sync/browserReturn.ts).
+additional_redirect_urls = ["http://127.0.0.1:*/auth/callback"]
 
 [auth.email]
 enable_signup = true
@@ -58,3 +61,12 @@ content_path = "./supabase/templates/sign-in-code.html"
 [auth.email.template.confirmation]
 subject = "Your Cue sign-in code"
 content_path = "./supabase/templates/sign-in-code.html"
+
+# Sign in with Apple. The iPhone's identity tokens name the app's bundle ID, so the local
+# stack can check them from a simulator signed in to an Apple Account. The Mac's browser
+# sign-in needs a Services ID, a secret and an HTTPS callback, so only a hosted project
+# offers it (docs/SYNC.md).
+[auth.external.apple]
+enabled = true
+client_id = "app.cue"
+secret = ""

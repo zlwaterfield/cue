@@ -123,6 +123,8 @@ class MemoryBackend implements Backend {
     onState: () => () => {},
     sendCode: async () => ({ ok: false, error: 'Sync is available in the desktop app.' }),
     verifyCode: async () => ({ ok: false, error: 'Sync is available in the desktop app.' }),
+    signInWithApple: async () => ({ ok: false, error: 'Sync is available in the desktop app.' }),
+    cancelSignIn: () => {},
     syncNow: async () => ({ ok: false, error: 'Sync is available in the desktop app.' }),
     signOut: async () => {},
     deleteAccount: async () => null

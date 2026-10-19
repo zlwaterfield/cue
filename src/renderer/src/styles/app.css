@@ -1083,6 +1083,31 @@ kbd.is-text {
   color: var(--text-2);
 }
 
+/* Sign in with Apple: black on light, white on dark, per Apple's guidelines. */
+.button.is-apple {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+  background: #000;
+  box-shadow: none;
+}
+
+.button.is-apple:hover {
+  background: #2c2c2e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .button.is-apple {
+    color: #000;
+    background: #fff;
+  }
+
+  .button.is-apple:hover {
+    background: #e5e5ea;
+  }
+}
+
 .setting-split {
   display: flex;
   align-items: flex-start;

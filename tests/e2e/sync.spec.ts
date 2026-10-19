@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { createServer as createHttpServer } from 'node:http'
 import { createServer, type AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -85,6 +86,71 @@ test('the email step checks the address itself, in the iPhone’s words, and can
   await expect(page.getByText('Off. Your notes are stored only on this Mac.', { exact: false })).toBeVisible()
   await expect(page.locator('.setting-error')).toHaveCount(0)
   await cue.app.close()
+})
+
+test('Sign in with Apple waits for the browser, and Cancel there or here goes back quietly', async () => {
+  // A stand-in auth server: /authorize sends the browser to "Apple", which would come back
+  // to the address Cue gave. A second mode answers like a server without Apple set up.
+  let offersApple = true
+  const auth = createHttpServer((request, response) => {
+    const url = new URL(request.url!, 'http://127.0.0.1')
+    if (url.pathname !== '/auth/v1/authorize') return void response.writeHead(404).end()
+    if (!offersApple) {
+      response.writeHead(400, { 'Content-Type': 'application/json' })
+      return void response.end(JSON.stringify({ code: 400, error_code: 'validation_failed', msg: 'Unsupported provider: provider is not enabled' }))
+    }
+    const apple = new URL('https://appleid.apple.com/auth/authorize')
+    apple.searchParams.set('back', url.searchParams.get('redirect_to')!)
+    apple.searchParams.set('challenge', url.searchParams.get('code_challenge') ?? '')
+    response.writeHead(302, { Location: apple.href }).end()
+  })
+  await new Promise<void>((resolve) => auth.listen(0, '127.0.0.1', resolve))
+  const cue = await launch(undefined, { CUE_SUPABASE_URL: `http://127.0.0.1:${(auth.address() as AddressInfo).port}`, CUE_SUPABASE_KEY: 'unused' })
+  const { app, page } = cue
+  // Stand in for the browser: remember what Cue asked it to open.
+  await app.evaluate(({ shell }) => {
+    const opened: string[] = ((globalThis as { opened?: string[] }).opened = [])
+    shell.openExternal = async (url: string) => void opened.push(url)
+  })
+  const comeBack = async (index: number): Promise<URL> => {
+    await expect.poll(() => app.evaluate(() => (globalThis as { opened?: string[] }).opened!.length)).toBe(index + 1)
+    const url = new URL(await app.evaluate((_e, i) => (globalThis as { opened?: string[] }).opened![i], index))
+    // Straight to Apple's page, with a PKCE challenge.
+    expect(url.origin).toBe('https://appleid.apple.com')
+    expect(url.searchParams.get('challenge')).toBeTruthy()
+    return new URL(url.searchParams.get('back')!)
+  }
+
+  await page.keyboard.press('Meta+,')
+  await page.getByRole('button', { name: 'Turn On Sync…' }).click()
+  await page.getByRole('button', { name: 'Continue with Apple' }).click()
+  await expect(page.getByText('Finish signing in with Apple in your browser.')).toBeVisible()
+  const back = await comeBack(0)
+  expect(back.hostname).toBe('127.0.0.1')
+  expect(back.pathname).toBe('/auth/callback')
+
+  // Cancel in Cue: back to the choice, and nothing listens for the browser any more.
+  await page.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.getByRole('button', { name: 'Continue with Apple' })).toBeVisible()
+  await expect(fetch(back)).rejects.toThrow()
+
+  // Cancel on Apple's page: the browser comes back without a code. Nothing to explain.
+  await page.getByRole('button', { name: 'Continue with Apple' }).click()
+  const again = await comeBack(1)
+  again.searchParams.set('error', 'access_denied')
+  expect(await (await fetch(again)).text()).toContain('Sign-in didn’t finish')
+  await expect(page.getByRole('button', { name: 'Continue with Apple' })).toBeVisible()
+  await expect(page.getByLabel('Email')).toBeVisible()
+  await expect(page.locator('.setting-error')).toHaveCount(0)
+
+  // A server without Sign in with Apple says so here, and no browser opens.
+  offersApple = false
+  await page.getByRole('button', { name: 'Continue with Apple' }).click()
+  await expect(page.locator('.setting-error')).toHaveText('This sync server doesn’t offer Sign in with Apple. Use your email instead.')
+  await expect(page.getByLabel('Email')).toBeVisible()
+  expect(await app.evaluate(() => (globalThis as { opened?: string[] }).opened!.length)).toBe(2)
+  await cue.app.close()
+  auth.close()
 })
 
 /** The server ended this Mac's session, as the sync service records it. */

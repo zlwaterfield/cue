@@ -9,8 +9,12 @@ import type { ExpoConfig } from 'expo/config'
  * Signing for a real iPhone is personal, so it comes from there too: CUE_APPLE_TEAM_ID,
  * and CUE_IOS_BUNDLE_ID if `app.cue` isn't available to your team. The share extension
  * signs as `<bundle ID>.share` with the App Group `group.<bundle ID>`; a team that can't
- * have App Groups builds without it with CUE_SHARE_EXTENSION=off.
+ * have App Groups builds without it with CUE_SHARE_EXTENSION=off. Sign in with Apple needs
+ * a paid Apple Developer team too; a free Personal Team builds with CUE_APPLE_SIGN_IN=off,
+ * which leaves sign-in to email codes.
  */
+const appleSignIn = process.env.CUE_APPLE_SIGN_IN !== 'off'
+
 const config: ExpoConfig = {
   name: 'Cue',
   slug: 'cue',
@@ -35,6 +39,7 @@ const config: ExpoConfig = {
     'expo-router',
     'expo-sqlite',
     'expo-secure-store',
+    ...(appleSignIn ? ['expo-apple-authentication'] : []),
     // "Cue" in the share sheet: a shared link or text becomes a new line in today. It needs
     // the App Groups capability; CUE_SHARE_EXTENSION=off builds without it.
     ...(process.env.CUE_SHARE_EXTENSION === 'off' ? [] : ['./plugins/share-extension']),
@@ -51,7 +56,8 @@ const config: ExpoConfig = {
   experiments: { typedRoutes: false },
   extra: {
     supabaseUrl: process.env.CUE_SUPABASE_URL ?? '',
-    supabaseKey: process.env.CUE_SUPABASE_KEY ?? ''
+    supabaseKey: process.env.CUE_SUPABASE_KEY ?? '',
+    appleSignIn
   }
 }
 

@@ -1,22 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
-import { AccessibilityInfo, ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native'
+import { AccessibilityInfo, ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, useColorScheme, View, type TextInputInstance } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import * as AppleAuthentication from 'expo-apple-authentication'
 import * as Haptics from 'expo-haptics'
 import * as SplashScreen from 'expo-splash-screen'
 import { SvgXml } from 'react-native-svg'
 import { isEmailAddress, NOT_AN_EMAIL } from '@shared/text'
-import { sync } from '../core/app'
+import { appleSignIn, sync } from '../core/app'
 import { useStore } from '../core/store'
 import { lockup } from '../ui/lockup'
 import { metrics, useColors } from '../ui/theme'
 
 /**
  * Cue on iPhone needs an account: the phone holds a copy of the notes, and sync keeps it
- * the same as every other device. Sign-in is the Mac's: an email, then a six-digit code.
- * iOS offers the code from Mail or Messages above the keyboard. The words are the Mac's.
+ * the same as every other device. Sign-in is the Mac's: Sign in with Apple, or an email
+ * and then a six-digit code, which iOS offers from Mail or Messages above the keyboard.
+ * The words are the Mac's.
  */
 export default function SignIn() {
   const c = useColors()
+  const scheme = useColorScheme()
   const insets = useSafeAreaInsets()
   // Why this phone was signed out, if the server ended the session.
   const notice = useStore(sync.state, (s) => s.message)
@@ -24,6 +27,7 @@ export default function SignIn() {
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
+  const [appleBusy, setAppleBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const codeInput = useRef<TextInputInstance>(null)
 
@@ -51,17 +55,11 @@ export default function SignIn() {
     requestAnimationFrame(() => codeInput.current?.focus())
   }
 
-  /** Before a code goes out, say so if signing in could remove changes the last account never got. */
-  const submitEmail = (): void => {
-    if (busy || !email.trim()) return
-    if (!isEmailAddress(email)) {
-      setError(NOT_AN_EMAIL)
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
-      return
-    }
+  /** Before signing in, say so if it could remove changes the last account never got. */
+  const confirmUnsent = (proceed: () => void): void => {
     const unsent = sync.unsentFromPreviousAccount()
     if (!unsent) {
-      void sendCode()
+      proceed()
       return
     }
     const waiting = unsent === 1 ? '1 change on this iPhone hasn’t' : `${unsent} changes on this iPhone haven’t`
@@ -72,9 +70,36 @@ export default function SignIn() {
       `${waiting} reached your account. Signing in to a different account, or to one that was deleted, removes ${unsent === 1 ? 'it' : 'them'}.`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue', onPress: () => void sendCode() }
+        { text: 'Continue', onPress: proceed }
       ]
     )
+  }
+
+  const submitEmail = (): void => {
+    if (busy || appleBusy || !email.trim()) return
+    if (!isEmailAddress(email)) {
+      setError(NOT_AN_EMAIL)
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+      return
+    }
+    confirmUnsent(() => void sendCode())
+  }
+
+  const signInWithApple = async (): Promise<void> => {
+    if (busy || appleBusy) return
+    Keyboard.dismiss()
+    setAppleBusy(true)
+    setError(null)
+    const result = await sync.signInWithApple()
+    setAppleBusy(false)
+    if (result.ok) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      return
+    }
+    // Cancelled in Apple's sheet: nothing to say.
+    if (!result.error) return
+    setError(result.error)
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
   }
 
   const verify = async (value: string): Promise<void> => {
@@ -111,17 +136,38 @@ export default function SignIn() {
           {step === 'email' ? (
             <>
               {notice && <Text style={[styles.notice, { color: c.text }]}>{notice}</Text>}
-              <View>
-                <Text style={[styles.label, { color: c.text }]}>Sign in to sync your notes</Text>
-                <Text style={[styles.help, { color: c.text2 }]}>Enter your email and we’ll send a six-digit code.</Text>
-              </View>
+              <Text style={[styles.label, { color: c.text }]}>Sign in to sync your notes</Text>
+              {appleSignIn && (
+                <>
+                  {/* Apple's own button, black on light and white on dark; remounted when the appearance changes. */}
+                  <View style={{ opacity: appleBusy ? 0.6 : 1 }} pointerEvents={appleBusy || busy ? 'none' : 'auto'}>
+                    <AppleAuthentication.AppleAuthenticationButton
+                      key={scheme ?? 'light'}
+                      buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                      buttonStyle={
+                        scheme === 'dark' ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+                      }
+                      cornerRadius={12}
+                      onPress={() => confirmUnsent(() => void signInWithApple())}
+                      style={styles.apple}
+                      testID="apple"
+                    />
+                  </View>
+                  <View style={styles.or} accessible={false}>
+                    <View style={[styles.rule, { backgroundColor: c.line }]} />
+                    <Text style={[styles.orText, { color: c.text3 }]}>or</Text>
+                    <View style={[styles.rule, { backgroundColor: c.line }]} />
+                  </View>
+                </>
+              )}
               <TextInput
                 value={email}
                 onChangeText={setEmail}
                 onSubmitEditing={submitEmail}
                 placeholder="you@example.com"
                 placeholderTextColor={c.text3}
-                autoFocus
+                // With Apple first, the keyboard waits until the email field is chosen.
+                autoFocus={!appleSignIn}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="username"
@@ -133,7 +179,7 @@ export default function SignIn() {
                 accessibilityLabel="Email"
                 testID="email"
               />
-              <Button label="Send Code" busy={busy} disabled={!email.trim()} onPress={submitEmail} />
+              <Button label="Send Code" busy={busy} disabled={!email.trim() || appleBusy} onPress={submitEmail} />
             </>
           ) : (
             <>
@@ -180,7 +226,7 @@ export default function SignIn() {
         </View>
 
         <Text style={[styles.footnote, { color: c.text2 }]}>
-          Your notes sync across your devices. New here? The code creates your account.
+          Your notes sync across your devices. New here? Signing in creates your account.
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -232,10 +278,21 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600'
   },
-  help: {
-    fontSize: 15,
-    lineHeight: 20,
-    marginTop: 4
+  apple: {
+    height: 50
+  },
+  or: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 4
+  },
+  rule: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth
+  },
+  orText: {
+    fontSize: 13
   },
   email: {
     fontSize: 15,

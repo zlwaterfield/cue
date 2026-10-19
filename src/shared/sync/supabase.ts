@@ -1,12 +1,12 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { NOT_AN_EMAIL } from '../text'
-import type { ISODate, Item } from '../types'
+import type { ISODate, Item, SignInMethod } from '../types'
 import { OfflineError, SessionError, SyncError, type PullResult, type PushResult, type SessionEnd, type SyncTransport } from './engine'
 import { DELETE_FAILED, SIGN_IN_FAILED, SYNC_PAUSED } from './status'
 
 /**
- * Everything that talks to Supabase: email sign-in, the push/pull transport, and
- * realtime hints. The Mac app loads this module only once someone turns sync on, so a
+ * Everything that talks to Supabase: sign-in (an emailed code, or Sign in with Apple), the
+ * push/pull transport, and realtime hints. The Mac app loads this module only once someone turns sync on, so a
  * signed-out Cue for Mac never loads it or touches the network.
  */
 
@@ -30,6 +30,8 @@ export interface SessionStore {
 export interface Account {
   id: string
   email: string
+  /** How this account last signed in here, so signing in again offers the same way. Email if absent. */
+  method?: SignInMethod
 }
 
 /**
@@ -90,13 +92,15 @@ function timeoutError(): Error {
 
 export class SupabaseSync implements SyncTransport {
   private readonly client: SupabaseClient
+  private readonly fetch: typeof fetch
   private listening = 0
   /** Why the session is ending, while `checkSession` decides. */
   private ending: SessionEnd | null = null
 
   constructor(config: SyncConfig, store: SessionStore) {
+    this.fetch = withTimeout(config.fetch ?? ((input, init) => fetch(input, init)))
     this.client = createClient(config.url, config.key, {
-      global: { fetch: withTimeout(config.fetch ?? ((input, init) => fetch(input, init))) },
+      global: { fetch: this.fetch },
       auth: {
         storage: {
           getItem: (key) => store.get(key),
@@ -106,7 +110,10 @@ export class SupabaseSync implements SyncTransport {
         storageKey: 'session',
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: false
+        detectSessionInUrl: false,
+        // Sign in with Apple on the Mac comes back from the browser with a one-time code,
+        // which only this client, holding the matching verifier, can exchange.
+        flowType: 'pkce'
       }
     })
   }
@@ -122,8 +129,46 @@ export class SupabaseSync implements SyncTransport {
   async verifyCode(email: string, code: string): Promise<Account> {
     const { data, error } = await this.client.auth.verifyOtp({ email, token: code, type: 'email' })
     if (error) throw friendlyAuthError(error)
-    if (!data.user) throw new SyncError('Sign-in didn’t complete. Try again.')
-    return { id: data.user.id, email: data.user.email ?? email }
+    return account(data.user, 'email', email)
+  }
+
+  /**
+   * Sign in with Apple on iPhone: the identity token the system sheet returned, and the
+   * nonce whose SHA-256 was given to Apple. New Apple IDs get an account automatically;
+   * one that shares a verified email with an existing account signs in to that account.
+   */
+  async signInWithApple(identityToken: string, nonce: string): Promise<Account> {
+    const { data, error } = await this.client.auth.signInWithIdToken({ provider: 'apple', token: identityToken, nonce })
+    if (error) throw friendlyAuthError(error, 'apple')
+    return account(data.user, 'apple')
+  }
+
+  /**
+   * Sign in with Apple on the Mac starts with Apple's page in the browser. Apple returns
+   * to the sync server, which sends the browser on to `redirectTo` with a one-time code
+   * for `exchangeCode`. The server is asked for Apple's address here rather than in the
+   * browser, so a server without Sign in with Apple says so in Cue, not in a browser tab.
+   */
+  async appleSignInUrl(redirectTo: string): Promise<string> {
+    const { data, error } = await this.client.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo, scopes: 'name email' } })
+    if (error) throw friendlyAuthError(error, 'apple')
+    let response: Response
+    try {
+      response = await this.fetch(data.url, { redirect: 'manual' })
+    } catch (failure) {
+      throw friendlyAuthError({ message: String(failure), status: 0 }, 'apple')
+    }
+    const apple = response.headers.get('location')
+    if (response.status >= 300 && response.status < 400 && apple) return apple
+    const body = (await response.json().catch(() => ({}))) as { error_code?: string; msg?: string }
+    const disabled = /unsupported provider/i.test(body.msg ?? '')
+    throw friendlyAuthError({ message: body.msg ?? '', code: disabled ? 'provider_disabled' : body.error_code, status: response.status }, 'apple')
+  }
+
+  async exchangeCode(code: string): Promise<Account> {
+    const { data, error } = await this.client.auth.exchangeCodeForSession(code)
+    if (error) throw friendlyAuthError(error, 'apple')
+    return account(data.user, 'apple')
   }
 
   /**
@@ -265,10 +310,21 @@ function sessionGone(error: { status?: number; code?: string; name?: string }): 
   )
 }
 
-function friendlyAuthError(error: { message: string; code?: string; status?: number; name?: string }): SyncError {
+function account(user: { id: string; email?: string } | null, method: SignInMethod, email = ''): Account {
+  if (!user) throw new SyncError('Sign-in didn’t complete. Try again.')
+  return { id: user.id, email: user.email || email, method }
+}
+
+function friendlyAuthError(error: { message: string; code?: string; status?: number; name?: string }, method: SignInMethod = 'email'): SyncError {
   if ((error.status ?? 0) >= 500) return new SyncError('The sync server isn’t responding. Try again in a moment.')
   if (error.name === 'AuthRetryableFetchError' || error.status === 0) {
     return new OfflineError('Can’t reach the sync server. Check your connection.')
+  }
+  if (method === 'apple') {
+    if (error.code === 'provider_disabled') return new SyncError('This sync server doesn’t offer Sign in with Apple. Use your email instead.')
+    // A token or code the server won't accept: nothing to fix but trying again.
+    console.warn('Sign in with Apple failed', error)
+    return new SyncError(SIGN_IN_FAILED)
   }
   switch (error.code) {
     case 'otp_expired':

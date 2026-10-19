@@ -217,6 +217,23 @@ describe.skipIf(!syncServer)('sync with Supabase', { timeout: 30_000 }, () => {
     expect(down).toBeLessThan(15_000)
   })
 
+  it('says in Cue when the server can’t do Sign in with Apple on the Mac', async () => {
+    // The local stack has no Apple secret (only a hosted project can take Apple's
+    // HTTPS callback), so the browser sign-in is refused before any browser opens.
+    const client = new SupabaseSync(syncServer!, memoryStore())
+    await expect(client.appleSignInUrl('http://127.0.0.1:51234/auth/callback')).rejects.toThrow(
+      'This sync server doesn’t offer Sign in with Apple. Use your email instead.'
+    )
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await expect(client.exchangeCode('not-a-real-code')).rejects.toThrow('Couldn’t sign in. Try again in a moment.')
+  })
+
+  it('refuses an Apple identity token it can’t verify, in words', async () => {
+    const client = new SupabaseSync(syncServer!, memoryStore())
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await expect(client.signInWithApple('not.a.token', 'nonce')).rejects.toThrow('Couldn’t sign in. Try again in a moment.')
+  })
+
   it('restores a stored session without signing in again', async () => {
     const restored = new SupabaseSync(syncServer!, laptop.store)
     const { records } = await restored.pull(0, 1)

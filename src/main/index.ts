@@ -56,7 +56,8 @@ function start(): void {
     // Tests can't answer a Keychain prompt, so they keep the session unencrypted.
     cipher: isTest ? undefined : keychainCipher,
     onState: (state) => broadcast('sync:state', state),
-    onRemoteChanges: (items) => broadcast('items:changed', items)
+    onRemoteChanges: (items) => broadcast('items:changed', items),
+    openBrowser: (url) => shell.openExternal(url)
   })
 
   registerIpc()
@@ -88,7 +89,42 @@ function syncConfig(): SyncConfig | null {
   const url = process.env.CUE_SUPABASE_URL || __CUE_SUPABASE_URL__
   const key = process.env.CUE_SUPABASE_KEY || __CUE_SUPABASE_KEY__
   // Chromium's network stack, so sync follows the Mac's proxy and certificate settings.
-  return url && key ? { url, key, fetch: (input, init) => net.fetch(input instanceof URL ? input.href : input, init) } : null
+  return url && key ? { url, key, fetch: netFetch } : null
+}
+
+/**
+ * `net.fetch`, except that a request with `redirect: 'manual'` (finding Apple's sign-in
+ * page) answers with the redirect itself. `net.fetch` throws on those, so they go through
+ * `net.request`, which can stop at a redirect, on the same network stack.
+ */
+const netFetch: typeof fetch = (input, init) => {
+  const url = input instanceof URL ? input.href : input
+  if (init?.redirect !== 'manual' || typeof url !== 'string') return net.fetch(url, init)
+  return new Promise((resolve, reject) => {
+    const request = net.request({ url, method: init.method ?? 'GET', redirect: 'manual' })
+    new Headers(init.headers).forEach((value, name) => request.setHeader(name, value))
+    const signal = init.signal
+    signal?.addEventListener('abort', () => {
+      request.abort()
+      reject(signal.reason)
+    })
+    request.on('redirect', (status, _method, location) => {
+      request.abort()
+      resolve(new Response(null, { status, headers: { location } }))
+    })
+    request.on('response', (response) => {
+      const chunks: Buffer[] = []
+      response.on('data', (chunk) => chunks.push(chunk))
+      response.on('end', () => {
+        const headers = new Headers()
+        for (const [name, value] of Object.entries(response.headers)) headers.set(name, [value].flat().join(', '))
+        resolve(new Response(Buffer.concat(chunks), { status: response.statusCode, headers }))
+      })
+      response.on('error', reject)
+    })
+    request.on('error', reject)
+    request.end(typeof init.body === 'string' ? init.body : undefined)
+  })
 }
 
 const keychainCipher = {
@@ -313,6 +349,16 @@ function registerIpc(): void {
   ipcMain.handle('sync:state', () => sync.state())
   ipcMain.handle('sync:sendCode', (_e, email: string) => sync.sendCode(String(email)))
   ipcMain.handle('sync:verifyCode', (_e, email: string, code: string) => sync.verifyCode(String(email), String(code)))
+  ipcMain.handle('sync:signInWithApple', async () => {
+    const result = await sync.signInWithApple()
+    // Back from the browser: bring Cue forward, signed in or saying why not.
+    if (result.ok || result.error) {
+      mainWindow?.show()
+      app.focus({ steal: true })
+    }
+    return result
+  })
+  ipcMain.handle('sync:cancelSignIn', () => sync.cancelSignIn())
   ipcMain.handle('sync:now', () => sync.syncNow())
   ipcMain.handle('sync:signOut', () => sync.signOut())
   ipcMain.handle('sync:deleteAccount', async () => {

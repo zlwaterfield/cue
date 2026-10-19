@@ -16,10 +16,14 @@ import { ui } from './ui'
  * runtime, and sync runs alongside them.
  */
 
+const extra = (Constants.expoConfig?.extra ?? {}) as { supabaseUrl?: string; supabaseKey?: string; appleSignIn?: boolean }
+
 function syncConfig(): SyncConfig | null {
-  const extra = (Constants.expoConfig?.extra ?? {}) as { supabaseUrl?: string; supabaseKey?: string }
   return extra.supabaseUrl && extra.supabaseKey ? { url: extra.supabaseUrl, key: extra.supabaseKey } : null
 }
+
+/** Built with the Sign in with Apple capability (`CUE_APPLE_SIGN_IN`, see app.config.ts). */
+export const appleSignIn = extra.appleSignIn !== false
 
 export const repo = new Repository(openDatabase())
 
