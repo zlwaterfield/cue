@@ -15,15 +15,13 @@ import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
 import { metrics, useColors } from './theme'
 
-/**
- * Another week opens on its first day, as a calendar's week does, or on today when it's
- * this week, so swiping back from another week always comes home.
- */
 /** The week strip's side margins; its seven days share the rest equally. */
 const STRIP_INSET = metrics.gutter - 8
-/** Half a two-digit day number in the strip ("12"), which sits centered in its column. */
+/** Half a two-digit day number ("12") at standard text size; it sits centered in its column. */
 const HALF_DAY_NUMBER = 9
+const DAY_MAX_FONT_SCALE = 1.3
 
+/** Another week opens on its first day, or on today in this week. */
 const shiftWeek = (weeks: number): void => {
   const { date, today, settings } = ui.get()
   const start = addDays(startOfWeek(date, settings.weekStartsOn), 7 * weeks)
@@ -43,8 +41,8 @@ export function Header() {
   const { year, month } = parts(date)
   const isToday = date === today
   // The month starts where the week's first day number does.
-  const { width } = useWindowDimensions()
-  const inset = STRIP_INSET + (width - 2 * STRIP_INSET) / 14 - HALF_DAY_NUMBER
+  const { width, fontScale } = useWindowDimensions()
+  const inset = STRIP_INSET + (width - 2 * STRIP_INSET) / 14 - HALF_DAY_NUMBER * Math.min(fontScale, DAY_MAX_FONT_SCALE)
 
   return (
     <View style={[styles.header, { backgroundColor: c.bg }]}>
@@ -171,7 +169,7 @@ function WeekStrip({ date, today }: { date: ISODate; today: ISODate }) {
                 {WEEKDAYS[weekday(day)].slice(0, 1)}
               </Text>
               <View style={[styles.dayNumber, selected && { backgroundColor: c.accent }, !selected && isToday && { borderColor: c.lineStrong, borderWidth: 1 }]}>
-                <Text style={[styles.dayText, { color: selected ? c.onAccent : c.text }, isToday && styles.todayDay]} maxFontSizeMultiplier={1.3}>
+                <Text style={[styles.dayText, { color: selected ? c.onAccent : c.text }, isToday && styles.todayDay]} maxFontSizeMultiplier={DAY_MAX_FONT_SCALE}>
                   {parts(day).day}
                 </Text>
               </View>

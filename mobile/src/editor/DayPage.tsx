@@ -36,21 +36,20 @@ const AnimatedScrollView = Animated.createAnimatedComponent(GestureScrollView)
 const EDGE = 80
 const MAX_SPEED = 16
 
-/**
- * Swiping the page itself, anywhere but on a line, turns to the next or previous day:
- * left for the next, as a line swiped left goes to tomorrow. The page follows the finger
- * at half speed, carries on out, and the new day comes in from the side it was pulled from.
- */
+/** Swiping a page off its lines turns the day: left for the next, as a swiped line goes to tomorrow. */
 const TURN_AT = 60
 const TURN_OUT = 72
 const TURN_IN = 40
 /** Which side the next page to open comes in from: 1 the right (a later day), -1 the left. */
 let turning = 0
 
-const turnPage = (date: ISODate, days: number): void => {
+const turnPage = (date: ISODate, days: number, shift: SharedValue<number>): void => {
   void Haptics.selectionAsync()
   turning = days
-  void editor.goTo(addDays(date, days))
+  editor.goTo(addDays(date, days)).catch(() => {
+    turning = 0
+    shift.value = withSpring(0, SWIPE_HOME)
+  })
 }
 
 /** The open parts of a page (its title and the space under the last line) turn it. */
@@ -65,11 +64,10 @@ function Turn({ date, shift, children }: { date: ISODate; shift: SharedValue<num
     onDeactivate: (e) => {
       'worklet'
       const days = e.translationX < 0 ? 1 : -1
-      // Far enough, or flicked the way it was going.
       const turn = Math.abs(e.translationX) > TURN_AT || e.velocityX * -days > 500
       if (turn) {
         shift.value = withTiming(-days * TURN_OUT, { duration: 140 })
-        scheduleOnRN(turnPage, date, days)
+        scheduleOnRN(turnPage, date, days, shift)
       } else {
         shift.value = withSpring(0, SWIPE_HOME)
       }
@@ -108,7 +106,6 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
   const [loaded, setLoaded] = useState(() => itemStore.isLoaded(date))
   const arriving = useArriving(date)
 
-  // A page opened by a swipe slides in; any other way, it's simply there.
   const shift = useSharedValue(turning * TURN_IN)
   useEffect(() => {
     turning = 0
@@ -222,7 +219,7 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
     <AnimatedScrollView
       ref={scrollRef}
       style={[{ backgroundColor: c.bg }, slide]}
-      // The space under the last line reaches the bottom of the screen, however short the day.
+      // So the space under the last line fills the screen on a short day.
       contentContainerStyle={styles.content}
       onScroll={onScroll}
       scrollEventThrottle={16}
