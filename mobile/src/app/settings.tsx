@@ -80,7 +80,9 @@ export default function SettingsSheet() {
 
   const version = Constants.expoConfig?.version ?? '0.2.0'
   const reportIssue = (): void => {
-    void Linking.openURL(reportIssueUrl(`iPhone, version ${version} (iOS ${Platform.Version})`))
+    void Linking.openURL(reportIssueUrl(`iPhone, version ${version} (iOS ${Platform.Version})`)).catch(() => {
+      Alert.alert('Couldn’t open GitHub', 'Please try again.')
+    })
   }
 
   return (
