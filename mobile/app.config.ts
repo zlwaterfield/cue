@@ -15,7 +15,7 @@ const config: ExpoConfig = {
   name: 'Cue',
   slug: 'cue',
   scheme: 'cue',
-  version: '0.2.0',
+  version: '0.2.1',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
   icon: './assets/icon.png',
