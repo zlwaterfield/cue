@@ -58,7 +58,8 @@ offline and never interrupts typing.
 
 **iPhone.** The same core as the Mac, built for touch: tap a bullet to make it a to-do, tap a
 box to check it, swipe to complete or send to tomorrow, and long-press to drag. It uses
-sync, so it needs an account. See [mobile/README.md](mobile/README.md).
+sync, so it needs an account. Share a link from any app to add it to today, and a line
+that's only a link shows its page. See [mobile/README.md](mobile/README.md).
 
 **Feel.** One calm column in monochrome graphite, system typography, and light and dark
 appearance. The caret is the brand: it holds still while you type and rests after ten idle
@@ -162,22 +163,18 @@ More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SYNC.md](docs/SYNC.m
 
 ## Roadmap
 
-Nothing here is promised to a date.
+There isn't a big one, on purpose. Cue is meant to stay small, so most of the work goes into
+making what's already here faster and more dependable. Nothing below is promised to a date.
 
-**Done (0.2 alpha):** the Mac app, optional sync across devices, and the iPhone app on the
-same core.
+**Before beta:** a stable storage format with tested migrations, signed Mac downloads with
+automatic updates, and TestFlight builds for iPhone.
 
-**Next (beta, safe for daily use):**
-- A stable storage format with tested migrations, and restoring a snapshot from inside the app.
-- Signed Mac downloads with automatic updates, and TestFlight builds for iPhone.
-- Sign in with Apple, and per-field merging so edits to one line on two devices both survive.
-- Performance budgets in CI, and measured on real iPhones.
-- Polish: collapsing nested items, and Intel and universal Mac builds.
-
-**Exploring:** end-to-end encryption, customizable shortcuts, Windows and Linux.
+**Exploring:**
+- **An MCP server**, so an assistant you already use can read your days and add to them.
+- **A hosted version**, so anyone can sign in and sync without running their own Supabase.
 
 **Not planned:** projects, tags, priorities, reminders, recurring tasks, attachments,
-collaboration, AI features and dashboards. Cue stays small on purpose.
+collaboration, AI built into the app and dashboards.
 
 ## Contributing
 
