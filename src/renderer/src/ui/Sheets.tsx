@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
 import { COMMANDS, shortcutKeys } from '@shared/commands'
+import { reportIssueUrl } from '@shared/feedback'
 import type { Settings } from '@shared/types'
 import lockupDark from '../assets/cue-lockup-on-dark.svg'
 import lockupLight from '../assets/cue-lockup-on-light.svg'
@@ -245,6 +246,15 @@ export function SettingsSheet() {
             Show in Finder
           </button>
         </div>
+      </div>
+      <div className="setting">
+        <div>
+          <div className="setting-label">Report an issue</div>
+          <div className="setting-help">Opens a new issue on GitHub with your version filled in.</div>
+        </div>
+        <button className="button" onClick={() => void backend.openExternal(reportIssueUrl(`Mac, version ${__APP_VERSION__}`))}>
+          Report an Issue…
+        </button>
       </div>
     </Sheet>
   )

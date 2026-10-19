@@ -1,0 +1,16 @@
+name: Report an issue
+description: Something broken, confusing, or missing in Cue.
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what you saw instead. Screenshots help.
+    validations:
+      required: true
+  - type: input
+    id: app
+    attributes:
+      label: App and version
+      description: Filled in for you when you report from Cue’s Settings.
+      placeholder: Mac, version 0.2.0
