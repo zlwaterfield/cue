@@ -78,15 +78,15 @@ const styles = StyleSheet.create({
   marker: {
     width: metrics.marker
   },
+  // Centred on the box, whose left edge is the marker edge.
   dot: {
     width: 6,
     height: 6,
-    marginLeft: 7,
+    marginLeft: (BOX - 6) / 2,
     borderRadius: 3,
     opacity: 0.8
   },
   box: {
-    marginLeft: 1,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center'

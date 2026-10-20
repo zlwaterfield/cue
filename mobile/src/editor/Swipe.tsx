@@ -126,10 +126,10 @@ const styles = StyleSheet.create({
     height: 24
   },
   leading: {
-    left: metrics.gutter + 4
+    left: metrics.gutter
   },
   trailing: {
-    right: metrics.gutter + 4
+    right: metrics.gutter
   },
   icon: {
     ...StyleSheet.absoluteFill,
