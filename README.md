@@ -76,7 +76,7 @@ seconds.
 | Go to date | ⌘J |
 | New item | ⌘N, or just start typing |
 | Complete / reopen | ⌘↩ |
-| Toggle bullet ↔ to-do | ⇧⌘T |
+| Toggle bullet ↔ to-do | ⇧⌘↩ |
 | Indent / outdent | Tab · ⇧Tab |
 | Move up / down | ⌥↑ · ⌥↓ |
 | Move to tomorrow | ⌘D |

@@ -44,7 +44,7 @@ export const COMMANDS: CommandMeta[] = [
 
   { id: 'item.create', title: 'Create item', group: 'Item', shortcut: 'Mod+N', keywords: 'new add line' },
   { id: 'item.toggleDone', title: 'Complete or reopen to-do', group: 'Item', shortcut: 'Mod+Enter', keywords: 'check done finish', needsItem: true },
-  { id: 'item.toggleTodo', title: 'Toggle bullet / to-do', group: 'Item', shortcut: 'Mod+Shift+T', keywords: 'task checkbox convert', needsItem: true },
+  { id: 'item.toggleTodo', title: 'Toggle bullet / to-do', group: 'Item', shortcut: 'Mod+Shift+Enter', keywords: 'task checkbox convert', needsItem: true },
   { id: 'item.toText', title: 'Convert to plain text', group: 'Item', keywords: 'paragraph turn into', needsItem: true },
   { id: 'item.toBullet', title: 'Convert to bullet', group: 'Item', keywords: 'list turn into', needsItem: true },
   { id: 'item.toTodo', title: 'Convert to to-do', group: 'Item', keywords: 'task checkbox turn into', needsItem: true },

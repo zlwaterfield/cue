@@ -14,9 +14,9 @@ test('north star: capture, convert, nest, complete, and move to Friday without t
   await typeLines(page, 'Book flights', 'Email Dana the deck', 'Draft the proposal', 'Pick up dry cleaning')
   // Turn two into tasks.
   await page.keyboard.press('ArrowUp')
-  await page.keyboard.press('Meta+Shift+T')
+  await page.keyboard.press('Meta+Shift+Enter')
   await page.keyboard.press('ArrowUp')
-  await page.keyboard.press('Meta+Shift+T')
+  await page.keyboard.press('Meta+Shift+Enter')
   // Nest one beneath another, then complete it.
   await page.keyboard.press('ArrowDown')
   await page.keyboard.press('Tab')
@@ -124,7 +124,7 @@ test('undo and redo cover completion, moves, reorders, conversions, and deletion
   await typeLines(page, 'task', 'other')
   await page.keyboard.press('ArrowUp')
   const states: string[] = [await outline(page)]
-  await page.keyboard.press('Meta+Shift+T') // convert
+  await page.keyboard.press('Meta+Shift+Enter') // convert
   states.push(await outline(page))
   await page.keyboard.press('Meta+Enter') // complete
   states.push(await outline(page))

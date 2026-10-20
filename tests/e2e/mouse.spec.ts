@@ -38,7 +38,7 @@ test('dragging across lines selects them as blocks', async () => {
   await page.mouse.move(c.x + 10, c.y + c.height / 2, { steps: 6 })
   await page.mouse.up()
   await expect(page.locator('.row.is-selected')).toHaveCount(3)
-  await page.keyboard.press('Meta+Shift+T')
+  await page.keyboard.press('Meta+Shift+Enter')
   expect(await outline(page)).toBe(lines('[ ] one', '[ ] two', '[ ] three'))
 })
 
