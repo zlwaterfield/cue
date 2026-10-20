@@ -19,6 +19,14 @@ export function useIsSelected(id: string): boolean {
   return useSyncExternalStore(ui.subscribe, () => controller.isSelected(id, ui.get().selection))
 }
 
+/** The row holds the caret (or did last, before focus left the editor). */
+export function useIsEditing(id: string): boolean {
+  return useSyncExternalStore(ui.subscribe, () => {
+    const selection = ui.get().selection
+    return selection.kind === 'text' && selection.id === id
+  })
+}
+
 let shallowest: { selection: Selection | null; rows: Row[] | null; depth: number | null } = { selection: null, rows: null, depth: null }
 
 /** The smallest depth among the block-selected rows of `selection`'s day. */

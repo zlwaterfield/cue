@@ -445,6 +445,101 @@ button:focus-visible {
   text-decoration-thickness: 1px;
 }
 
+/* A line that is only a link shows its page; the link's editable waits behind it. */
+.row.is-link .text {
+  position: absolute;
+  top: 0;
+  left: calc(var(--depth) * var(--indent) + var(--marker));
+  right: 0;
+  height: calc(var(--row-line-height) + 2 * var(--row-padding));
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.link-line {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  padding: var(--row-padding) 8px var(--row-padding) 0;
+  cursor: text;
+}
+
+.link-page {
+  display: inline-flex;
+  align-items: flex-start;
+  max-width: 100%;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.link-icon {
+  flex: none;
+  width: 24px;
+  height: var(--row-line-height);
+  display: flex;
+  align-items: center;
+  color: var(--text-2);
+}
+
+/* Icons are drawn for light pages; a dark glyph on a transparent icon would vanish in dark. */
+.link-icon img {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: #ffffff;
+  object-fit: contain;
+}
+
+.link-title {
+  min-width: 0;
+  font-size: var(--row-font-size);
+  line-height: var(--row-line-height);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.link-title.is-bare {
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.link-byline {
+  margin-left: 0.2em;
+  font-size: calc(var(--row-font-size) - 2px);
+  color: var(--text-2);
+}
+
+.link-page:hover .link-title {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.row.is-done .link-page {
+  color: var(--text-3);
+}
+
+.row.is-done .link-title {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--text-3) 70%, transparent);
+  text-decoration-thickness: 1px;
+}
+
+.row.is-done .link-byline {
+  color: var(--text-3);
+}
+
+.row.is-done .link-icon {
+  opacity: 0.5;
+}
+
 /* Links and search flashes are painted, not marked up. */
 ::highlight(cue-link) {
   color: var(--accent);

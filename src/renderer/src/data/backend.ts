@@ -107,6 +107,14 @@ class MemoryBackend implements Backend {
     window.open(url, '_blank', 'noopener')
   }
 
+  async linkPreview(): Promise<null> {
+    return null
+  }
+
+  onLinkPreview(): () => void {
+    return () => {}
+  }
+
   markInteractive(): void {}
 
   onCommand(callback: (id: string) => void): () => void {
