@@ -31,8 +31,8 @@ function placeholderFor(date: ISODate, today: ISODate): string {
   return 'Nothing written'
 }
 
-const haptic = (kind: 'lift' | 'tick' | 'threshold'): void => {
-  if (kind === 'lift') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+const haptic = (kind: 'lift' | 'tick' | 'threshold' | 'delete'): void => {
+  if (kind === 'lift' || kind === 'delete') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
   else if (kind === 'threshold') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
   else void Haptics.selectionAsync()
 }
@@ -76,6 +76,7 @@ const advance = (id: string): void => editor.advance(id)
 // shared offset resets, so Undo brings it back in place.
 const settleSwipe = (): void => {
   swipe.x.value = 0
+  swipe.leaving.value = 0
   swipe.id.value = ''
 }
 const remove = (id: string): void => {
@@ -250,6 +251,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
       'worklet'
       swipe.id.value = id
       swipe.kind.value = kind
+      swipe.leaving.value = 0
       swipe.x.value = 0
     },
     onUpdate: (e) => {
@@ -261,7 +263,8 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
       const next = Math.abs(x) <= limit ? x : Math.sign(x) * (limit + (Math.abs(x) - limit) * 0.25)
       const was = swipe.x.value
       const crossed = (t: number) => (Math.abs(was) < t) !== (Math.abs(next) < t)
-      if (crossed(SWIPE_ACT) || (next < 0 && crossed(deleteAt))) scheduleOnRN(haptic, 'threshold')
+      if (next < 0 && crossed(deleteAt)) scheduleOnRN(haptic, 'delete')
+      else if (crossed(SWIPE_ACT)) scheduleOnRN(haptic, 'threshold')
       swipe.x.value = next
     },
     onDeactivate: () => {
@@ -272,8 +275,10 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
         scheduleOnRN(advance, id)
         swipe.x.value = withSpring(0, SWIPE_HOME)
       } else if (x <= -deleteAt) {
+        swipe.leaving.value = 2
         swipe.x.value = withTiming(-width, { duration: 160 }, () => scheduleOnRN(remove, id))
       } else if (x <= -SWIPE_ACT) {
+        swipe.leaving.value = 1
         swipe.x.value = withTiming(-width, { duration: 160 }, () => scheduleOnRN(toTomorrow, id))
       } else {
         swipe.x.value = withSpring(0, SWIPE_HOME)
