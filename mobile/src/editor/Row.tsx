@@ -16,7 +16,7 @@ import { colors, metrics, useColors } from '../ui/theme'
 import { editor } from './controller'
 import { beginDrag, drag, dragTop, resetDrag, scrollState, updateDrag } from './drag'
 import { useItem } from './hooks'
-import { LinkLine } from './LinkLine'
+import { LinkIcon, LinkLine } from './LinkLine'
 import { Marker } from './Marker'
 import { swipe, SWIPE_ACT, SWIPE_DELETE_FRACTION, SWIPE_HOME, type SwipeKind } from './Swipe'
 
@@ -104,7 +104,7 @@ const dropped = (date: ISODate, id: string, index: number, depth: number): void 
  *  - swipe right: to-do, then done       - swipe left: tomorrow; further: delete
  *
  * A line that is only a link shows its page instead (`LinkLine`) while it isn't being
- * edited. Tapping the page opens it; tapping the space beside it edits the link.
+ * edited. Tapping the page (or its icon) opens it; tapping the space beside it edits the link.
  */
 export const Row = memo(function Row({ id, date, depth, empty }: { id: string; date: ISODate; depth: number; empty?: boolean }) {
   const item = useItem(id)
@@ -120,6 +120,8 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
   const flash = useStore(ui, (s) => (s.flash?.id === id ? s.flash.at : 0))
   const kind: SwipeKind = item?.type !== 'todo' ? 0 : done ? 2 : 1
   const link = item && !focused ? soleLink(item.text) : null
+  // A plain line has no marker, so its link's icon hangs in the marker column.
+  const hangingLink = link && item?.type === 'text' ? link : null
   const linkWidth = useRef(0)
 
   const setRef = useCallback(
@@ -314,6 +316,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
     runOnJS: true,
     onActivate: () => {
       if (ghost) editor.focus(id, 0)
+      else if (hangingLink) void openLink(hangingLink)
       else editor.tapMarker(id)
     }
   })
@@ -337,7 +340,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
         {/* The whole marker column takes the tap, the gutter to its left included. */}
         <GestureDetector gesture={markerGesture}>
           <View style={styles.markerHit} collapsable={false}>
-            <Marker type={item?.type ?? 'text'} done={!!done} />
+            {hangingLink ? <LinkIcon url={hangingLink} done={!!done} /> : <Marker type={item?.type ?? 'text'} done={!!done} />}
           </View>
         </GestureDetector>
         <GestureDetector gesture={bodyGesture}>
@@ -379,7 +382,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
               }
               onAccessibilityAction={(e) => onAccessibilityAction(id, e.nativeEvent.actionName)}
             />
-            {link ? <LinkLine url={link} done={!!done} onWidth={(w) => (linkWidth.current = w)} /> : null}
+            {link ? <LinkLine url={link} done={!!done} icon={!hangingLink} onWidth={(w) => (linkWidth.current = w)} /> : null}
           </View>
         </GestureDetector>
       </View>
