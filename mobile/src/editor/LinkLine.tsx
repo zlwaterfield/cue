@@ -1,9 +1,10 @@
 import { memo, useState } from 'react'
-import { Image, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native'
+import { Image, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native'
 import { SymbolView } from 'expo-symbols'
 import { bareLabel } from '@shared/links'
 import { useLinkPreview } from '../core/links'
 import { metrics, useColors } from '../ui/theme'
+import { BOX, capCentre } from './Marker'
 
 /**
  * A line that is only a link, shown as its page: the site's icon, the page's title (a
@@ -42,11 +43,12 @@ export const LinkLine = memo(function LinkLine({
   )
 })
 
-/** The site's icon in the marker column, centred on where a box would be. */
+/** The site's icon in the marker column, where a box would be at every text size. */
 export const LinkIcon = memo(function LinkIcon({ url, done }: { url: string; done: boolean }) {
+  const { fontScale } = useWindowDimensions()
   return (
     <View style={styles.hanging}>
-      <SiteIcon url={url} done={done} style={styles.hangingBox} />
+      <SiteIcon url={url} done={done} style={[styles.hangingBox, { marginTop: capCentre(fontScale) - ICON / 2 }]} />
     </View>
   )
 })
@@ -69,8 +71,6 @@ function SiteIcon({ url, done, style }: { url: string; done: boolean; style: Sty
 }
 
 const ICON = 16
-/** The to-do box's size (`Marker`), which a hanging icon centres on. */
-const BOX = 18
 
 const styles = StyleSheet.create({
   link: {
@@ -86,12 +86,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   hanging: {
-    width: metrics.marker,
-    paddingVertical: metrics.rowPadding
+    width: metrics.marker
   },
   hangingBox: {
     width: BOX,
-    height: metrics.lineHeight,
+    height: ICON,
     alignItems: 'center',
     justifyContent: 'center'
   },
