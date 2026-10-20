@@ -17,6 +17,7 @@ const RETRY_AFTER = 60 * 60_000
 const AT_ONCE = 3
 const ICON_TIMEOUT = 5000
 const ICON_MAX_BYTES = 200_000
+const SCHEMA = 1
 
 type Fetch = (url: string, init?: RequestInit) => Promise<Response>
 
@@ -38,20 +39,27 @@ export class LinkPreviews {
       console.error('Couldn’t open the link preview cache', error)
       this.db = new DatabaseSync(':memory:')
     }
-    this.db.exec(`CREATE TABLE IF NOT EXISTS previews (
-      url TEXT PRIMARY KEY,
-      preview TEXT,
-      fetched_at INTEGER NOT NULL
-    )`)
-    this.read = this.db.prepare('SELECT preview, fetched_at FROM previews WHERE url = ?')
-    this.write = this.db.prepare('INSERT OR REPLACE INTO previews (url, preview, fetched_at) VALUES (?, ?, ?)')
+    // It's only a cache: a file from an older version starts over.
+    if ((this.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version !== SCHEMA) {
+      this.db.exec(`DROP TABLE IF EXISTS previews;
+        CREATE TABLE previews (
+          url TEXT PRIMARY KEY,
+          preview TEXT,
+          fetched_at INTEGER NOT NULL,
+          failed INTEGER NOT NULL DEFAULT 0
+        );
+        PRAGMA user_version = ${SCHEMA};`)
+    }
+    this.read = this.db.prepare('SELECT preview, fetched_at, failed FROM previews WHERE url = ?')
+    this.write = this.db.prepare('INSERT OR REPLACE INTO previews (url, preview, fetched_at, failed) VALUES (?, ?, ?, ?)')
   }
 
   /** The stored preview for a link (null until its page has answered), fetching it if it's due. */
   get(url: string): LinkPreview | null {
     if (!/^https?:\/\//i.test(url) || url.length > 2048) return null
     const row = this.stored(url)
-    if (!row || Date.now() - row.fetchedAt > (row.preview ? FRESH_FOR : RETRY_AFTER)) this.request(url)
+    // A page that didn't answer last time is tried again sooner, even if it has an older preview.
+    if (!row || Date.now() - row.fetchedAt > (row.preview && !row.failed ? FRESH_FOR : RETRY_AFTER)) this.request(url)
     return row?.preview ?? null
   }
 
@@ -63,10 +71,11 @@ export class LinkPreviews {
     }
   }
 
-  private stored(url: string): { preview: LinkPreview | null; fetchedAt: number } | null {
+  private stored(url: string): { preview: LinkPreview | null; fetchedAt: number; failed: boolean } | null {
     try {
-      const row = this.read.get(url) as { preview: string | null; fetched_at: number } | undefined
-      return row ? { preview: row.preview ? (JSON.parse(row.preview) as LinkPreview) : null, fetchedAt: row.fetched_at } : null
+      const row = this.read.get(url) as { preview: string | null; fetched_at: number; failed: number } | undefined
+      if (!row) return null
+      return { preview: row.preview ? (JSON.parse(row.preview) as LinkPreview) : null, fetchedAt: row.fetched_at, failed: !!row.failed }
     } catch (error) {
       console.warn('Couldn’t read a link preview', error)
       return null
@@ -109,9 +118,22 @@ export class LinkPreviews {
       // Favicons are often served without an image type.
       if (!type.startsWith('image/') && /\.ico(?:$|\?)/i.test(url)) type = 'image/x-icon'
       if (!type.startsWith('image/') || type.includes('svg')) return null
-      if (Number(res.headers.get('content-length') ?? 0) > ICON_MAX_BYTES) return null
-      const bytes = Buffer.from(await res.arrayBuffer())
-      return bytes.length && bytes.length <= ICON_MAX_BYTES ? `data:${type};base64,${bytes.toString('base64')}` : null
+      if (Number(res.headers.get('content-length') ?? 0) > ICON_MAX_BYTES || !res.body) return null
+      // Read up to the limit and no further, whatever the server says the size is.
+      const chunks: Uint8Array[] = []
+      let size = 0
+      const reader = res.body.getReader()
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        size += value.byteLength
+        if (size > ICON_MAX_BYTES) {
+          void reader.cancel().catch(() => {})
+          return null
+        }
+        chunks.push(value)
+      }
+      return size ? `data:${type};base64,${Buffer.concat(chunks).toString('base64')}` : null
     } catch {
       return null
     } finally {
@@ -124,7 +146,7 @@ export class LinkPreviews {
     const previous = preview ? null : this.stored(url)?.preview
     const kept = preview ?? previous ?? null
     try {
-      this.write.run(url, kept ? JSON.stringify(kept) : null, Date.now())
+      this.write.run(url, kept ? JSON.stringify(kept) : null, Date.now(), preview ? 0 : 1)
     } catch (error) {
       console.warn('Couldn’t store a link preview', error)
     }
