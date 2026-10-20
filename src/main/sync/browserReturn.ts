@@ -78,10 +78,13 @@ export async function awaitBrowserReturn(wait = WAIT): Promise<BrowserReturn> {
   }
 }
 
-/** What the browser shows once it's back: a short note in Cue's colors, then back to Cue. */
-function page(signedIn: boolean): string {
-  const title = signedIn ? 'You’re signed in' : 'Sign-in didn’t finish'
-  const body = signedIn ? 'Sync is on. You can close this tab and go back to Cue.' : 'Go back to Cue to try again.'
+/**
+ * What the browser shows once it's back: a short note in Cue's colors, then back to Cue.
+ * Cue still has to exchange the code, so the page never claims sync is on; Cue says that.
+ */
+function page(returned: boolean): string {
+  const title = returned ? 'Back to Cue' : 'Sign-in didn’t finish'
+  const body = returned ? 'Cue is finishing signing you in. You can close this tab.' : 'Go back to Cue to try again.'
   return `<!doctype html>
 <html lang="en">
 <meta charset="utf-8">

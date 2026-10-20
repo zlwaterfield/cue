@@ -72,6 +72,8 @@ export class SyncService {
   private shownPending = 0
   /** Sign in with Apple, while it waits for the browser. */
   private browserSignIn: BrowserReturn | null = null
+  /** Counts Sign in with Apple attempts; Cancel moves it on, so a late answer is ignored. */
+  private signInAttempt = 0
 
   constructor(
     private readonly repo: Repository,
@@ -186,6 +188,7 @@ export class SyncService {
    */
   async signInWithApple(): Promise<SyncResult> {
     this.cancelSignIn()
+    const attempt = this.signInAttempt
     let pending: BrowserReturn | null = null
     try {
       // Listen first, so Cancel works from the very start.
@@ -195,7 +198,13 @@ export class SyncService {
       if (!open) throw new SyncError('Sign in with Apple isn’t available here.')
       await open(await client.appleSignInUrl(pending.url))
       const code = await pending.code
-      await this.signedIn(await client.exchangeCode(code))
+      const account = await client.exchangeCode(code)
+      if (attempt !== this.signInAttempt) {
+        // Cancelled while the server answered: forget the session it just made.
+        await client.signOut().catch((error) => console.error('Sign out failed', error))
+        throw new SignInCancelled()
+      }
+      await this.signedIn(account)
       return { ok: true }
     } catch (error) {
       if (error instanceof SignInCancelled) return { ok: false, error: '' }
@@ -206,8 +215,9 @@ export class SyncService {
     }
   }
 
-  /** Stop waiting for the browser to come back from Sign in with Apple. */
+  /** Stop Sign in with Apple, whether it's still waiting for the browser or for the server. */
   cancelSignIn(): void {
+    this.signInAttempt += 1
     this.browserSignIn?.cancel()
   }
 

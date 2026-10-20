@@ -116,7 +116,9 @@ the same path an import uses, with one rule: **an edit in progress always wins.*
   (`src/main/sync/browserReturn.ts`) with a one-time code. The code is exchanged with a
   PKCE verifier that never leaves the Mac, so another app that sees it can't use it. The
   server answers one path, once, and closes when the code arrives, on Cancel, or after 10
-  minutes. The browser tab then says to go back to Cue, and Cue comes to the front. A
+  minutes. The browser tab then says Cue is finishing (only Cue says whether it worked),
+  and Cue comes to the front. Cancel holds until sync is on: one that lands while the
+  server is still exchanging the code drops the session it made. A
   loopback address works in development and needs nothing registered with macOS, unlike
   a `cue://` link, which a development build and an installed Cue would both claim.
 - **One account, either way.** An Apple ID that shares its verified email with an
