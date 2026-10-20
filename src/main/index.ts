@@ -6,6 +6,7 @@ import type { DatabaseSync } from 'node:sqlite'
 import { todayISO } from '../shared/dates'
 import type { ExportResult, ImportResult, Item, Settings, ThemePreference } from '../shared/types'
 import { openDatabase } from './db'
+import { LinkPreviews } from './links'
 import { buildMenu } from './menu'
 import { backupJSON, exportMarkdown, importJSON, readText, runDailyBackup } from './portability'
 import { isTextOnlyChange, Repository } from '../shared/repository'
@@ -28,6 +29,7 @@ const DARK_BG = '#18181a'
 let db: DatabaseSync
 let repo: Repository
 let sync: SyncService
+let links: LinkPreviews
 let mainWindow: BrowserWindow | null = null
 let quitting = false
 
@@ -58,6 +60,9 @@ function start(): void {
     onState: (state) => broadcast('sync:state', state),
     onRemoteChanges: (items) => broadcast('items:changed', items)
   })
+  links = new LinkPreviews(join(dataDir, 'links.sqlite'), (input, init) => net.fetch(input, init), (url, preview) =>
+    broadcast('links:preview', { url, preview })
+  )
 
   registerIpc()
   Menu.setApplicationMenu(buildMenu({ isDev, syncAvailable: sync.state().available }))
@@ -205,6 +210,13 @@ function showContextMenu(win: BrowserWindow, params: Electron.ContextMenuParams)
       { role: 'selectAll' }
     )
   }
+  if (params.linkURL && /^https?:/i.test(params.linkURL)) {
+    if (template.length) template.push({ type: 'separator' })
+    template.push(
+      { label: 'Open Link', click: () => void shell.openExternal(params.linkURL) },
+      { label: 'Copy Link', click: () => clipboard.writeText(params.linkURL) }
+    )
+  }
   if (params.selectionText.trim()) {
     template.push({ type: 'separator' }, { label: `Look Up “${params.selectionText.trim().slice(0, 24)}”`, click: () => win.webContents.showDefinitionForSelection() })
   }
@@ -333,6 +345,7 @@ function registerIpc(): void {
   })
   ipcMain.handle('clipboard:write', (_e, text: string) => clipboard.writeText(String(text)))
   ipcMain.handle('clipboard:read', () => clipboard.readText())
+  ipcMain.handle('links:preview', (_e, url: string) => links.get(String(url)))
   ipcMain.handle('shell:openExternal', (_e, url: string) => {
     if (/^(https?|mailto):/i.test(url)) return shell.openExternal(url)
   })
@@ -365,6 +378,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('will-quit', () => {
+  links?.close()
   try {
     db?.close()
   } catch {

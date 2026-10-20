@@ -7,6 +7,8 @@
  * can never produce duplicate pages.
  */
 
+import type { LinkPreview } from './links'
+
 export type ItemType = 'text' | 'bullet' | 'todo'
 
 export const ITEM_TYPES: readonly ItemType[] = ['text', 'bullet', 'todo']
@@ -149,6 +151,10 @@ export interface CueBridge {
   clipboardWrite(text: string): Promise<void>
   clipboardRead(): Promise<string>
   openExternal(url: string): Promise<void>
+  /** The stored preview of a line that is only a link; fetches it in the background when due. */
+  linkPreview(url: string): Promise<LinkPreview | null>
+  /** A link's preview arrived or changed. Returns an unsubscribe function. */
+  onLinkPreview(callback: (update: { url: string; preview: LinkPreview | null }) => void): () => void
   /** Signals that the first screen is ready for typing (used for startup timing). */
   markInteractive(): void
   /** Commands invoked from the native menu. Returns an unsubscribe function. */
