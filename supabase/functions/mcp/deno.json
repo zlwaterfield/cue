@@ -1,0 +1,13 @@
+{
+  "//": "The function runs Cue's shared code (src/shared), which imports without file extensions. Deno needs them, so each such module is mapped here.",
+  "imports": {
+    "fractional-indexing": "npm:fractional-indexing@4.0.0",
+    "../../../src/shared/dates": "../../../src/shared/dates.ts",
+    "../../../src/shared/editor/tx": "../../../src/shared/editor/tx.ts",
+    "../../../src/shared/ids": "../../../src/shared/ids.ts",
+    "../../../src/shared/links": "../../../src/shared/links.ts",
+    "../../../src/shared/markdown": "../../../src/shared/markdown.ts",
+    "../../../src/shared/outline": "../../../src/shared/outline.ts",
+    "../../../src/shared/types": "../../../src/shared/types.ts"
+  }
+}

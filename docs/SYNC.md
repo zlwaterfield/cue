@@ -235,7 +235,7 @@ functions are in [`supabase/migrations`](../supabase/migrations).
 Run a local stack in Docker. Sign-in emails land in Mailpit at http://127.0.0.1:54324.
 
 ```sh
-npx supabase start -x studio,storage-api,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor
+npx supabase start -x studio,storage-api,imgproxy,logflare,vector,postgres-meta,supavisor
 npx supabase status    # API URL and publishable key
 printf 'CUE_SUPABASE_URL=http://127.0.0.1:54321\nCUE_SUPABASE_KEY=<publishable key>\n' > .env.development.local
 pnpm dev               # sync is now offered in Settings

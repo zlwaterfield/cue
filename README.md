@@ -56,6 +56,10 @@ export to Markdown or JSON at any time.
 code, and edits reach your other devices about a second after you stop typing. It works
 offline and never interrupts typing.
 
+**Assistants.** With sync on, connect Claude, ChatGPT or another assistant over MCP to read
+your days, add to-dos, check them off and move them, from wherever you're chatting. See
+[docs/MCP.md](docs/MCP.md).
+
 **iPhone.** The same core as the Mac, built for touch: tap a bullet to make it a to-do, tap a
 box to check it, swipe to complete or send to tomorrow, and long-press to drag. It uses
 sync, so it needs an account. Share a link from any app to add it to today, and a line
@@ -163,8 +167,9 @@ happens.
 - **Sync:** an optional Supabase backend (Postgres, Auth, Realtime), newest edit wins per
   item.
 
-More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SYNC.md](docs/SYNC.md) and
-[docs/ACCEPTANCE.md](docs/ACCEPTANCE.md). The brand kit lives in [docs/brand](docs/brand).
+More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SYNC.md](docs/SYNC.md),
+[docs/MCP.md](docs/MCP.md) and [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md). The brand kit lives
+in [docs/brand](docs/brand).
 
 ## Roadmap
 
@@ -175,7 +180,6 @@ making what's already here faster and more dependable. Nothing below is promised
 automatic updates, and TestFlight builds for iPhone.
 
 **Exploring:**
-- **An MCP server**, so an assistant you already use can read your days and add to them.
 - **A hosted version**, so anyone can sign in and sync without running their own Supabase.
   Join the [waitlist](https://github.com/zlwaterfield/cue/issues/13) if you'd use it.
 
@@ -189,7 +193,7 @@ Issues and pull requests are welcome. For anything bigger than a fix, open an is
 ```sh
 pnpm test         # unit tests
 pnpm test:e2e     # end-to-end tests against the real app
-pnpm test:sync    # sync against a local Supabase (see docs/SYNC.md)
+pnpm test:sync    # sync and MCP against a local Supabase (see docs/SYNC.md)
 pnpm typecheck
 pnpm bench        # performance against the budgets
 ```
