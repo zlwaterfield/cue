@@ -36,7 +36,7 @@ test('the brand caret is there at launch, follows typing, and steps aside for se
   await expect.poll(async () => (await caretState(cue)).shown).toBe(false)
 })
 
-test('About shows the wordmark and the alpha notice', async () => {
+test('About shows the wordmark and the beta notice', async () => {
   const { page } = cue
   await page.keyboard.press('Meta+K')
   await page.keyboard.type('about')
@@ -44,7 +44,7 @@ test('About shows the wordmark and the alpha notice', async () => {
   const about = page.getByRole('dialog', { name: 'About Cue' })
   await expect(about).toBeVisible()
   await expect(about.getByRole('img', { name: 'cue' })).toBeVisible()
-  await expect(about).toContainText('alpha')
+  await expect(about).toContainText('beta')
   await page.keyboard.press('Escape')
   await expect(about).toHaveCount(0)
 })
