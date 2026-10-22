@@ -120,8 +120,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
  */
 const local = ['127.0.0.1', 'localhost'].includes(location.hostname)
 const server = local
-  ? { url: 'http://127.0.0.1:54321', key: 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH' }
-  : { url: 'https://oxjcfsgwzpnajxrkwiai.supabase.co', key: 'sb_publishable_TLM4YcmbdcmPLoD7Afgw4w_zP4i7cpv' }
+  ? { url: 'http://127.0.0.1:54321', key: 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH', mcp: 'http://127.0.0.1:54321/functions/v1/mcp' }
+  : { url: 'https://oxjcfsgwzpnajxrkwiai.supabase.co', key: 'sb_publishable_TLM4YcmbdcmPLoD7Afgw4w_zP4i7cpv', mcp: 'https://www.usecue.today/mcp' }
 const supabase = createClient(server.url, server.key)
 const authorizationId = new URLSearchParams(location.search).get('authorization_id')
 let email = ''
@@ -174,7 +174,7 @@ async function decide(allow) {
 }
 
 async function connections() {
-  $('.mcp-url').textContent = `${server.url}/functions/v1/mcp`
+  $('.mcp-url').textContent = server.mcp
   const { data, error } = await supabase.auth.oauth.listGrants()
   const list = $('.grants')
   list.replaceChildren()

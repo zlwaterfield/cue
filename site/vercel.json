@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/mcp", "destination": "https://oxjcfsgwzpnajxrkwiai.supabase.co/functions/v1/mcp" },
+    { "source": "/mcp/:path*", "destination": "https://oxjcfsgwzpnajxrkwiai.supabase.co/functions/v1/mcp/:path*" },
+    {
+      "source": "/.well-known/oauth-protected-resource/mcp",
+      "destination": "https://oxjcfsgwzpnajxrkwiai.supabase.co/functions/v1/mcp/.well-known/oauth-protected-resource"
+    }
+  ]
+}
