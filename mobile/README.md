@@ -10,7 +10,7 @@ of how a line behaves and how a change merges, and the Mac's unit tests cover it
 folder holds what's specific to a phone: touch, the keyboard, and the app lifecycle.
 
 > [!NOTE]
-> Like the Mac app, this is early alpha.
+> Like the Mac app, this is in beta.
 
 ## How it differs from the Mac
 
@@ -62,7 +62,8 @@ VoiceOver reads lines in the day's order.
   link. Previews are cached on the phone (`links.sqlite`), never synced, and removed on
   sign-out. Until a page answers, or if it can't, the line shows the link's address.
 - **Cue is in the share sheet.** Share a link (or text) from Safari, X, YouTube or any
-  app, and it's added to the end of today as a new line. The extension
+  app, and it's added to today: a link goes last under the day's "Links" bullet (made at
+  the end of the day if there isn't one), text goes at the end of the day. The extension
   (`plugins/share-extension`) only confirms: "Added to Today", then it's gone. It can't
   reach the notes or the sync server, so it leaves the share in the app group's inbox,
   and Cue adds it the next time it comes to the screen; the new line glows, and syncs

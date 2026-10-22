@@ -8,10 +8,9 @@
   Fast, quiet and keyboard-first.
 </p>
 
-> [!WARNING]
-> **Cue is an early alpha.** The storage format may still change and your notes could be
-> lost. Don't keep anything in Cue you can't afford to lose, and export often
-> (File ▸ Export as Markdown).
+> [!NOTE]
+> **Cue is in beta.** I use it every day on my Mac and iPhone as my daily driver, without
+> any issues. It's still young, so export now and then (File ▸ Export as Markdown).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/week-dark.png">
@@ -176,7 +175,7 @@ in [docs/brand](docs/brand).
 There isn't a big one, on purpose. Cue is meant to stay small, so most of the work goes into
 making what's already here faster and more dependable. Nothing below is promised to a date.
 
-**Before beta:** a stable storage format with tested migrations, signed Mac downloads with
+**Before the stable 1.0:** a stable storage format with tested migrations, signed Mac downloads with
 automatic updates, and TestFlight builds for iPhone.
 
 **Exploring:**

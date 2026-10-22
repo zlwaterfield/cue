@@ -316,3 +316,17 @@ export function insertLinesAfter(tx: Tx, date: ISODate, afterId: string | null, 
   }
   return placeLines(tx, date, null, 'end', lines)
 }
+
+/** A top-level "Links" line (any marker, an optional colon, any case). */
+function linksHeading(tx: Tx, date: ISODate): string | null {
+  return tx.children(null, date).find((item) => /^links:?$/i.test(item.text.trim()))?.id ?? null
+}
+
+/**
+ * Add a shared link as the last line under the day's "Links" bullet, making that bullet
+ * at the end of the day first if there isn't one. Returns the new line's id.
+ */
+export function addToLinks(tx: Tx, date: ISODate, line: LineSpec): string {
+  const heading = linksHeading(tx, date) ?? placeLines(tx, date, null, 'end', [{ depth: 0, type: 'bullet', done: false, text: 'Links' }])[0]
+  return placeLines(tx, date, heading, tx.lastChildId(heading, date) ?? null, [{ ...line, depth: 0 }])[0]
+}

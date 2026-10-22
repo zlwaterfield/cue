@@ -160,9 +160,10 @@ export function AboutSheet() {
           <img src={lockupLight} alt="cue" />
         </picture>
         <div className="about-tagline">Every day is a page.</div>
-        <div className="about-version">Version {__APP_VERSION__} · alpha</div>
-        <p className="about-alpha">
-          Cue is in early alpha and not ready for real use. Your notes could be lost at any time, so export often.
+        <div className="about-version">Version {__APP_VERSION__}</div>
+        <p className="about-beta">
+          Cue is in beta. I use it every day as my daily driver without any issues, but it's still young, so export
+          now and then.
         </p>
         <div className="button-row">
           <button className="button" onClick={() => void backend.openExternal('https://github.com/zlwaterfield/cue')}>

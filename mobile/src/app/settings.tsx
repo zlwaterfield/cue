@@ -78,7 +78,7 @@ export default function SettingsSheet() {
     )
   }
 
-  const version = Constants.expoConfig?.version ?? '0.2.1'
+  const version = Constants.expoConfig?.version ?? '1.0.0'
   const reportIssue = (): void => {
     void Linking.openURL(reportIssueUrl(`iPhone, version ${version} (iOS ${Platform.Version})`)).catch(() => {
       Alert.alert('Couldn’t open GitHub', 'Please try again.')
@@ -142,7 +142,7 @@ export default function SettingsSheet() {
       <View style={styles.about}>
         <SvgXml xml={lockup(c.text3)} width={56} height={28} />
         <Text style={[styles.version, { color: c.text2 }]}>
-          Version {version} · alpha. Your notes sync across your devices.
+          Version {version} · beta. Your notes sync across your devices.
         </Text>
       </View>
     </ScrollView>

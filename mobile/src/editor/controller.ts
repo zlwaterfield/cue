@@ -7,6 +7,7 @@ import { rollover } from '@shared/editor/rollover'
 import { Tx } from '@shared/editor/tx'
 import { revert, UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
 import { uuidv7 } from '@shared/ids'
+import { soleLink } from '@shared/links'
 import { movedToTodayLabel } from '@shared/looseEnds'
 import { parseMarkdownLines } from '@shared/markdown'
 import type { ISODate, Item, ItemType } from '@shared/types'
@@ -628,7 +629,11 @@ export class Editor {
       if (!lines.length) continue
       let created: string[] = []
       this.undo.seal()
-      this.commit('Add from Share', (tx) => void (created = ops.insertLinesAfter(tx, today, null, lines)))
+      // A link goes under the day's Links bullet; text goes at the end of the day.
+      const link = lines.length === 1 && soleLink(lines[0].text) ? lines[0] : null
+      this.commit('Add from Share', (tx) => {
+        created = link ? [ops.addToLinks(tx, today, link)] : ops.insertLinesAfter(tx, today, null, lines)
+      })
       last = created[0] ?? last
     }
     if (!last) return

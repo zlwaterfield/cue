@@ -6,9 +6,9 @@ sync server, so it works for accounts with sync on, and its edits reach your Mac
 the way another device's would, usually within a second.
 
 ```
- assistant ──POST JSON-RPC──▶ Edge Function `mcp` ──REST, as you──▶ items (RLS)
-     │        Bearer token        src/shared/mcp           sync_push ──▶ Realtime ──▶ Mac, iPhone
-     └──OAuth──▶ Supabase Auth ──▶ usecue.today/oauth/consent (sign in, Allow)
+ assistant ──POST JSON-RPC──▶ www.usecue.today/mcp ──proxy──▶ Edge Function `mcp` ──REST, as you──▶ items (RLS)
+     │        Bearer token                                    src/shared/mcp           sync_push ──▶ Realtime ──▶ Mac, iPhone
+     └──OAuth──▶ Supabase Auth ──▶ www.usecue.today/oauth/consent (sign in, Allow)
 ```
 
 ## Decision
@@ -49,20 +49,22 @@ correct itself.
 
 ## Connecting
 
-1. In the assistant, add a custom connector with the URL
-   `https://<project>.supabase.co/functions/v1/mcp`. The connected-apps page shows it with
-   a Copy button.
+1. In the assistant, add a custom connector with the URL `https://www.usecue.today/mcp`.
+   The connected-apps page shows it with a Copy button. The site proxies it to the function
+   (`site/vercel.json`), so the assistant only ever sees Cue's domain for the server itself.
+   Use `www`: the bare domain redirects there, and not every client follows a redirect on a
+   POST.
 2. The assistant's first request gets a `401` whose `WWW-Authenticate` header points to
    this server's protected-resource metadata. That names Supabase Auth
    (`https://<project>.supabase.co/auth/v1`) as the authorization server.
 3. The assistant registers itself (dynamic client registration) and opens Supabase's
    authorize URL. Supabase sends the browser to
-   `usecue.today/oauth/consent?authorization_id=…` (`site/oauth/consent/`).
+   `www.usecue.today/oauth/consent?authorization_id=…` (`site/oauth/consent/`).
 4. The page signs you in with an emailed six-digit code, as the apps do, and asks: "Connect
    Claude to Cue?" **Allow** sends you back to the assistant with a code. The assistant
    trades it for tokens and refreshes them as needed.
 
-The same page, opened without a request (`usecue.today/oauth/consent`), lists the connected
+The same page, opened without a request (`www.usecue.today/oauth/consent`), lists the connected
 assistants with **Disconnect**. Disconnecting ends the assistant's sessions and refresh
 token. Its current access token keeps working until it expires, at most an hour
 (`jwt_expiry`). Signing out on that page signs out only that browser.
@@ -95,16 +97,29 @@ On a project already set up for sync ([SYNC.md](SYNC.md#setting-up-a-server)):
 
 1. **Apply the migrations** (`npx supabase db push`), which add the limits above. Check that
    **Auth → Providers → Email → Secure email change** is on.
-2. **Deploy the function:** `npx supabase functions deploy mcp --no-verify-jwt`. The function
+2. **Deploy the function:** set the URL assistants connect to, then deploy:
+
+   ```sh
+   npx supabase secrets set CUE_MCP_URL=https://www.usecue.today/mcp
+   npx supabase functions deploy mcp --no-verify-jwt
+   ```
+
+   The function names `CUE_MCP_URL` as the resource in its discovery document, and clients
+   check that it matches the URL they connected to. Without it, the function names its own
+   Supabase URL, which is what the local stack uses. The function
    checks tokens itself, so it can send the `401` that starts sign-in. It imports
    `src/shared` directly; `supabase/functions/mcp/deno.json` maps the extensionless imports
    Deno needs spelled out. If a new shared import fails with "Module not found", add it
    there.
 3. **Auth → OAuth Server:** turn it on, set the authorization path to `/oauth/consent`, and
    allow dynamic client registration.
-4. **Auth → URL Configuration:** set the Site URL to `https://usecue.today`, where the
-   consent page lives. Keep the redirect URLs the apps use in the allow list.
-5. **Deploy the site** (`site/`) so that `/oauth/consent` serves `site/oauth/consent/index.html`.
+4. **Auth → URL Configuration:** set the Site URL to `https://www.usecue.today`, where the
+   consent page lives. It must be the `www` host the page is served from: with the bare
+   domain, Supabase refuses the page's calls and it says the link has expired. Keep the redirect URLs the apps use in the allow list.
+5. **Deploy the site** (`site/`) so that `/oauth/consent` serves `site/oauth/consent/index.html`
+   and `/mcp` proxies to the function. `site/vercel.json` holds the proxy, with the project
+   URL written into it; on another host, rewrite `/mcp` and `/mcp/*` to
+   `https://<project>.supabase.co/functions/v1/mcp` the same way.
    The page embeds the project URL and publishable key, which are public by design. When
    served from `localhost` or `127.0.0.1` it uses the local stack instead.
 
