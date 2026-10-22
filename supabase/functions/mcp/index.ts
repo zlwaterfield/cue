@@ -3,6 +3,8 @@ import { SupabaseNotes, Unauthorized } from '../../../src/shared/mcp/notes.ts'
 
 /**
  * Cue's MCP endpoint: POST JSON-RPC to /functions/v1/mcp with a Supabase access token.
+ * Hosted, people reach it as www.usecue.today/mcp, which the site proxies here
+ * (site/vercel.json).
  * Assistants get that token by OAuth from Supabase Auth, with consent given on
  * usecue.today/oauth/consent. A request without a usable token gets a 401 that points
  * to this resource's metadata, which is how an MCP client finds where to sign in.
@@ -14,7 +16,8 @@ const API = Deno.env.get('SUPABASE_URL')!
 /** Where people reach this project. The same as API when hosted. */
 const PUBLIC = Deno.env.get('CUE_PUBLIC_URL') ?? API
 const KEY = JSON.parse(Deno.env.get('SUPABASE_PUBLISHABLE_KEYS') ?? '{}').default ?? Deno.env.get('SUPABASE_ANON_KEY')!
-const RESOURCE = `${PUBLIC}/functions/v1/mcp`
+/** The URL assistants connect to, which discovery must name exactly (CUE_MCP_URL when hosted). */
+const RESOURCE = Deno.env.get('CUE_MCP_URL') ?? `${PUBLIC}/functions/v1/mcp`
 const METADATA = `${RESOURCE}/.well-known/oauth-protected-resource`
 
 // Browser-based clients (such as the MCP Inspector) call from other origins.
