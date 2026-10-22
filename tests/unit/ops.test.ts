@@ -249,6 +249,28 @@ describe('Paste', () => {
   })
 })
 
+describe('Sharing a link', () => {
+  const link = { depth: 0, type: 'text' as const, done: false, text: 'https://example.com' }
+
+  it('adds it under a new Links bullet at the end of the day', async () => {
+    await setup('a\n  b')
+    run((tx) => ops.addToLinks(tx, DAY, link))
+    expect(render(store)).toBe('a\n  b\n- Links\n  https://example.com')
+  })
+
+  it('adds it last under the day’s Links line, whatever its marker or case', async () => {
+    await setup('links:\n  https://one.com\n    note\nlater')
+    run((tx) => ops.addToLinks(tx, DAY, link))
+    expect(render(store)).toBe('links:\n  https://one.com\n    note\n  https://example.com\nlater')
+  })
+
+  it('ignores a nested Links line', async () => {
+    await setup('- a\n  - Links')
+    run((tx) => ops.addToLinks(tx, DAY, link))
+    expect(render(store)).toBe('- a\n  - Links\n- Links\n  https://example.com')
+  })
+})
+
 describe('Regression', () => {
   it('pastes into a parent without pushing the rest of the line below its children', async () => {
     await setup('HelloWorld\n  c')
