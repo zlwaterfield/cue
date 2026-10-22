@@ -74,16 +74,27 @@ ordinary Supabase session token with a `client_id` claim, so row-level security 
 it unchanged.
 
 **Nothing deletes, at the database too.** An assistant holds its token and could call the
-database without this server, so the consent page's "It can't delete anything" is enforced
-there (`supabase/migrations/20261021000000_assistants_cannot_delete.sql`). A token with a
-`client_id` can't run `sync_delete_account`, and `sync_push` refuses its records if any is
-deleted. The apps' own sessions have no `client_id` and are unaffected.
+database or Supabase Auth without this server, so the consent page's "It can't delete
+anything" is enforced there (`supabase/migrations/20261021000000_assistant_limits.sql`):
+
+- A token with a `client_id` (kept when it's refreshed) can't run `sync_delete_account`, and
+  `sync_push` refuses its records if any is deleted, reading `deleted` the way the upsert
+  does (`"t"` and `"yes"` count too).
+- No account can be given a password. Cue signs in only with emailed codes and Apple, and
+  a password set through Supabase Auth would sign in without the assistant's claim.
+- Changing the email address needs confirming from the current address too (Supabase's
+  secure email change, on by default; keep it on).
+
+The apps' own sessions have no `client_id` and are unaffected. An assistant can still sign
+every device out (`/auth/v1/logout?scope=global`); the apps keep every note when that
+happens, and signing in again picks up where they left off.
 
 ## Setting up a server
 
 On a project already set up for sync ([SYNC.md](SYNC.md#setting-up-a-server)):
 
-1. **Apply the migrations** (`npx supabase db push`), which adds the delete guard above.
+1. **Apply the migrations** (`npx supabase db push`), which add the limits above. Check that
+   **Auth → Providers → Email → Secure email change** is on.
 2. **Deploy the function:** `npx supabase functions deploy mcp --no-verify-jwt`. The function
    checks tokens itself, so it can send the `401` that starts sign-in. It imports
    `src/shared` directly; `supabase/functions/mcp/deno.json` maps the extensionless imports
@@ -118,8 +129,9 @@ python3 -m http.server 4173 -d site
   and the discovery documents, dynamic registration, consent, the token exchange with PKCE,
   then an added to-do reaching a signed-in Mac and being checked off. It also covers the
   assistant's token failing to delete the account or a line when calling the database
-  directly, another account's line being invisible, forged and expired tokens, and
-  disconnecting from the site. It runs with `pnpm test:sync`.
+  directly, to set a password or change the email, keeping its claim when refreshed,
+  another account's line being invisible, forged and expired tokens, and disconnecting
+  from the site. It runs with `pnpm test:sync`.
 
 **Known limits**
 

@@ -151,10 +151,31 @@ describe.skipIf(!syncServer)('MCP server', { timeout: 30_000 }, () => {
     const line = mac.repo.allItems().find((i) => !i.deleted)!
     const tombstone = { ...line, deleted: true, version: line.version.replace(/^0/, 'z') }
     expect((await rpc('sync_push', { records: [tombstone] })).status).toBe(403)
+    // Postgres reads these as true too.
+    for (const deleted of ['t', 'TRUE', 'yes', 'on', '1', ' true ']) {
+      expect((await rpc('sync_push', { records: [{ ...tombstone, deleted }] })).status, `deleted: ${JSON.stringify(deleted)}`).toBe(403)
+    }
     // The account and the line are still there.
     await mac.engine.sync()
     expect(mac.repo.get(line.id)?.deleted).toBe(false)
     expect(await tool('get_day', { date: line.date })).toContain(line.id)
+  })
+
+  it('can’t take over the account through Supabase Auth', async () => {
+    const headers = { apikey: syncServer!.key, authorization: `Bearer ${token.access_token}`, 'content-type': 'application/json' }
+    // A password would sign in without the assistant's claim, so no account can have one.
+    const password = await fetch(`${auth}/user`, { method: 'PUT', headers, body: JSON.stringify({ password: 'correct-horse-battery' }) })
+    expect(password.ok).toBe(false)
+    const signIn = await fetch(`${auth}/token?grant_type=password`, {
+      method: 'POST',
+      headers: { apikey: syncServer!.key, 'content-type': 'application/json' },
+      body: JSON.stringify({ email: mac.account.email, password: 'correct-horse-battery' })
+    })
+    expect(signIn.ok).toBe(false)
+    // A new address must be confirmed from the current one too (secure email change).
+    await fetch(`${auth}/user`, { method: 'PUT', headers, body: JSON.stringify({ email: testEmail('takeover') }) })
+    const user = await (await fetch(`${auth}/user`, { headers })).json()
+    expect(user.email).toBe(mac.account.email)
   })
 
   it('reads and writes only the signed-in person’s notes', async () => {
@@ -176,6 +197,18 @@ describe.skipIf(!syncServer)('MCP server', { timeout: 30_000 }, () => {
     expect(forgedCall.headers.get('www-authenticate')).toMatch(/error="invalid_token"/)
     const expired = `${header}.${Buffer.from(JSON.stringify({ ...claims, exp: 1 })).toString('base64url')}.${signature}`
     expect((await mcp('tools/list', {}, expired)).status).toBe(401)
+  })
+
+  it('keeps the assistant’s claim when its token is refreshed', async () => {
+    const refreshed = await fetch(`${auth}/oauth/token`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: token.refresh_token, client_id: clientId })
+    })
+    expect(refreshed.status).toBe(200)
+    token = await refreshed.json()
+    const claims = JSON.parse(Buffer.from(token.access_token.split('.')[1], 'base64url').toString())
+    expect(claims.client_id).toBe(clientId)
   })
 
   it('lists the connection on the site and disconnects it', async () => {

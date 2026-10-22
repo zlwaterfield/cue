@@ -1,7 +1,8 @@
 -- Assistants connected over MCP (docs/MCP.md) hold an OAuth token: the person's own
 -- session plus a `client_id` claim, which the apps' sessions never have. The consent page
 -- promises an assistant can't delete anything, so the database refuses it here, whatever
--- the assistant calls directly: no deleting the account, and no deleted lines in a push.
+-- the assistant calls directly: no deleting the account, no deleted lines in a push, and
+-- no password (below), which would let it sign in as the person without the claim.
 
 create or replace function public.sync_delete_account()
 returns void
@@ -38,8 +39,9 @@ begin
   if jsonb_typeof(records) <> 'array' then
     raise exception 'records must be an array' using errcode = '22023';
   end if;
+  -- Read `deleted` exactly as the upsert below does: Postgres also takes "t", "yes", "on"…
   if (auth.jwt() ->> 'client_id') is not null
-     and exists (select 1 from jsonb_array_elements(records) as r where r ->> 'deleted' = 'true') then
+     and exists (select 1 from jsonb_to_recordset(records) as r(deleted boolean) where r.deleted) then
     raise exception 'Assistants can''t delete lines' using errcode = '42501';
   end if;
 
@@ -97,3 +99,23 @@ begin
   return jsonb_build_object('before', before_seq, 'after', after_seq);
 end;
 $$;
+
+-- Cue signs in only with emailed codes and Apple, never a password. Any session, an
+-- assistant's included, can set one through Supabase Auth, and signing in with it gives a
+-- session without the assistant's claim. So no account may have a password.
+create function public.refuse_passwords()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if coalesce(new.encrypted_password, '') <> '' and new.encrypted_password is distinct from old.encrypted_password then
+    raise exception 'Cue accounts don''t use passwords' using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger refuse_passwords
+  before update of encrypted_password on auth.users
+  for each row execute function public.refuse_passwords();
