@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { formatVersion } from '../../src/shared/hlc'
-import type { Notes } from '../../src/shared/mcp/notes'
+import { SupabaseNotes, type Notes } from '../../src/shared/mcp/notes'
 import { handleMessage } from '../../src/shared/mcp/server'
 import { buildOutline } from '../../src/shared/outline'
 import type { ISODate, Item } from '../../src/shared/types'
@@ -205,5 +205,21 @@ describe('MCP tools', () => {
     const { text } = await call('update_lines', { ids: [shipped.id], done: true })
     expect(text).toMatch(/Nothing to change/)
     expect(notes.pushes).toHaveLength(0)
+  })
+})
+
+describe('SupabaseNotes', () => {
+  it('reads a whole day, however many pages it takes', async () => {
+    const urls: string[] = []
+    const rows = Array.from({ length: 1005 }, (_, i) => newItem({ id: `id-${String(i).padStart(4, '0')}`, date: DAY }))
+    const fetcher = (async (url: string) => {
+      urls.push(url)
+      const offset = Number(/offset=(\d+)/.exec(url)![1])
+      return new Response(JSON.stringify(rows.slice(offset, offset + 1000)))
+    }) as typeof fetch
+    const day = await new SupabaseNotes('https://cue.test', 'key', 'token', fetcher).itemsOn([DAY])
+    expect(day).toHaveLength(1005)
+    expect(urls.map((u) => /offset=\d+/.exec(u)![0])).toEqual(['offset=0', 'offset=1000'])
+    expect(urls[0]).toContain('order=id')
   })
 })

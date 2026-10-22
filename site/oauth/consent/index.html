@@ -99,6 +99,7 @@ li span { display: block; }
     <p>To use Cue from Claude, ChatGPT or another assistant, add Cue as a custom connector with this URL:</p>
     <div class="url"><code class="mcp-url"></code><button class="secondary" data-action="copy">Copy</button></div>
     <p class="small none">No assistants are connected yet.</p>
+    <p class="error" role="alert"></p>
     <ul class="grants"></ul>
     <p class="small" style="margin-top:16px">Signed in as <span class="account"></span>. <button class="link" data-action="signout">Sign Out</button></p>
   </section>
@@ -177,6 +178,9 @@ async function connections() {
   const { data, error } = await supabase.auth.oauth.listGrants()
   const list = $('.grants')
   list.replaceChildren()
+  // A failed load isn't an empty list: say so, rather than hide what's connected.
+  fail('connections', error ? 'Your assistants couldn’t be loaded. Reload the page to try again.' : '')
+  $('.none').hidden = Boolean(error) || data.length > 0
   for (const grant of error ? [] : data) {
     const item = document.createElement('li')
     const label = document.createElement('div')
@@ -190,13 +194,13 @@ async function connections() {
     button.className = 'secondary'
     button.textContent = 'Disconnect'
     button.onclick = () => busy(button, async () => {
-      await supabase.auth.oauth.revokeGrant({ clientId: grant.client.id })
+      const { error } = await supabase.auth.oauth.revokeGrant({ clientId: grant.client.id })
+      if (error) return fail('connections', `${grant.client.name || 'The assistant'} couldn’t be disconnected. Try again in a moment.`)
       await connections()
     })
     item.append(label, button)
     list.append(item)
   }
-  $('.none').hidden = list.children.length > 0
   show('connections')
 }
 

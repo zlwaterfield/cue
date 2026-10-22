@@ -14,10 +14,11 @@ the way another device's would, usually within a second.
 ## Decision
 
 **One Supabase Edge Function, acting as just another sync client, with Supabase Auth as the
-OAuth server.** There's no new database schema, service key or server to run.
+OAuth server.** There's no new table, service key or server to run.
 
 - **Reads** use your own access token against the `items` table, so row-level security
-  decides what's visible, exactly as it does for the apps.
+  decides what's visible, exactly as it does for the apps. A day is read in full, page by
+  page, because edits place lines among all of its lines.
 - **Writes** run the editor's own operations (`src/shared/editor/ops.ts`: `insertLinesAfter`,
   `moveToDate`) over the days involved, then upload the changes with `sync_push`. A line an
   assistant adds or moves lands exactly where it would if you typed it, and the push's
@@ -72,20 +73,27 @@ a forged token never reads or writes anything (it also gets a `401`). An OAuth t
 ordinary Supabase session token with a `client_id` claim, so row-level security applies to
 it unchanged.
 
+**Nothing deletes, at the database too.** An assistant holds its token and could call the
+database without this server, so the consent page's "It can't delete anything" is enforced
+there (`supabase/migrations/20261021000000_assistants_cannot_delete.sql`). A token with a
+`client_id` can't run `sync_delete_account`, and `sync_push` refuses its records if any is
+deleted. The apps' own sessions have no `client_id` and are unaffected.
+
 ## Setting up a server
 
 On a project already set up for sync ([SYNC.md](SYNC.md#setting-up-a-server)):
 
-1. **Deploy the function:** `npx supabase functions deploy mcp --no-verify-jwt`. The function
+1. **Apply the migrations** (`npx supabase db push`), which adds the delete guard above.
+2. **Deploy the function:** `npx supabase functions deploy mcp --no-verify-jwt`. The function
    checks tokens itself, so it can send the `401` that starts sign-in. It imports
    `src/shared` directly; `supabase/functions/mcp/deno.json` maps the extensionless imports
    Deno needs spelled out. If a new shared import fails with "Module not found", add it
    there.
-2. **Auth → OAuth Server:** turn it on, set the authorization path to `/oauth/consent`, and
+3. **Auth → OAuth Server:** turn it on, set the authorization path to `/oauth/consent`, and
    allow dynamic client registration.
-3. **Auth → URL Configuration:** set the Site URL to `https://usecue.today`, where the
+4. **Auth → URL Configuration:** set the Site URL to `https://usecue.today`, where the
    consent page lives. Keep the redirect URLs the apps use in the allow list.
-4. **Deploy the site** (`site/`) so that `/oauth/consent` serves `site/oauth/consent/index.html`.
+5. **Deploy the site** (`site/`) so that `/oauth/consent` serves `site/oauth/consent/index.html`.
    The page embeds the project URL and publishable key, which are public by design. When
    served from `localhost` or `127.0.0.1` it uses the local stack instead.
 
@@ -104,12 +112,14 @@ python3 -m http.server 4173 -d site
 
 - **`tests/unit/mcp.test.ts`** covers the protocol and every tool over an in-memory server:
   the Markdown with ids, nesting, adding after a line, checking off, rewriting, moving with
-  children, beating a device whose clock runs ahead, and sending nothing when nothing changes.
+  children, beating a device whose clock runs ahead, sending nothing when nothing changes, and
+  reading a day longer than one page.
 - **`tests/integration/mcp.test.ts`** runs the whole thing against the local stack: the `401`
   and the discovery documents, dynamic registration, consent, the token exchange with PKCE,
-  then an added to-do reaching a signed-in Mac and being checked off. It also covers another
-  account's line being invisible, forged and expired tokens, and disconnecting from the
-  site. It runs with `pnpm test:sync`.
+  then an added to-do reaching a signed-in Mac and being checked off. It also covers the
+  assistant's token failing to delete the account or a line when calling the database
+  directly, another account's line being invisible, forged and expired tokens, and
+  disconnecting from the site. It runs with `pnpm test:sync`.
 
 **Known limits**
 

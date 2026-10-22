@@ -18,6 +18,7 @@ export class Unauthorized extends Error {}
 
 const COLUMNS =
   'id,date,parentId:parent_id,position,type,text,done,createdAt:created_at,updatedAt:updated_at,deleted,version'
+/** Supabase's default page size: a query never returns more rows than this. */
 const MAX_ROWS = 1000
 
 /**
@@ -32,8 +33,14 @@ export class SupabaseNotes implements Notes {
     private readonly fetcher: typeof fetch = fetch
   ) {}
 
-  itemsOn(dates: ISODate[]): Promise<Item[]> {
-    return this.select(`date=in.(${dates.join(',')})`)
+  /** Whole days, however long: edits place lines among all of a day's lines. */
+  async itemsOn(dates: ISODate[]): Promise<Item[]> {
+    const rows = new Map<string, Item>()
+    for (let offset = 0; ; offset += MAX_ROWS) {
+      const page = await this.select(`date=in.(${dates.join(',')})&order=id&offset=${offset}`)
+      for (const item of page) rows.set(item.id, item)
+      if (page.length < MAX_ROWS) return [...rows.values()]
+    }
   }
 
   items(ids: string[]): Promise<Item[]> {

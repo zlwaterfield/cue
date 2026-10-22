@@ -140,6 +140,23 @@ describe.skipIf(!syncServer)('MCP server', { timeout: 30_000 }, () => {
     expect(await tool('search', { query: 'plants' })).toContain('Water the plants')
   })
 
+  it('can’t delete, even calling the database directly with its token', async () => {
+    const rpc = (name: string, body: object): Promise<Response> =>
+      fetch(`${syncServer!.url}/rest/v1/rpc/${name}`, {
+        method: 'POST',
+        headers: { apikey: syncServer!.key, authorization: `Bearer ${token.access_token}`, 'content-type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+    expect((await rpc('sync_delete_account', {})).status).toBe(403)
+    const line = mac.repo.allItems().find((i) => !i.deleted)!
+    const tombstone = { ...line, deleted: true, version: line.version.replace(/^0/, 'z') }
+    expect((await rpc('sync_push', { records: [tombstone] })).status).toBe(403)
+    // The account and the line are still there.
+    await mac.engine.sync()
+    expect(mac.repo.get(line.id)?.deleted).toBe(false)
+    expect(await tool('get_day', { date: line.date })).toContain(line.id)
+  })
+
   it('reads and writes only the signed-in person’s notes', async () => {
     const theirs = mac.repo.allItems()[0]
     const stranger = createClient(syncServer!.url, syncServer!.key, { auth: { persistSession: false } })
