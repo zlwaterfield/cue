@@ -10,7 +10,7 @@ of how a line behaves and how a change merges, and the Mac's unit tests cover it
 folder holds what's specific to a phone: touch, the keyboard, and the app lifecycle.
 
 > [!NOTE]
-> Like the Mac app, this is early alpha.
+> Like the Mac app, this is in beta.
 
 ## How it differs from the Mac
 
