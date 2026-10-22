@@ -859,6 +859,12 @@ class EditorController {
       case 'go.date':
         this.openOverlay({ kind: 'palette', mode: 'date', dateAction: 'go' })
         return
+      case 'looseEnds.toggle':
+        void this.toggleLooseEnds()
+        return
+      case 'looseEnds.moveAll':
+        void this.moveAllLooseEnds()
+        return
       case 'edit.undo':
       case 'edit.redo':
         if (isTextInput(document.activeElement)) {
@@ -1034,6 +1040,53 @@ class EditorController {
       showToast(`Moved to ${label}`, { undo: true })
       this.toastEntry = this.undo.top()
     }
+  }
+
+  /* ========================================================= Loose ends */
+
+  /** Unfinished to-dos left on earlier days, oldest day first. Set by the Loose ends list on Today. */
+  looseEnds: () => string[] = () => []
+
+  private async toggleLooseEnds(): Promise<void> {
+    const { settings, today, view, looseEndsOpen } = ui.get()
+    if (!settings.looseEnds) {
+      showToast('Earlier to-dos are turned off in Settings')
+      return
+    }
+    const showsToday = view.mode === 'week' || view.date === today
+    if (!showsToday) {
+      await this.navigate({ mode: 'day', date: today })
+      ui.set({ looseEndsOpen: true })
+    } else ui.set({ looseEndsOpen: !looseEndsOpen })
+  }
+
+  private async moveAllLooseEnds(): Promise<void> {
+    if (!ui.get().settings.looseEnds) {
+      showToast('Earlier to-dos are turned off in Settings')
+      return
+    }
+    const ids = this.looseEnds()
+    if (!ids.length) {
+      showToast('Nothing open from earlier days')
+      return
+    }
+    await this.pullToToday(ids)
+  }
+
+  /** Move to-dos (with what's under them) to the end of today, leaving the caret where it is. */
+  async pullToToday(ids: string[]): Promise<void> {
+    const today = ui.get().today
+    await itemStore.ensureLoaded([today])
+    const live = ids.filter((id) => itemStore.get(id))
+    const moved = this.commit('Move', (tx) => void ops.moveToDate(tx, live, today), { keepSelection: true })
+    if (!moved) return
+    showToast(live.length === 1 ? 'Moved to today' : `Moved ${live.length} to-dos to today`, { undo: true })
+    this.toastEntry = this.undo.top()
+  }
+
+  /** Complete or reopen a to-do from somewhere other than its own line, leaving the caret where it is. */
+  toggleDoneElsewhere(id: string): void {
+    this.commit('Complete', (tx) => void ops.toggleDone(tx, [id]), { keepSelection: true })
   }
 
   /* ========================================================== Navigation */

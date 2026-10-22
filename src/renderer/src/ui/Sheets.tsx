@@ -113,7 +113,7 @@ export function ShortcutsSheet() {
 }
 
 /** A radio group: one Tab stop (the chosen option), arrow keys to change it. */
-function Segmented<T extends string | number>({
+function Segmented<T extends string | number | boolean>({
   value,
   options,
   onChange
@@ -222,6 +222,20 @@ export function SettingsSheet() {
             [0, 'Sunday']
           ]}
           onChange={(weekStartsOn) => update({ weekStartsOn })}
+        />
+      </div>
+      <div className="setting">
+        <div>
+          <div className="setting-label">Earlier to-dos on Today</div>
+          <div className="setting-help">Today starts with the to-dos you didn’t finish in the last 30 days, folded into one line.</div>
+        </div>
+        <Segmented
+          value={settings.looseEnds}
+          options={[
+            [true, 'Show'],
+            [false, 'Hide']
+          ]}
+          onChange={(looseEnds) => update({ looseEnds })}
         />
       </div>
       <SyncSettings />

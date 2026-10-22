@@ -109,6 +109,7 @@ export function buildMenu(options: { isDev: boolean; syncAvailable: boolean }): 
         command('go.today', 'Today'),
         command('go.tomorrow', 'Tomorrow'),
         command('go.week', 'This Week'),
+        command('looseEnds.toggle', 'Earlier Open To-dos'),
         separator,
         command('go.prevDay', 'Previous Day'),
         command('go.nextDay', 'Next Day'),

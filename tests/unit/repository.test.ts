@@ -68,6 +68,32 @@ describe('Repository', () => {
     expect(repo.search('   ')).toHaveLength(0)
   })
 
+  it('lists the days with an unfinished to-do, oldest first', () => {
+    const repo = memoryRepo()
+    const gone = newItem({ date: '2026-10-12', type: 'todo', text: 'deleted' })
+    repo.saveItems([
+      newItem({ date: '2026-10-15', type: 'todo', text: 'open' }),
+      newItem({ date: '2026-10-15', type: 'todo', text: 'open too' }),
+      newItem({ date: '2026-10-10', type: 'todo', text: 'open, nested', parentId: 'p' }),
+      newItem({ date: '2026-10-13', type: 'todo', text: 'done', done: true }),
+      newItem({ date: '2026-10-14', type: 'bullet', text: 'not a to-do' }),
+      newItem({ date: '2026-10-20', type: 'todo', text: 'after the range' }),
+      gone
+    ])
+    repo.saveItems([{ ...gone, deleted: true }])
+    expect(repo.datesWithOpenTodos('2026-10-01', '2026-10-19')).toEqual(['2026-10-10', '2026-10-15'])
+    expect(repo.datesWithOpenTodos('2026-10-11', '2026-10-14')).toEqual([])
+  })
+
+  it('shows earlier to-dos on Today unless turned off, and keeps the choice', () => {
+    const repo = memoryRepo()
+    expect(repo.getSettings().looseEnds).toBe(true)
+    repo.setSettings({ looseEnds: false })
+    expect(repo.getSettings()).toEqual({ theme: 'system', weekStartsOn: 1, looseEnds: false })
+    repo.setMeta('settings', JSON.stringify({ theme: 'dark', looseEnds: 'yes' }))
+    expect(repo.getSettings()).toEqual({ theme: 'dark', weekStartsOn: 1, looseEnds: true })
+  })
+
   it('skips malformed records without blocking the rest of the batch', () => {
     const repo = memoryRepo()
     const good = newItem({ text: 'still saved' })

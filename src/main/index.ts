@@ -257,6 +257,7 @@ function registerIpc(): void {
   })
   ipcMain.handle('items:search', (_e, query: string, limit?: number) => repo.search(query, limit))
   ipcMain.handle('items:dates', (_e, from: string, to: string) => repo.datesWithItems(from, to))
+  ipcMain.handle('items:openTodoDates', (_e, from: string, to: string) => repo.datesWithOpenTodos(from, to))
 
   ipcMain.handle('settings:get', () => repo.getSettings())
   ipcMain.handle('settings:set', (_e, patch: Partial<Settings>) => {

@@ -4,6 +4,7 @@ import type { ISODate } from '@shared/types'
 import { controller, ghostId } from './controller'
 import { useOutline } from './hooks'
 import { ItemRow } from './ItemRow'
+import { LooseEnds } from './LooseEnds'
 
 const START_TYPING = 'Start typing…'
 
@@ -88,6 +89,7 @@ export const DaySection = memo(function DaySection({
         </h2>
         <span className="day-sub">{daySubtitle(date, today)}</span>
       </header>
+      {delta === 0 && <LooseEnds today={today} />}
       <div className="rows">
         {rows.map((row) => (
           <ItemRow key={row.id} id={row.id} depth={row.depth} date={date} />
