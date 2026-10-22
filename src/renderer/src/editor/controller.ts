@@ -2,6 +2,7 @@ import { flushSync } from 'react-dom'
 import { COMMANDS_BY_ID } from '@shared/commands'
 import { uuidv7 } from '@shared/ids'
 import { addDays, friendlyDate, nextWeekday, startOfWeek, todayISO, weekViewDates } from '@shared/dates'
+import { collectLooseEnds, looseEndsRange, movedToTodayLabel } from '@shared/looseEnds'
 import { linesToMarkdown, parseMarkdownLines, type LineSpec } from '@shared/markdown'
 import type { ISODate, Item, ItemType, Settings } from '@shared/types'
 import { backend } from '../data/backend'
@@ -1044,9 +1045,6 @@ class EditorController {
 
   /* ========================================================= Loose ends */
 
-  /** Unfinished to-dos left on earlier days, oldest day first. Set by the Loose ends list on Today. */
-  looseEnds: () => string[] = () => []
-
   private async toggleLooseEnds(): Promise<void> {
     const { settings, today, view, looseEndsOpen } = ui.get()
     if (!settings.looseEnds) {
@@ -1065,7 +1063,13 @@ class EditorController {
       showToast('Earlier to-dos are turned off in Settings')
       return
     }
-    const ids = this.looseEnds()
+    // Found afresh, so this works from any page, not only where Today's list is showing.
+    const { today } = ui.get()
+    await itemStore.persistence.settle()
+    const { from, to } = looseEndsRange(today)
+    const dates = await backend.datesWithOpenTodos(from, to)
+    await itemStore.ensureLoaded(dates)
+    const ids = collectLooseEnds(itemStore, dates).map((item) => item.id)
     if (!ids.length) {
       showToast('Nothing open from earlier days')
       return
@@ -1080,7 +1084,7 @@ class EditorController {
     const live = ids.filter((id) => itemStore.get(id))
     const moved = this.commit('Move', (tx) => void ops.moveToDate(tx, live, today), { keepSelection: true })
     if (!moved) return
-    showToast(live.length === 1 ? 'Moved to today' : `Moved ${live.length} to-dos to today`, { undo: true })
+    showToast(movedToTodayLabel(live.length), { undo: true })
     this.toastEntry = this.undo.top()
   }
 

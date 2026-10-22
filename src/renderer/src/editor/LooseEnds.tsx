@@ -1,14 +1,12 @@
-import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { addDays, shortDate } from '@shared/dates'
-import type { ISODate, Item } from '@shared/types'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { shortDate } from '@shared/dates'
+import { collectLooseEnds, looseEndDays, looseEndsLabel, looseEndsRange } from '@shared/looseEnds'
+import type { ISODate } from '@shared/types'
 import { backend } from '../data/backend'
 import { itemStore } from '../store/items'
 import { ui, useStore } from '../store/ui'
 import { refreshCaret } from './caret'
 import { controller } from './controller'
-
-/** How far back Today looks for unfinished to-dos. */
-export const LOOSE_ENDS_DAYS = 30
 
 /** Clicks here never take the caret out of the page. */
 const keepCaret = (e: React.MouseEvent): void => e.preventDefault()
@@ -22,31 +20,17 @@ const keepCaret = (e: React.MouseEvent): void => e.preventDefault()
 export function LooseEnds({ today }: { today: ISODate }) {
   const enabled = useStore(ui, (s) => s.settings.looseEnds)
   const open = useStore(ui, (s) => s.looseEndsOpen)
-  const dates = useOpenTodoDates(today, enabled)
-  const version = useDays(dates)
   // Checked off here this session; forgotten when the day changes.
   const finished = useRef({ today, ids: new Set<string>() })
   if (finished.current.today !== today) finished.current = { today, ids: new Set() }
+  const kept = useCallback(() => finished.current.ids, [])
+  const dates = useOpenTodoDates(today, enabled, kept)
+  const version = useDays(dates)
 
-  const items = useMemo(() => {
-    const out: Item[] = []
-    for (const date of dates) {
-      for (const row of itemStore.outline(date)) {
-        const item = itemStore.get(row.id)
-        if (item?.type === 'todo' && item.text.trim() && (!item.done || finished.current.ids.has(item.id))) out.push(item)
-      }
-    }
-    return out
-    // `version` changes whenever one of the days does.
-  }, [dates, version])
+  // `version` changes whenever one of the days does.
+  const items = useMemo(() => collectLooseEnds(itemStore, dates, finished.current.ids), [dates, version])
 
   const openIds = items.filter((i) => !i.done).map((i) => i.id)
-  const openIdsRef = useRef(openIds)
-  openIdsRef.current = openIds
-  useEffect(() => {
-    controller.looseEnds = () => openIdsRef.current
-    return () => void (controller.looseEnds = () => [])
-  }, [])
 
   const shown = enabled && items.length > 0
   // Opening, closing, or arriving moves the page under the caret.
@@ -55,7 +39,7 @@ export function LooseEnds({ today }: { today: ISODate }) {
   if (!shown) return null
 
   const count = openIds.length
-  const label = count === 0 ? 'Nothing left from earlier days' : `${count} open from earlier ${count === 1 ? 'day' : 'days'}`
+  const label = looseEndsLabel(count)
   const toggle = (id: string): void => {
     finished.current.ids.add(id)
     controller.toggleDoneElsewhere(id)
@@ -115,30 +99,40 @@ export function LooseEnds({ today }: { today: ISODate }) {
 }
 
 /**
- * The earlier days that have an unfinished to-do, loaded into the store. Asked again
- * when the day changes or another device (or an import) changes things; local edits
- * show up through the days' own subscriptions.
+ * The earlier days that have an unfinished to-do, loaded into the store, plus the days of
+ * those checked off here (`kept`). Asked again when the day changes, when edits here are
+ * saved (a to-do moved back to an earlier day), and when another device or an import
+ * changes things.
  */
-function useOpenTodoDates(today: ISODate, enabled: boolean): ISODate[] {
+function useOpenTodoDates(today: ISODate, enabled: boolean, kept: () => ReadonlySet<string>): ISODate[] {
   const [dates, setDates] = useState<ISODate[]>([])
   useEffect(() => {
     if (!enabled) return
-    let alive = true
+    let latest = 0
     const refresh = async (): Promise<void> => {
+      const seq = ++latest
       await itemStore.persistence.settle()
-      const found = await backend.datesWithOpenTodos(addDays(today, -LOOSE_ENDS_DAYS), addDays(today, -1))
+      const { from, to } = looseEndsRange(today)
+      const found = await backend.datesWithOpenTodos(from, to)
       await itemStore.ensureLoaded(found)
-      if (alive) setDates((prev) => (prev.length === found.length && prev.every((d, i) => d === found[i]) ? prev : found))
+      // A later refresh started meanwhile; it has the newer answer.
+      if (seq !== latest) return
+      const next = looseEndDays(found, kept(), itemStore, today)
+      setDates((prev) => (prev.length === next.length && prev.every((d, i) => d === next[i]) ? prev : next))
     }
     void refresh()
+    const offSaved = itemStore.persistence.subscribe(() => {
+      if (itemStore.persistence.status.state === 'saved') void refresh()
+    })
     const offExternal = itemStore.onExternal(() => void refresh())
     const offReset = itemStore.onReset(() => void refresh())
     return () => {
-      alive = false
+      latest = -1
+      offSaved()
       offExternal()
       offReset()
     }
-  }, [today, enabled])
+  }, [today, enabled, kept])
   return dates
 }
 

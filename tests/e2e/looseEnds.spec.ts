@@ -102,3 +102,25 @@ test('moves everything at once, and Settings can hide it', async () => {
   await page.getByRole('radio', { name: 'Show' }).click()
   await expect(toggle(page)).toHaveText('1 open from earlier day')
 })
+
+test('moves everything from the palette on any page, and finds a to-do moved back to an earlier day', async () => {
+  const { page } = cue
+  const now = await seed(page, [{ ago: 3, text: 'From before' }])
+
+  // From tomorrow's page, where Today's list isn't showing.
+  await page.keyboard.press('Meta+2')
+  await page.keyboard.press('Meta+K')
+  await page.keyboard.type('Move earlier open')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.toast')).toContainText('Moved to today')
+  await page.keyboard.press('Meta+1')
+  expect(await outline(page, now)).toBe('[ ] From before')
+  await expect(page.locator('.loose-ends')).toHaveCount(0)
+
+  // Sent back to yesterday from Today: the list picks it up without reopening.
+  await page.locator('.row', { hasText: 'From before' }).locator('.text').click()
+  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.type('yesterday')
+  await page.keyboard.press('Enter')
+  await expect(toggle(page)).toHaveText('1 open from earlier day')
+})
