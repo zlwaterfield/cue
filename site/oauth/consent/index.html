@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Connect to Cue</title>
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#FAFAFB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#18181A" media="(prefers-color-scheme: dark)">
+<style>
+/* Tokens from docs/brand/tokens/tokens.css, as on the home page. */
+:root {
+  color-scheme: light;
+  --bg: #FAFAFB; --bg-subtle: #F0F0F2; --text: #1C1C1E; --text-2: #6C6C72; --text-3: #8E8E94;
+  --line: #00000012; --line-strong: #0000003D; --accent: #2C2C31; --on-accent: #FFFFFF;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #18181A; --bg-subtle: #2C2C30; --text: #ECECEF; --text-2: #9D9DA4; --text-3: #76767D;
+    --line: #FFFFFF13; --line-strong: #FFFFFF42; --accent: #E6E6EA; --on-accent: #18181A;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+  background: var(--bg); color: var(--text);
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+main { width: 100%; max-width: 380px; }
+.symbol { display: block; width: 28px; height: 28px; margin-bottom: 28px; }
+h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 8px; }
+p { margin: 0 0 16px; color: var(--text-2); }
+p strong { color: var(--text); font-weight: 500; }
+.small { font-size: 14px; color: var(--text-3); }
+form { display: grid; gap: 12px; margin-top: 24px; }
+input { height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line-strong);
+  background: transparent; color: var(--text); font: inherit; }
+input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+input.code { letter-spacing: 0.3em; font-variant-numeric: tabular-nums; }
+.row { display: flex; gap: 10px; margin-top: 24px; }
+.row button { flex: 1; }
+button { height: 44px; padding: 0 16px; border-radius: 10px; border: 0; font: 500 16px/1 inherit; font-family: inherit; cursor: pointer; }
+button.primary { background: var(--accent); color: var(--on-accent); }
+button.secondary { background: var(--bg-subtle); color: var(--text); }
+button.link { height: auto; padding: 0; background: none; color: var(--text-2); font-size: 14px; text-decoration: underline; text-underline-offset: 2px; }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.links { display: flex; gap: 16px; margin-top: 16px; }
+.error { color: var(--text); font-size: 14px; margin: 0; }
+.error:empty { display: none; }
+ul { list-style: none; padding: 0; margin: 24px 0 0; border-top: 1px solid var(--line); }
+li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+li span { display: block; }
+.url { display: flex; gap: 8px; margin: 8px 0 16px; }
+.url code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 11px 12px;
+  border-radius: 10px; background: var(--bg-subtle); font: 13px/1.6 ui-monospace, "SF Mono", Menlo, monospace; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <svg class="symbol" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="13.5" width="9" height="3" rx="1.5" fill="currentColor"/><rect x="16.5" y="3" width="3" height="18" rx="1.5" fill="currentColor"/></svg>
+
+  <section id="loading"><p>One moment…</p></section>
+
+  <section id="email" hidden>
+    <h1>Sign in to Cue</h1>
+    <p>Use the email you sync your notes with.</p>
+    <form>
+      <input name="email" type="email" autocomplete="email" placeholder="you@example.com" required autofocus>
+      <p class="error" role="alert"></p>
+      <button class="primary">Send Code</button>
+    </form>
+  </section>
+
+  <section id="code" hidden>
+    <h1>Check your email</h1>
+    <p>Enter the code sent to <strong class="address"></strong>.</p>
+    <form>
+      <input name="code" class="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required>
+      <p class="error" role="alert"></p>
+      <button class="primary">Continue</button>
+    </form>
+    <div class="links"><button class="link" data-action="resend">Send a New Code</button><button class="link" data-action="switch">Use a Different Email</button></div>
+  </section>
+
+  <section id="consent" hidden>
+    <h1>Connect <span class="client"></span> to Cue?</h1>
+    <p><span class="client"></span> will be able to read your days and to-dos, add and edit lines, check things off and move them to other days. It can’t delete anything.</p>
+    <p class="small">Signed in as <span class="account"></span>. <button class="link" data-action="switch">Not you?</button></p>
+    <p class="error" role="alert"></p>
+    <div class="row"><button class="secondary" data-action="deny">Cancel</button><button class="primary" data-action="allow">Allow</button></div>
+  </section>
+
+  <section id="connections" hidden>
+    <h1>Assistants</h1>
+    <p>To use Cue from Claude, ChatGPT or another assistant, add Cue as a custom connector with this URL:</p>
+    <div class="url"><code class="mcp-url"></code><button class="secondary" data-action="copy">Copy</button></div>
+    <p class="small none">No assistants are connected yet.</p>
+    <p class="error" role="alert"></p>
+    <ul class="grants"></ul>
+    <p class="small" style="margin-top:16px">Signed in as <span class="account"></span>. <button class="link" data-action="signout">Sign Out</button></p>
+  </section>
+
+  <section id="done" hidden>
+    <h1 class="title"></h1>
+    <p class="message"></p>
+  </section>
+</main>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/+esm'
+
+/**
+ * Supabase Auth sends people here when an assistant asks to connect to Cue over MCP
+ * (docs/MCP.md): sign in with an emailed code, then allow or cancel. Opened without a
+ * request, it lists the connected assistants instead, so they can be disconnected.
+ */
+const local = ['127.0.0.1', 'localhost'].includes(location.hostname)
+const server = local
+  ? { url: 'http://127.0.0.1:54321', key: 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH' }
+  : { url: 'https://oxjcfsgwzpnajxrkwiai.supabase.co', key: 'sb_publishable_TLM4YcmbdcmPLoD7Afgw4w_zP4i7cpv' }
+const supabase = createClient(server.url, server.key)
+const authorizationId = new URLSearchParams(location.search).get('authorization_id')
+let email = ''
+
+const $ = (selector, root = document) => root.querySelector(selector)
+const all = (selector) => document.querySelectorAll(selector)
+
+function show(id) {
+  for (const section of all('main > section')) section.hidden = section.id !== id
+  $(`#${id} [autofocus], #${id} input`)?.focus()
+}
+
+function fail(section, message) {
+  $(`#${section} .error`).textContent = message
+}
+
+function finish(title, message) {
+  $('#done .title').textContent = title
+  $('#done .message').textContent = message
+  show('done')
+}
+
+async function busy(button, work) {
+  button.disabled = true
+  try { await work() } finally { button.disabled = false }
+}
+
+async function start() {
+  const { data } = await supabase.auth.getSession()
+  if (!data.session) return show('email')
+  for (const el of all('.account')) el.textContent = data.session.user.email
+  return authorizationId ? request() : connections()
+}
+
+async function request() {
+  const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(authorizationId)
+  if (error) return finish('This link has expired', 'Go back to your assistant and connect again.')
+  // Already allowed before: straight back to the assistant.
+  if (!data.authorization_id) return location.replace(data.redirect_url)
+  for (const el of all('.client')) el.textContent = data.client.name || new URL(data.redirect_uri).host
+  show('consent')
+}
+
+async function decide(allow) {
+  const decision = allow ? supabase.auth.oauth.approveAuthorization : supabase.auth.oauth.denyAuthorization
+  const { data, error } = await decision.call(supabase.auth.oauth, authorizationId, { skipBrowserRedirect: true })
+  if (error) return fail('consent', 'That didn’t work. Go back to your assistant and connect again.')
+  finish(allow ? 'Connected' : 'Not connected', 'Taking you back…')
+  location.replace(data.redirect_url)
+}
+
+async function connections() {
+  $('.mcp-url').textContent = `${server.url}/functions/v1/mcp`
+  const { data, error } = await supabase.auth.oauth.listGrants()
+  const list = $('.grants')
+  list.replaceChildren()
+  // A failed load isn't an empty list: say so, rather than hide what's connected.
+  fail('connections', error ? 'Your assistants couldn’t be loaded. Reload the page to try again.' : '')
+  $('.none').hidden = Boolean(error) || data.length > 0
+  for (const grant of error ? [] : data) {
+    const item = document.createElement('li')
+    const label = document.createElement('div')
+    const name = document.createElement('span')
+    const since = document.createElement('span')
+    name.textContent = grant.client.name || 'Assistant'
+    since.className = 'small'
+    since.textContent = `Connected ${new Date(grant.granted_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+    label.append(name, since)
+    const button = document.createElement('button')
+    button.className = 'secondary'
+    button.textContent = 'Disconnect'
+    button.onclick = () => busy(button, async () => {
+      const { error } = await supabase.auth.oauth.revokeGrant({ clientId: grant.client.id })
+      if (error) return fail('connections', `${grant.client.name || 'The assistant'} couldn’t be disconnected. Try again in a moment.`)
+      await connections()
+    })
+    item.append(label, button)
+    list.append(item)
+  }
+  show('connections')
+}
+
+async function sendCode() {
+  const { error } = await supabase.auth.signInWithOtp({ email })
+  if (error) throw error
+}
+
+$('#email form').onsubmit = (event) => {
+  event.preventDefault()
+  const button = $('#email button')
+  busy(button, async () => {
+    email = event.target.email.value.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('email', 'That doesn’t look like an email address.')
+    try {
+      await sendCode()
+    } catch {
+      return fail('email', 'The code couldn’t be sent. Try again in a moment.')
+    }
+    fail('email', '')
+    $('#code .address').textContent = email
+    show('code')
+  })
+}
+
+$('#code form').onsubmit = (event) => {
+  event.preventDefault()
+  busy($('#code form button'), async () => {
+    const { error } = await supabase.auth.verifyOtp({ email, token: event.target.code.value.trim(), type: 'email' })
+    if (error) return fail('code', 'That code didn’t work. Check it, or send a new one.')
+    fail('code', '')
+    await start()
+  })
+}
+
+document.addEventListener('click', (event) => {
+  const action = event.target.closest('[data-action]')?.dataset.action
+  if (!action) return
+  const button = event.target.closest('button')
+  if (action === 'allow' || action === 'deny') busy(button, () => decide(action === 'allow'))
+  if (action === 'resend') busy(button, () => sendCode().then(() => fail('code', 'A new code is on its way.'), () => fail('code', 'Wait a moment, then try again.')))
+  if (action === 'switch' || action === 'signout') busy(button, async () => {
+    // Only this browser: signing out everywhere would sign out the Mac and iPhone too.
+    await supabase.auth.signOut({ scope: 'local' })
+    show('email')
+  })
+  if (action === 'copy') navigator.clipboard.writeText($('.mcp-url').textContent).then(() => {
+    button.textContent = 'Copied'
+    setTimeout(() => (button.textContent = 'Copy'), 1500)
+  })
+})
+
+start().catch(() => finish('Something went wrong', 'Reload the page to try again.'))
+</script>
+</body>
+</html>

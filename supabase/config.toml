@@ -1,9 +1,9 @@
-# Local Supabase stack for developing and testing Cue sync:
+# Local Supabase stack for developing and testing Cue sync and its MCP server:
 #
-#   npx supabase start -x studio,storage-api,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor
+#   npx supabase start -x studio,storage-api,imgproxy,logflare,vector,postgres-meta,supavisor
 #
-# A hosted project uses the same migrations (docs/SYNC.md). Anything not set here
-# uses the CLI's defaults.
+# A hosted project uses the same migrations and function (docs/SYNC.md, docs/MCP.md).
+# Anything not set here uses the CLI's defaults.
 project_id = "cue"
 
 [api]
@@ -29,14 +29,25 @@ port = 54324
 [storage]
 enabled = false
 
+# Serves supabase/functions/mcp at http://127.0.0.1:54321/functions/v1/mcp
 [edge_runtime]
-enabled = false
+enabled = true
+deno_version = 2
+
+[edge_runtime.secrets]
+# Inside the stack, SUPABASE_URL is an internal address; this is the one clients use.
+CUE_PUBLIC_URL = "http://127.0.0.1:54321"
+
+# The function checks tokens itself, so it can answer with the 401 MCP clients expect.
+[functions.mcp]
+verify_jwt = false
 
 [analytics]
 enabled = false
 
 [auth]
-site_url = "http://127.0.0.1:54321"
+# The site (site/) served locally, for the MCP consent page: python3 -m http.server 4173 -d site
+site_url = "http://127.0.0.1:4173"
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
@@ -58,3 +69,10 @@ content_path = "./supabase/templates/sign-in-code.html"
 [auth.email.template.confirmation]
 subject = "Your Cue sign-in code"
 content_path = "./supabase/templates/sign-in-code.html"
+
+# Lets AI assistants connect over MCP: they register themselves, then send people to
+# the site's consent page (site_url + authorization_url_path).
+[auth.oauth_server]
+enabled = true
+authorization_url_path = "/oauth/consent"
+allow_dynamic_registration = true
