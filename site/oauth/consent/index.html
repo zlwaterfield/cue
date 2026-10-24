@@ -49,6 +49,8 @@ button:disabled { opacity: .5; cursor: default; }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .links { display: flex; gap: 16px; margin-top: 16px; }
 .error { color: var(--text); font-size: 14px; margin: 0; }
+.legal { margin-top: 16px; }
+.legal a { color: var(--text-2); text-underline-offset: 2px; }
 .error:empty { display: none; }
 ul { list-style: none; padding: 0; margin: 24px 0 0; border-top: 1px solid var(--line); }
 li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
@@ -73,6 +75,7 @@ li span { display: block; }
       <p class="error" role="alert"></p>
       <button class="primary">Send Code</button>
     </form>
+    <p class="small legal">By continuing, you agree to Cue’s <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
   </section>
 
   <section id="code" hidden>
@@ -232,6 +235,9 @@ $('#code form').onsubmit = (event) => {
     const { error } = await supabase.auth.verifyOtp({ email, token: event.target.code.value.trim(), type: 'email' })
     if (error) return fail('code', 'That code didn’t work. Check it, or send a new one.')
     fail('code', '')
+    // Signing in here agrees to the Terms, as in the apps. TERMS_VERSION in src/shared/terms.ts.
+    const { error: terms } = await supabase.rpc('accept_terms', { version: '2026-10-24' })
+    if (terms) console.warn('Couldn’t record accepting the terms', terms)
     await start()
   })
 }

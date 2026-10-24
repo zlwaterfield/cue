@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import { COMMANDS, shortcutKeys } from '@shared/commands'
 import { reportIssueUrl } from '@shared/feedback'
+import { PRIVACY_URL, TERMS_URL } from '@shared/terms'
 import type { Settings } from '@shared/types'
 import lockupDark from '../assets/cue-lockup-on-dark.svg'
 import lockupLight from '../assets/cue-lockup-on-light.svg'
@@ -179,6 +180,14 @@ export function AboutSheet() {
           >
             Show in Finder
           </button>
+        </div>
+        <div className="about-legal">
+          <a href={TERMS_URL} target="_blank" rel="noreferrer">
+            Terms
+          </a>
+          <a href={PRIVACY_URL} target="_blank" rel="noreferrer">
+            Privacy
+          </a>
         </div>
       </div>
     </Sheet>

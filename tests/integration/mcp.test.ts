@@ -148,6 +148,8 @@ describe.skipIf(!syncServer)('MCP server', { timeout: 30_000 }, () => {
         body: JSON.stringify(body)
       })
     expect((await rpc('sync_delete_account', {})).status).toBe(403)
+    // Nor agree to the terms on anyone's behalf.
+    expect((await rpc('accept_terms', { version: '2026-10-24' })).status).toBe(403)
     const line = mac.repo.allItems().find((i) => !i.deleted)!
     const tombstone = { ...line, deleted: true, version: line.version.replace(/^0/, 'z') }
     expect((await rpc('sync_push', { records: [tombstone] })).status).toBe(403)
