@@ -3,9 +3,9 @@
  * so people can download it from https://github.com/zlwaterfield/cue/releases/latest.
  *
  * It uploads the DMG people download, plus the zip, its blockmap and latest-mac.yml that
- * an auto-updater reads. The release is tagged at the current commit, which has to be
- * pushed first, and a version like 1.0.0-beta.1 is marked as a pre-release. It needs the
- * GitHub CLI signed in (`gh auth login`).
+ * an auto-updater reads. The release is tagged at the commit the build was made from
+ * (release/build.json), which has to be committed and pushed, and a version like
+ * 1.0.0-beta.1 is marked as a pre-release. It needs the GitHub CLI signed in (`gh auth login`).
  *
  * The release notes are written by Claude from the pull requests merged since the last
  * release, and saved to release/notes-<version>.md. Edit that file before you confirm and
@@ -71,12 +71,21 @@ if (succeeds('gh', ['release', 'view', tag])) {
   fail(`GitHub already has a release ${tag}. Raise the version in package.json, or delete that release on GitHub.`)
 }
 
-const commit = capture('git', ['rev-parse', 'HEAD']).trim()
+// The release points at the source the build was made from, not at whatever is checked out
+// now, so its code and notes match what people download.
+const buildFile = join(out, 'build.json')
+if (!existsSync(buildFile)) fail('release/ has no build.json, so the build’s commit is unknown. Build it again with `pnpm release`.')
+const build = JSON.parse(readFileSync(buildFile, 'utf8'))
+if (build.version !== version) fail(`release/ holds Cue ${build.version}, not ${version}. Build it again with \`pnpm release\`.`)
+if (build.dirty) fail('This build was made with uncommitted changes. Commit them, then build again with `pnpm release`.')
+const { commit } = build
+if (commit !== capture('git', ['rev-parse', 'HEAD']).trim()) {
+  console.warn(`\nNote: the build is from ${commit.slice(0, 7)}, not the checked-out commit. The release points at ${commit.slice(0, 7)}.`)
+}
 run('git', ['fetch', '--quiet', '--tags', 'origin'])
 if (!capture('git', ['branch', '--remotes', '--contains', commit]).trim()) {
-  fail(`The current commit ${commit.slice(0, 7)} isn't on GitHub yet. Push it, then run this again.`)
+  fail(`The build's commit ${commit.slice(0, 7)} isn't on GitHub yet. Push it, then run this again.`)
 }
-if (capture('git', ['status', '--porcelain']).trim()) console.warn('\nNote: the working tree has uncommitted changes.')
 
 // The notes: what changed since the last release tag, or since the start for the first one.
 const notesFile = join(out, `notes-${version}.md`)

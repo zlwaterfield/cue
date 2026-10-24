@@ -17,7 +17,7 @@
  */
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { readdirSync, readFileSync, rmSync } from 'node:fs'
+import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { loadEnv } from 'electron-vite'
 
@@ -62,7 +62,10 @@ try {
   )
 }
 
-if (capture('git', ['status', '--porcelain']).trim()) console.warn('\nNote: the working tree has uncommitted changes.')
+// Saved with the build, so `pnpm release:upload` tags the commit it was built from.
+const commit = capture('git', ['rev-parse', 'HEAD']).trim()
+const dirty = Boolean(capture('git', ['status', '--porcelain']).trim())
+if (dirty) console.warn('\nNote: the working tree has uncommitted changes, so `pnpm release:upload` won’t publish this build.')
 const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 console.log(`\nCue ${version}: signing as "${identity}", notarizing with "${profile}", sync ${new URL(env.CUE_SUPABASE_URL).host}\n`)
 
@@ -99,6 +102,8 @@ console.log('\nChecking with Gatekeeper…')
 run('spctl', ['--assess', '--type', 'execute', '--verbose=2', join(out, 'mac-arm64/Cue.app')])
 run('spctl', ['--assess', '--type', 'open', '--context', 'context:primary-signature', '--verbose=2', join(out, dmg)])
 run('xcrun', ['stapler', 'validate', join(out, dmg)])
+
+writeFileSync(join(out, 'build.json'), `${JSON.stringify({ version, commit, dirty }, null, 2)}\n`)
 
 const sha256 = (file) => createHash('sha256').update(readFileSync(join(out, file))).digest('hex')
 console.log(`\nCue ${version} is ready:\n`)
