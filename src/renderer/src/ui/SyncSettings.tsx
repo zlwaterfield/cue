@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { statusLine } from '@shared/sync/status'
+import { PRIVACY_URL, TERMS_URL } from '@shared/terms'
 import { isEmailAddress, NOT_AN_EMAIL } from '@shared/text'
 import type { SyncResult, SyncState } from '@shared/types'
 import { backend } from '../data/backend'
@@ -216,6 +217,7 @@ function SignIn({ state }: { state: SyncState }) {
               Cancel
             </button>
           </form>
+          <Agreement />
         </>
       )}
       {step.kind === 'code' && (
@@ -247,6 +249,23 @@ function SignIn({ state }: { state: SyncState }) {
         </>
       )}
     </>
+  )
+}
+
+/** Under both ways to sign in. Signing in records it (`SupabaseSync.acceptTerms`); links open in the browser. */
+function Agreement() {
+  return (
+    <div className="setting-legal">
+      By continuing, you agree to Cue’s{' '}
+      <a href={TERMS_URL} target="_blank" rel="noreferrer">
+        Terms
+      </a>{' '}
+      and{' '}
+      <a href={PRIVACY_URL} target="_blank" rel="noreferrer">
+        Privacy Policy
+      </a>
+      .
+    </div>
   )
 }
 

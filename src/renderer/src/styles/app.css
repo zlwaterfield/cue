@@ -1384,6 +1384,21 @@ kbd.is-text {
   max-width: 360px;
 }
 
+.setting-legal {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+.setting-legal a {
+  color: var(--text-2);
+  text-underline-offset: 2px;
+}
+
+.setting-legal a:hover {
+  color: var(--text);
+}
+
 .inline-form {
   display: flex;
   flex-wrap: wrap;
@@ -1518,6 +1533,22 @@ kbd.is-text {
   font-size: 12.5px;
   line-height: 1.5;
   color: var(--text-2);
+}
+
+.about-legal {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 11.5px;
+}
+
+.about-legal a {
+  color: var(--text-3);
+  text-decoration: none;
+}
+
+.about-legal a:hover {
+  color: var(--text);
 }
 
 /* Toast */
