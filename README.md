@@ -51,7 +51,7 @@ tomorrow (⌘D) or any date (⇧⌘D), and select several lines to act on them t
 (the tests `kill -9` the app to check), a daily snapshot is kept for 14 days, and you can
 export to Markdown or JSON at any time.
 
-**Sync.** Optional on the Mac and off by default. Sign in with Apple, or with your email and
+**Sync.** Optional on the Mac and iPhone, and off by default. Sign in with Apple, or with your email and
 a six-digit code, and edits reach your other devices about a second after you stop typing. It works
 offline and never interrupts typing.
 
@@ -60,8 +60,8 @@ your days, add to-dos, check them off and move them, from wherever you're chatti
 [docs/MCP.md](docs/MCP.md).
 
 **iPhone.** The same core as the Mac, built for touch: tap a bullet to make it a to-do, tap a
-box to check it, swipe to complete or send to tomorrow, and long-press to drag. It uses
-sync, so it needs an account. Share a link from any app to add it to today, and a line
+box to check it, swipe to complete or send to tomorrow, and long-press to drag. Like the
+Mac, it needs no account; turn on sync to share notes with your Mac. Share a link from any app to add it to today, and a line
 that's only a link shows its page. See [mobile/README.md](mobile/README.md).
 
 **Feel.** One calm column in monochrome graphite, system typography, and light and dark

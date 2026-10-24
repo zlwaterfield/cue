@@ -5,17 +5,9 @@ name: Writing
 ---
 - runFlow: subflows/launch.yaml
 - runScript: scripts/today.js
-- runScript:
-    file: scripts/email.js
-    env:
-      PREFIX: writing
-- runFlow:
-    file: subflows/sign-in.yaml
-    env:
-      EMAIL: ${output.email}
 
-# A new account's today is empty: once the first download has brought today's notes, the
-# caret is waiting in its blank line, keyboard and toolbar up.
+# A fresh install's today is empty, and sync is off: the caret is waiting in its blank
+# line, keyboard and toolbar up.
 - extendedWaitUntil:
     visible:
       id: tool-hide

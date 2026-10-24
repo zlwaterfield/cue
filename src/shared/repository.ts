@@ -377,18 +377,6 @@ export class Repository {
     )
   }
 
-  /**
-   * Remove every note and pending change, keeping this device's identity (its id and clock)
-   * so anything it writes later still sorts after everything it wrote before. The iPhone
-   * app does this when an account signs out, because there the notes belong to the account.
-   */
-  clearNotes(): void {
-    transaction(this.db, () => {
-      this.db.exec('DELETE FROM items')
-      this.db.exec('DELETE FROM outbox')
-    })
-  }
-
   private write(item: Item): void {
     this.stmts.upsert.run(
       item.id,

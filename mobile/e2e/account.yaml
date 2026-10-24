@@ -1,5 +1,6 @@
-# The phone holds a copy of the account. Signing out removes it from the phone (after
-# making sure nothing is left unsent); signing back in brings the notes back down.
+# Sync is off on a fresh install, as on the Mac. Turning it on brings the notes already on
+# the phone to the account. Turning it off keeps every note here, and edits made while it's
+# off go up the next time it's on.
 appId: app.cue
 name: Account
 ---
@@ -9,36 +10,73 @@ name: Account
     file: scripts/email.js
     env:
       PREFIX: account
-- runFlow:
-    file: subflows/sign-in.yaml
-    env:
-      EMAIL: ${output.email}
 
 - tapOn:
     id: ${'new-line-' + output.today}
-- inputText: "- Keep this"
+- inputText: "Written before sync"
 - tapOn:
     id: tool-hide
-
 - tapOn: "Settings"
-- assertVisible: ${output.email}
-- tapOn: "Sign Out"
-- extendedWaitUntil:
-    visible: "Sign out?"
-    timeout: 10000
+- assertVisible: "Off. Your notes are stored only on this iPhone. Turn on sync to keep them on your other devices too."
 - tapOn:
-    text: "Sign Out"
-    index: 0
-- extendedWaitUntil:
-    visible: "Sign in to sync your notes"
-    timeout: 10000
+    id: sheet-close
 
-# Same account again: the line comes back from the server.
 - runFlow:
     file: subflows/sign-in.yaml
     env:
       EMAIL: ${output.email}
+- assertVisible:
+    id: "0/text:Written before sync"
+# Another device signs in to the account (writing a line as it does) and finds the
+# phone's line there.
+- runScript:
+    file: scripts/push-from-another-device.js
+    env:
+      EMAIL: ${output.email}
+      TODAY: ${output.today}
+      TEXT: "Written on the Mac"
+      SUPABASE_KEY: ${SUPABASE_KEY}
 - extendedWaitUntil:
     visible:
-      id: "0/bullet:Keep this"
-    timeout: 10000
+      id: "0/todo:Written on the Mac"
+    timeout: 5000
+- runScript:
+    file: scripts/pull-from-another-device.js
+    env:
+      TEXT: "Written before sync"
+      SUPABASE_KEY: ${SUPABASE_KEY}
+- assertTrue: ${output.found}
+
+# Off: every line stays, and the phone keeps working on its own.
+- tapOn: "Settings"
+- assertVisible: ${output.email}
+- tapOn: "Turn Off Sync"
+- extendedWaitUntil:
+    visible: "Turn On Sync…"
+    timeout: 5000
+- tapOn:
+    id: sheet-close
+- assertVisible:
+    id: "0/text:Written before sync"
+- assertVisible:
+    id: "0/todo:Written on the Mac"
+- tapOn:
+    id: ${'new-line-' + output.today}
+- inputText: "Written while off"
+- tapOn:
+    id: tool-hide
+
+# On again, same account: what was written meanwhile reaches it.
+- runFlow:
+    file: subflows/sign-in.yaml
+    env:
+      EMAIL: ${output.email}
+- retry:
+    maxRetries: 3
+    commands:
+      - runScript:
+          file: scripts/pull-from-another-device.js
+          env:
+            TEXT: "Written while off"
+            SUPABASE_KEY: ${SUPABASE_KEY}
+      - assertTrue: ${output.found}

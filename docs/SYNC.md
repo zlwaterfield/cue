@@ -309,23 +309,22 @@ The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outb
 (`src/shared/sync/`). Its database is expo-sqlite with the same schema and migrations
 (`src/shared/sqlite.ts`). Only the lifecycle differs:
 
-- **Sync is required.** There's no local-only mode. The phone signs in before showing
-  anything, and its database is a local copy of the account.
+- **Sync is optional, as on the Mac.** It's off by default and the phone works on its own
+  database; until someone turns sync on, the Supabase client isn't created
+  (`MobileSync.connect`) and nothing touches the network. Turning it on with an account
+  this database hasn't synced with queues every item for upload (`Repository.queueAll`),
+  as on the Mac. Turn Off Sync stops the engine and forgets the account, and keeps every
+  note and anything still unsent, which goes up the next time sync is on.
 - **Sign in with Apple is native**: the system sheet, then `signInWithIdToken` with a
   nonce (Apple gets only its SHA-256, so a token can't be replayed). The local stack
   accepts tokens for `app.cue` (`supabase/config.toml`), so a simulator signed in to an
   Apple Account can test it end to end. A build with `CUE_APPLE_SIGN_IN=off` (for a free
-  Personal Team, which can't have the capability) offers email codes only. Signing out checks that
-  nothing is left unsent, then removes the notes and outbox from the phone, but keeps the
-  device id and clock (`Repository.clearNotes`). Signing in to a different account than
-  the one the database holds starts from empty. The editor forgets everything about the
-  notes that left (undo history, the page shown, the caret) through `ItemStore.onReset`.
+  Personal Team, which can't have the capability) offers email codes only.
   If the server ends the session (confirmed the Mac's way, `checkSession`), sync stops at
-  once and, as soon as typing pauses for a second, the phone shows sign-in with "Your sync
-  session ended. Sign in again to keep syncing." or "Your account was deleted on another
-  device." The notes stay until someone signs in again, so unsent edits aren't lost.
-  `MobileSync.unsentFromPreviousAccount()` counts the edits a different account would
-  remove, and sign-in says so before it sends a code ("Some changes haven’t synced").
+  once and every note stays. The header says "Sign in to sync", and Settings shows "Your
+  sync session ended. Sign in again to keep syncing." with Sign In Again… (or, for an
+  account deleted on another device, "Notes on this iPhone stay here." with Turn On
+  Sync…), and Not Now. That's kept in meta (`sync_ended`) across relaunches, as on the Mac.
   Like the Mac, the phone also runs `checkSession` on launch and on coming back to the
   foreground, at most every 30 minutes, so a phone that only reads finds out too. As on
   the Mac, it names a deleted account only while its access token is still good; after
@@ -338,7 +337,7 @@ The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outb
   foreground pulls immediately, and the realtime channel reconnects on its own.
   The session refresh timer runs only in the foreground (`SupabaseSync.setForeground`).
 - **The session lives in the Keychain**, readable only on this device, after first unlock.
-  A fresh install clears any session a previous install left there.
+  A launch with sync off clears any session left there, such as one from a previous install.
 - **The first download** of a large account runs in the background while today's page
   shows. Today ± 7 days arrive first (`SyncStatus.recent`), then the rest. Five years of
   notes (36,994 items) took about 4 s against the local server in a development build.
@@ -347,12 +346,11 @@ The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outb
   VoiceOver reads the same way. A download interrupted by closing the app picks up where it
   left off at the next launch (meta `sync_joining`).
 - **The same words.** The header and Settings use `indicator` and `statusLine`, so the phone
-  says what the Mac says, down to "Syncing…" fading in only after 1.2 s. The one deliberate
-  difference is **Sign Out** (the phone needs an account) where the Mac has **Turn Off Sync**.
+  says what the Mac says, down to "Syncing…" fading in only after 1.2 s.
 
 The end-to-end flows in `mobile/e2e` test sync against the local stack. One has another
 device sign in to the same account over HTTP and call `sync_push`, then checks that the
 phone shows the line within 3 s without a refresh. Another (`account-deleted`) has it
-delete the account: the phone signs out with the reason at its next push, warns before a
-sign-in that would remove the unsent line, and, for a phone that only reads, notices on
-coming back to the foreground.
+delete the account: the phone stops syncing with the reason at its next push and keeps
+the unsent line, and, for a phone that only reads, notices on coming back to the
+foreground.
