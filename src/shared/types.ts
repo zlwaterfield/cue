@@ -7,6 +7,7 @@
  * can never produce duplicate pages.
  */
 
+import type { BillingStatus, Plan } from './billing'
 import type { LinkPreview } from './links'
 
 export type ItemType = 'text' | 'bullet' | 'todo'
@@ -106,6 +107,8 @@ export interface SyncState {
   previousEmail: string | null
   /** How that account signed in, so signing in again goes the same way. */
   previousMethod: SignInMethod | null
+  /** Signed in: whether this server charges for sync, and the plan. Null until known, or if it can't say. */
+  billing: BillingStatus | null
 }
 
 /** An emailed six-digit code, or Sign in with Apple. */
@@ -120,7 +123,8 @@ export const SYNC_OFF: SyncState = {
   message: null,
   needsSignIn: false,
   previousEmail: null,
-  previousMethod: null
+  previousMethod: null,
+  billing: null
 }
 
 /** The outcome of an account action. `error` is always written for people. */
@@ -146,6 +150,10 @@ export interface SyncBridge {
   signOut(): Promise<void>
   /** Asks for confirmation, then deletes the account and its server copy. Notes stay here. */
   deleteAccount(): Promise<SyncResult | null>
+  /** Open Stripe Checkout for a plan in the browser. */
+  subscribe(plan: Plan): Promise<SyncResult>
+  /** Open Stripe's page to change or cancel the subscription in the browser. */
+  manageSubscription(): Promise<SyncResult>
 }
 
 /** The API the preload script exposes to the renderer as `window.cue`. */

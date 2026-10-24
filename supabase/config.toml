@@ -42,6 +42,10 @@ CUE_PUBLIC_URL = "http://127.0.0.1:54321"
 [functions.mcp]
 verify_jwt = false
 
+# Stripe's webhook has no Supabase token; the function checks tokens itself for the rest.
+[functions.billing]
+verify_jwt = false
+
 [analytics]
 enabled = false
 

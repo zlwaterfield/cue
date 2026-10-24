@@ -31,6 +31,8 @@ export const INDICATOR_FADE = 200
 export const SYNC_PAUSED = 'Sync paused. Cue will keep trying.'
 /** What Sync Now reports while offline. */
 export const SYNC_OFFLINE = 'Offline. Changes will sync when you’re back online.'
+/** The server charges for sync, and this account isn't subscribed. Plain words: the iPhone app can't sell anything. */
+export const SYNC_INACTIVE = 'Sync isn’t active for this account.'
 export const SIGN_IN_FAILED = 'Couldn’t sign in. Try again in a moment.'
 export const DELETE_FAILED = 'Couldn’t delete the account. Try again in a moment.'
 

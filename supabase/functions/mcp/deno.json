@@ -2,6 +2,7 @@
   "//": "The function runs Cue's shared code (src/shared), which imports without file extensions. Deno needs them, so each such module is mapped here.",
   "imports": {
     "fractional-indexing": "npm:fractional-indexing@4.0.0",
+    "../../../src/shared/billing": "../../../src/shared/billing.ts",
     "../../../src/shared/dates": "../../../src/shared/dates.ts",
     "../../../src/shared/editor/tx": "../../../src/shared/editor/tx.ts",
     "../../../src/shared/ids": "../../../src/shared/ids.ts",

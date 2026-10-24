@@ -42,7 +42,9 @@ const bridge: CueBridge = {
     cancelSignIn: () => void ipcRenderer.invoke('sync:cancelSignIn'),
     syncNow: () => ipcRenderer.invoke('sync:now'),
     signOut: () => ipcRenderer.invoke('sync:signOut'),
-    deleteAccount: () => ipcRenderer.invoke('sync:deleteAccount')
+    deleteAccount: () => ipcRenderer.invoke('sync:deleteAccount'),
+    subscribe: (plan) => ipcRenderer.invoke('sync:subscribe', plan),
+    manageSubscription: () => ipcRenderer.invoke('sync:manageSubscription')
   }
 }
 

@@ -19,6 +19,8 @@ const KEY = JSON.parse(Deno.env.get('SUPABASE_PUBLISHABLE_KEYS') ?? '{}').defaul
 /** The URL assistants connect to, which discovery must name exactly (CUE_MCP_URL when hosted). */
 const RESOURCE = Deno.env.get('CUE_MCP_URL') ?? `${PUBLIC}/functions/v1/mcp`
 const METADATA = `${RESOURCE}/.well-known/oauth-protected-resource`
+/** What a tool says for an account without a subscription, on a server that charges (docs/BILLING.md). */
+const INACTIVE = 'Sync isn’t active for this Cue account, so assistants can’t reach its notes. Turn it on in Cue for Mac, under Settings ▸ Sync.'
 
 // Browser-based clients (such as the MCP Inspector) call from other origins.
 const CORS = {
@@ -57,7 +59,17 @@ Deno.serve(async (request) => {
   const notes = new SupabaseNotes(API, KEY, token)
   try {
     const messages = Array.isArray(body) ? body : [body]
-    const replies = (await Promise.all(messages.map((m) => handleMessage(m, notes)))).filter((r) => r !== null)
+    // Connecting and listing tools always work; using them needs sync to be active.
+    const inactive = messages.some((m) => m?.method === 'tools/call') && !(await hasSync(token))
+    const replies = (
+      await Promise.all(
+        messages.map((m) =>
+          inactive && m?.method === 'tools/call'
+            ? { jsonrpc: '2.0', id: m.id ?? null, result: { content: [{ type: 'text', text: INACTIVE }], isError: true } }
+            : handleMessage(m, notes)
+        )
+      )
+    ).filter((r) => r !== null)
     if (!replies.length) return new Response(null, { status: 202, headers: CORS })
     return json(Array.isArray(body) ? replies : replies[0])
   } catch (error) {
@@ -66,6 +78,20 @@ Deno.serve(async (request) => {
     return json({ jsonrpc: '2.0', id: null, error: { code: -32603, message: 'Internal error' } }, 500)
   }
 })
+
+/** The account may sync: subscribed, or on a server that doesn't charge. */
+async function hasSync(token: string): Promise<boolean> {
+  const response = await fetch(`${API}/rest/v1/rpc/billing_status`, {
+    method: 'POST',
+    headers: { apikey: KEY, authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: '{}'
+  })
+  if (response.status === 401) throw new Unauthorized()
+  // A database without billing (no such function) never charges.
+  if (response.status === 404) return true
+  if (!response.ok) throw new Error(`billing_status: ${response.status} ${await response.text()}`)
+  return ((await response.json()) as { active: boolean }).active
+}
 
 /** An unexpired access token for a signed-in person. */
 function looksValid(token: string): boolean {

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { SessionError, SyncError, type SessionEnd } from '../../src/shared/sync/engine'
+import type { BillingStatus } from '../../src/shared/billing'
+import { SessionError, SubscriptionError, SyncError, type SessionEnd } from '../../src/shared/sync/engine'
 import { MemorySyncServer } from '../../src/shared/sync/memoryServer'
 import { SyncService, type SyncClient } from '../../src/main/sync/service'
 import type { Repository } from '../../src/shared/repository'
@@ -23,7 +24,10 @@ function setup(repo: Repository = memoryRepo(), server = new MemorySyncServer(),
     signOut: vi.fn(async () => {}),
     deleteAccount: vi.fn(async () => {}),
     listen: vi.fn(async () => {}),
-    unlisten: vi.fn()
+    unlisten: vi.fn(),
+    // A server that doesn't charge, unless a test says otherwise.
+    billingStatus: vi.fn(async (): Promise<BillingStatus | null> => null),
+    billingUrl: vi.fn(async (action: string, plan?: string) => `https://stripe.test/${action}/${plan ?? ''}`)
   }
   const connect = vi.fn(async () => client)
   const service = new SyncService(repo, { config, connect, openBrowser: browser, onState: (s) => states.push(s), onRemoteChanges: () => {} })
@@ -237,6 +241,35 @@ describe('SyncService', () => {
     expect(service.state()).toMatchObject({ email: null, status: 'off', message: null })
     expect(repo.getMeta('sync_user')).toBeNull()
     expect(repo.allItems().map((i) => i.text)).toEqual(['stays here'])
+  })
+
+  it('asks for a subscription when the server charges, and syncs as soon as it’s paid', async () => {
+    const { repo, server, service, client, browser } = setup()
+    let paid = false
+    client.billingStatus = vi.fn(async () => ({ required: true, active: paid, plan: paid ? ('yearly' as const) : null, renewsAt: null, cancelsAtPeriodEnd: false }))
+    client.push = async (records) => {
+      if (!paid) throw new SubscriptionError()
+      return server.transport().push(records)
+    }
+    repo.saveItems([newItem({ text: 'waiting for payment' })])
+    await service.verifyCode('me@example.com', '1')
+    await vi.waitFor(() =>
+      expect(service.state()).toMatchObject({ status: 'error', message: 'Sync isn’t active for this account.', billing: { required: true, active: false } })
+    )
+    expect(server.snapshot()).toEqual([])
+
+    expect(await service.subscribe('yearly')).toEqual({ ok: true })
+    expect(browser).toHaveBeenCalledWith('https://stripe.test/checkout/yearly')
+    // Paid in the browser; coming back to Cue syncs.
+    paid = true
+    service.resume()
+    await vi.waitFor(() => expect(server.snapshot().map((i) => i.text)).toEqual(['waiting for payment']))
+    await vi.waitFor(() => expect(service.state()).toMatchObject({ status: 'idle', message: null, billing: { active: true, plan: 'yearly' } }))
+
+    expect(await service.manageSubscription()).toEqual({ ok: true })
+    expect(browser).toHaveBeenLastCalledWith('https://stripe.test/portal/')
+    await service.signOut()
+    expect(service.state().billing).toBeNull()
   })
 
   it('reports wrong codes without turning sync on', async () => {

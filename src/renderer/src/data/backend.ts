@@ -140,7 +140,9 @@ class MemoryBackend implements Backend {
     cancelSignIn: () => {},
     syncNow: async () => ({ ok: false, error: 'Sync is available in the desktop app.' }),
     signOut: async () => {},
-    deleteAccount: async () => null
+    deleteAccount: async () => null,
+    subscribe: async () => ({ ok: false, error: 'Sync is available in the desktop app.' }),
+    manageSubscription: async () => ({ ok: false, error: 'Sync is available in the desktop app.' })
   }
 }
 

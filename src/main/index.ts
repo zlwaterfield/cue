@@ -387,6 +387,9 @@ function registerIpc(): void {
     return response === 0 ? sync.deleteAccount() : null
   })
 
+  ipcMain.handle('sync:subscribe', (_e, plan: string) => sync.subscribe(plan === 'monthly' ? 'monthly' : 'yearly'))
+  ipcMain.handle('sync:manageSubscription', () => sync.manageSubscription())
+
   ipcMain.handle('app:revealData', () => {
     shell.showItemInFolder(join(app.getPath('userData'), 'cue.sqlite'))
   })

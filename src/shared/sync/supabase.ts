@@ -1,7 +1,8 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { NOT_AN_EMAIL } from '../text'
+import type { BillingStatus, Plan } from '../billing'
 import type { ISODate, Item, SignInMethod } from '../types'
-import { OfflineError, SessionError, SyncError, type PullResult, type PushResult, type SessionEnd, type SyncTransport } from './engine'
+import { OfflineError, SessionError, SubscriptionError, SyncError, type PullResult, type PushResult, type SessionEnd, type SyncTransport } from './engine'
 import { DELETE_FAILED, SIGN_IN_FAILED, SYNC_PAUSED } from './status'
 
 /**
@@ -217,6 +218,25 @@ export class SupabaseSync implements SyncTransport {
     await this.client.auth.signOut({ scope: 'local' })
   }
 
+  /** Whether this server charges for sync, and this account's plan. Null if it can't say (an older server). */
+  async billingStatus(): Promise<BillingStatus | null> {
+    const { data, error } = await this.client.rpc('billing_status')
+    if (error) {
+      // A server without billing (PGRST202: no such function) never charges.
+      if (error.code !== 'PGRST202') console.warn('Couldn’t read billing status', error)
+      return null
+    }
+    return data as BillingStatus
+  }
+
+  /** A Stripe page: Checkout for a plan, or the portal to change or cancel it. */
+  async billingUrl(action: 'checkout' | 'portal', plan?: Plan): Promise<string> {
+    const { data, error } = await this.client.functions.invoke<{ url?: string; error?: string }>(`billing/${action}`, { body: { plan } })
+    if (data?.url) return data.url
+    console.warn('Billing failed', error ?? data)
+    throw new SyncError('Couldn’t open billing. Try again in a moment.')
+  }
+
   /** Delete the account and its server copy. Sign out afterwards. */
   async deleteAccount(): Promise<void> {
     const { error, status } = await this.client.rpc('sync_delete_account')
@@ -293,6 +313,8 @@ const SESSION_CODES = ['PGRST301', 'PGRST303', '28000']
 export function transportError(error: { message: string; code?: string }, status: number): SyncError {
   // postgrest-js reports a failed fetch (no network, DNS, TLS, a timeout) as status 0.
   if (status === 0) return new OfflineError('Can’t reach the sync server. Check your connection.')
+  // Raised by the database for an account without a subscription (docs/BILLING.md).
+  if (error.code === 'CU402') return new SubscriptionError()
   // The only foreign key is the account itself: it no longer exists.
   if (error.code === '23503') return new SessionError('deleted')
   if (status === 401 || status === 403 || SESSION_CODES.includes(error.code ?? '')) return new SessionError('expired')

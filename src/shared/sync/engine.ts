@@ -1,7 +1,7 @@
 import { addDays, todayISO } from '../dates'
 import type { Repository } from '../repository'
 import type { ISODate, Item } from '../types'
-import { SYNC_PAUSED } from './status'
+import { SYNC_INACTIVE, SYNC_PAUSED } from './status'
 
 /**
  * The client half of the sync protocol (docs/SYNC.md): push the outbox, then pull
@@ -55,6 +55,13 @@ export type SessionEnd = 'expired' | 'deleted'
 export class SessionError extends SyncError {
   constructor(readonly reason: SessionEnd) {
     super(SYNC_PAUSED)
+  }
+}
+
+/** The server charges for sync, and this account isn't subscribed (docs/BILLING.md). */
+export class SubscriptionError extends SyncError {
+  constructor() {
+    super(SYNC_INACTIVE)
   }
 }
 

@@ -1,5 +1,6 @@
+import type { BillingStatus, Plan } from '../../shared/billing'
 import type { Repository } from '../../shared/repository'
-import { errorMessage, OfflineError, SessionError, SyncEngine, SyncError, type SessionEnd, type SyncTransport } from '../../shared/sync/engine'
+import { errorMessage, OfflineError, SessionError, SubscriptionError, SyncEngine, SyncError, type SessionEnd, type SyncTransport } from '../../shared/sync/engine'
 import { DELETE_FAILED, SIGN_IN_FAILED, SYNC_OFFLINE } from '../../shared/sync/status'
 import type { Account, SessionStore, SupabaseSync, SyncConfig } from '../../shared/sync/supabase'
 import type { Item, SignInMethod, SyncResult, SyncState } from '../../shared/types'
@@ -14,7 +15,18 @@ import { awaitBrowserReturn, SignInCancelled, type BrowserReturn } from './brows
 /** The sync server connection, as the service needs it (`SupabaseSync`, or a fake in tests). */
 export type SyncClient = Pick<
   SupabaseSync,
-  'sendCode' | 'verifyCode' | 'appleSignInUrl' | 'exchangeCode' | 'onSignedOut' | 'checkSession' | 'signOut' | 'deleteAccount' | 'listen' | 'unlisten'
+  | 'sendCode'
+  | 'verifyCode'
+  | 'appleSignInUrl'
+  | 'exchangeCode'
+  | 'onSignedOut'
+  | 'checkSession'
+  | 'signOut'
+  | 'deleteAccount'
+  | 'listen'
+  | 'unlisten'
+  | 'billingStatus'
+  | 'billingUrl'
 > &
   SyncTransport
 
@@ -70,6 +82,7 @@ export class SyncService {
   private checkedAt = 0
   private verifiedAt = 0
   private shownPending = 0
+  private billing: BillingStatus | null = null
   /** Sign in with Apple, while it waits for the browser. */
   private browserSignIn: BrowserReturn | null = null
   /** Counts Sign in with Apple attempts; Cancel moves it on, so a late answer is ignored. */
@@ -109,7 +122,8 @@ export class SyncService {
       needsSignIn: !!ended,
       // A deleted account can't be signed back in to; turning sync on starts afresh.
       previousEmail: ended?.reason === 'expired' ? ended.email : null,
-      previousMethod: ended?.reason === 'expired' ? (ended.method ?? 'email') : null
+      previousMethod: ended?.reason === 'expired' ? (ended.method ?? 'email') : null,
+      billing: this.account ? this.billing : null
     }
   }
 
@@ -136,6 +150,8 @@ export class SyncService {
     const stale = !engine.lastSyncedAt || Date.now() - engine.lastSyncedAt > STALE_AFTER
     if (stale || engine.status === 'offline' || engine.status === 'error') void engine.sync().catch(() => {})
     if (stale) this.verifySession()
+    // Back from the browser, perhaps from subscribing.
+    if (this.billing?.required) this.refreshBilling()
   }
 
   /** Signed in, online as far as we know, and holding changes the server doesn't have. */
@@ -232,6 +248,16 @@ export class SyncService {
     await (await this.loaded())?.signOut().catch((error) => console.error('Sign out failed', error))
   }
 
+  /** Open Stripe Checkout for a plan in the browser. Sync starts once it's paid (the webhook). */
+  async subscribe(plan: Plan): Promise<SyncResult> {
+    return this.openBilling('checkout', plan)
+  }
+
+  /** Open Stripe's page to change plans, update the card, or cancel. */
+  async manageSubscription(): Promise<SyncResult> {
+    return this.openBilling('portal')
+  }
+
   async deleteAccount(): Promise<SyncResult> {
     const client = await this.loaded()
     if (!client || !this.account) return { ok: false, error: 'Sync is off.' }
@@ -269,6 +295,7 @@ export class SyncService {
         this.message = error && !(error instanceof OfflineError) ? errorMessage(error) : null
         this.emit()
         if (error instanceof SessionError) this.checkSession(client, error.reason)
+        if (error instanceof SubscriptionError && this.billing?.active !== false) this.refreshBilling()
       }
     })
     this.engine = engine
@@ -277,6 +304,8 @@ export class SyncService {
       engine.setLive(false)
     })
     engine.start()
+    this.billing = null
+    this.refreshBilling()
     this.emit()
   }
 
@@ -309,6 +338,33 @@ export class SyncService {
     void this.loaded()
       .then((client) => client?.checkSession('expired'))
       .catch((error) => console.error('Couldn’t check the sync session', error))
+  }
+
+  /**
+   * Ask the server whether this account may sync. When it turns active (paid in the
+   * browser), sync right away instead of waiting for the next retry.
+   */
+  private refreshBilling(): void {
+    const account = this.account
+    void this.loaded()
+      .then((client) => client?.billingStatus())
+      .then((billing) => {
+        if (this.account !== account || billing === undefined) return
+        const activated = billing?.active && this.billing?.active === false
+        this.billing = billing
+        this.emit()
+        if (activated && this.engine?.status === 'error') void this.engine.sync().catch(() => {})
+      })
+      .catch((error) => console.error('Couldn’t read billing status', error))
+  }
+
+  private async openBilling(action: 'checkout' | 'portal', plan?: Plan): Promise<SyncResult> {
+    const open = this.options.openBrowser
+    return attempt(async () => {
+      const client = await this.loaded()
+      if (!client || !this.account || !open) throw new SyncError('Sync is off.')
+      await open(await client.billingUrl(action, plan))
+    })
   }
 
   /** Load the Supabase client on first use (once, however many calls race to it). */

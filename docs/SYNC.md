@@ -276,8 +276,9 @@ npx supabase start -x studio,storage-api,imgproxy,logflare,vector,postgres-meta,
 npx supabase status    # API URL and publishable key
 printf 'CUE_SUPABASE_URL=http://127.0.0.1:54321\nCUE_SUPABASE_KEY=<publishable key>\n' > .env.development.local
 pnpm dev               # sync is now offered in Settings
-# The sync tests read the server from the environment, not from a file:
-CUE_SUPABASE_URL=http://127.0.0.1:54321 CUE_SUPABASE_KEY=<publishable key> pnpm test:sync
+# The sync tests read the server from the environment, not from a file. The billing
+# test also needs the secret key (docs/BILLING.md), and is skipped without it:
+CUE_SUPABASE_URL=http://127.0.0.1:54321 CUE_SUPABASE_KEY=<publishable key> CUE_SUPABASE_SECRET_KEY=<secret key> pnpm test:sync
 npx supabase stop
 ```
 

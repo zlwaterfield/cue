@@ -96,6 +96,7 @@ export class MobileSync {
     needsSignIn: false,
     previousEmail: null,
     previousMethod: null,
+    billing: null,
     downloading: false,
     recent: false
   })
@@ -411,6 +412,9 @@ export class MobileSync {
       // A deleted account can't be signed back in to; turning sync on starts afresh.
       previousEmail: ended?.reason === 'expired' ? ended.email : null,
       previousMethod: ended?.reason === 'expired' ? (ended.method ?? 'email') : null,
+      // The iPhone app doesn't sell anything (App Store rules): an account without a
+      // subscription sees "Sync isn’t active for this account.", and subscribes on the Mac.
+      billing: null,
       downloading: !!engine && !engine.lastSyncedAt && this.joining,
       recent: this.recent
     })

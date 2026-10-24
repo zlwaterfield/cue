@@ -167,7 +167,7 @@ happens.
   item.
 
 More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SYNC.md](docs/SYNC.md),
-[docs/MCP.md](docs/MCP.md) and [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md). The brand kit lives
+[docs/MCP.md](docs/MCP.md), [docs/BILLING.md](docs/BILLING.md) and [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md). The brand kit lives
 in [docs/brand](docs/brand).
 
 ## Roadmap
@@ -180,7 +180,9 @@ automatic updates, and TestFlight builds for iPhone.
 
 **Exploring:**
 - **A hosted version**, so anyone can sign in and sync without running their own Supabase.
-  Join the [waitlist](https://github.com/zlwaterfield/cue/issues/13) if you'd use it.
+  The apps stay free; hosted sync would be $4 a month or $30 a year
+  ([docs/BILLING.md](docs/BILLING.md)), and a self-hosted server never charges. Join the
+  [waitlist](https://github.com/zlwaterfield/cue/issues/13) if you'd use it.
 
 **Not planned:** projects, tags, priorities, reminders, recurring tasks, attachments,
 collaboration, AI built into the app and dashboards.

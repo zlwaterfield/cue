@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { PLANS, type BillingStatus, type Plan } from '@shared/billing'
+import { MONTHS } from '@shared/dates'
 import { statusLine } from '@shared/sync/status'
 import { isEmailAddress, NOT_AN_EMAIL } from '@shared/text'
 import type { SyncResult, SyncState } from '@shared/types'
@@ -43,6 +45,14 @@ function SignedIn({ state }: { state: SyncState }) {
     const result = await backend.sync.deleteAccount()
     setError(result && !result.ok ? result.error : null)
   }
+  const billing = state.billing?.required ? state.billing : null
+  // A billing error is about the state it was shown in.
+  useEffect(() => setError(null), [billing?.active])
+  // Stripe's pages open in the browser; coming back to Cue picks up the change.
+  const openBilling = async (open: () => Promise<SyncResult>): Promise<void> => {
+    const result = await open()
+    setError(result.ok ? null : result.error)
+  }
   return (
     <>
       <div className="setting-split">
@@ -52,13 +62,28 @@ function SignedIn({ state }: { state: SyncState }) {
             On as <strong>{state.email}</strong>
           </div>
           <div className="setting-help">{statusLine(state, now)}</div>
+          {billing && <div className="setting-help">{planLine(billing)}</div>}
           {error && <div className="setting-error">{error}</div>}
         </div>
         <button className="button" onClick={() => void syncNow()} disabled={busy || state.status === 'syncing'}>
           Sync Now
         </button>
       </div>
+      {billing && !billing.active && (
+        <div className="button-row">
+          {(['yearly', 'monthly'] as Plan[]).map((plan) => (
+            <button key={plan} className={plan === 'yearly' ? 'button' : 'button is-quiet'} onClick={() => void openBilling(() => backend.sync.subscribe(plan))}>
+              Subscribe {plan === 'yearly' ? 'Yearly' : 'Monthly'} · {PLANS[plan].price}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="button-row">
+        {billing?.active && billing.plan !== 'comp' && (
+          <button className="button is-quiet" onClick={() => void openBilling(() => backend.sync.manageSubscription())}>
+            Manage Subscription…
+          </button>
+        )}
         <button className="button is-quiet" onClick={() => void backend.sync.signOut()}>
           Turn Off Sync
         </button>
@@ -68,6 +93,18 @@ function SignedIn({ state }: { state: SyncState }) {
       </div>
     </>
   )
+}
+
+/** The subscription, under the sync status, on a server that charges for sync. */
+function planLine(billing: BillingStatus): string {
+  if (!billing.active) return `Sync needs a subscription: ${PLANS.monthly.price} a month or ${PLANS.yearly.price} a year. Notes on this Mac stay here either way.`
+  if (billing.plan === 'comp' || !billing.plan) return 'Sync is free for this account.'
+  const { price, per } = PLANS[billing.plan]
+  const plan = `${price} a ${per}.`
+  if (!billing.renewsAt) return plan
+  const date = new Date(billing.renewsAt)
+  const day = `${MONTHS[date.getMonth()].slice(0, 3)} ${date.getDate()}, ${date.getFullYear()}`
+  return billing.cancelsAtPeriodEnd ? `${plan} Ends on ${day}.` : `${plan} Renews on ${day}.`
 }
 
 type Step = { kind: 'off' } | { kind: 'email' } | { kind: 'code'; email: string } | { kind: 'apple'; back: Step }
