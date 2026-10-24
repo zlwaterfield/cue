@@ -56,11 +56,14 @@ export interface Settings {
   theme: ThemePreference
   /** 0 = Sunday, 1 = Monday. */
   weekStartsOn: 0 | 1
+  /** Today opens with the unfinished to-dos left on earlier days ("loose ends"). */
+  looseEnds: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
-  weekStartsOn: 1
+  weekStartsOn: 1,
+  looseEnds: true
 }
 
 export interface ExportResult {
@@ -142,6 +145,8 @@ export interface CueBridge {
   saveItemsSync(items: Item[]): void
   search(query: string, limit?: number): Promise<SearchResult[]>
   datesWithItems(from: ISODate, to: ISODate): Promise<ISODate[]>
+  /** Days in the range with an unfinished to-do, oldest first. */
+  datesWithOpenTodos(from: ISODate, to: ISODate): Promise<ISODate[]>
   getSettings(): Promise<Settings>
   setSettings(patch: Partial<Settings>): Promise<Settings>
   exportMarkdown(): Promise<ExportResult>

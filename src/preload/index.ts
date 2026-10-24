@@ -18,6 +18,7 @@ const bridge: CueBridge = {
   },
   search: (query, limit) => ipcRenderer.invoke('items:search', query, limit),
   datesWithItems: (from, to) => ipcRenderer.invoke('items:dates', from, to),
+  datesWithOpenTodos: (from, to) => ipcRenderer.invoke('items:openTodoDates', from, to),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),
   exportMarkdown: () => ipcRenderer.invoke('export:markdown'),

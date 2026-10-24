@@ -27,6 +27,7 @@ import { editor } from './controller'
 import { drag, scrollState, updateDrag } from './drag'
 import { TOOLBAR_SPACE } from './Toolbar'
 import { useArriving, useOutline } from './hooks'
+import { LooseEnds } from './LooseEnds'
 import { Row } from './Row'
 import { SWIPE_HOME, SwipeUnderlay } from './Swipe'
 
@@ -238,6 +239,7 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
           </Text>
         </View>
       </Turn>
+      {date === today && <LooseEnds today={today} />}
       <Animated.View
         style={[styles.rows, container]}
         onLayout={(e) => (contentTop.current = e.nativeEvent.layout.y)}

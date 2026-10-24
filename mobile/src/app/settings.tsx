@@ -116,6 +116,17 @@ export default function SettingsSheet() {
         />
       </Section>
 
+      <Section title="Earlier to-dos on Today" footnote="Today starts with the to-dos you didn’t finish in the last 30 days, folded into one line.">
+        <Segmented<boolean>
+          value={settings.looseEnds}
+          options={[
+            [true, 'Show'],
+            [false, 'Hide']
+          ]}
+          onChange={(looseEnds) => updateSettings({ looseEnds })}
+        />
+      </Section>
+
       <Section footnote="Opens a new issue on GitHub with your version filled in.">
         <Row label="Report an Issue…" action="" onPress={reportIssue} />
       </Section>
@@ -182,7 +193,7 @@ function Row({ label, action, onPress, disabled }: { label: string; action?: str
   )
 }
 
-function Segmented<T extends string | number>({
+function Segmented<T extends string | number | boolean>({
   value,
   options,
   onChange

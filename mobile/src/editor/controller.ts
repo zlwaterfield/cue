@@ -8,6 +8,7 @@ import { Tx } from '@shared/editor/tx'
 import { revert, UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
 import { uuidv7 } from '@shared/ids'
 import { soleLink } from '@shared/links'
+import { movedToTodayLabel } from '@shared/looseEnds'
 import { parseMarkdownLines } from '@shared/markdown'
 import type { ISODate, Item, ItemType } from '@shared/types'
 import { itemStore, sync } from '../core/app'
@@ -580,6 +581,24 @@ export class Editor {
     if (!item) return Promise.resolve()
     const tomorrow = addDays(ui.get().today, 1)
     return this.moveTo(id, item.date < tomorrow ? tomorrow : addDays(item.date, 1))
+  }
+
+  /* ======================================================= Loose ends */
+
+  /** Check off or reopen a to-do from Today's list of earlier ones, leaving the caret alone. */
+  completeElsewhere(id: string): void {
+    this.complete(id)
+  }
+
+  /** Move earlier to-dos (with what's under them) to the end of today, leaving the caret alone. */
+  async pullToToday(ids: string[]): Promise<void> {
+    const today = ui.get().today
+    await itemStore.ensureLoaded([today])
+    const live = ids.filter((id) => itemStore.get(id))
+    const moved = this.commit('Move', (tx) => void ops.moveToDate(tx, live, today), { animate: today })
+    if (!moved) return
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    this.announce(movedToTodayLabel(live.length))
   }
 
   /** The line the caret moves to when the focused line leaves the page. */

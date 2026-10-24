@@ -150,16 +150,22 @@ export class Tx {
     return out
   }
 
-  /** Top-most items of a selection (items whose parent is not also selected), in order. */
+  /** Top-most items of a selection (items with no selected ancestor), in order. */
   roots(ids: string[]): string[] {
     const set = new Set(ids)
     const first = ids.map((id) => this.get(id)).find(Boolean)
     if (!first) return []
     const dates = [...new Set(ids.map((id) => this.get(id)?.date).filter(Boolean) as ISODate[])]
     const out: string[] = []
+    // Inside a selected subtree. The outline lists parents first, so this fills top-down.
+    const covered = new Set<string>()
     for (const date of dates) {
       for (const row of this.outline(date)) {
-        if (set.has(row.id) && !(row.parentId && set.has(row.parentId))) out.push(row.id)
+        if (row.parentId && covered.has(row.parentId)) covered.add(row.id)
+        else if (set.has(row.id)) {
+          out.push(row.id)
+          covered.add(row.id)
+        }
       }
     }
     return out

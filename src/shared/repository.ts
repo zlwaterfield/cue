@@ -136,6 +136,7 @@ export class Repository {
     metaDelete: SqlStatement
     range: SqlStatement
     dates: SqlStatement
+    openTodoDates: SqlStatement
   }
 
   constructor(
@@ -175,7 +176,10 @@ export class Repository {
       range: db.prepare(
         `SELECT ${COLUMNS} FROM items WHERE deleted = 0 AND date >= ? AND date <= ? ORDER BY date, position, id`
       ),
-      dates: db.prepare('SELECT DISTINCT date FROM items WHERE deleted = 0 AND date >= ? AND date <= ? ORDER BY date')
+      dates: db.prepare('SELECT DISTINCT date FROM items WHERE deleted = 0 AND date >= ? AND date <= ? ORDER BY date'),
+      openTodoDates: db.prepare(
+        "SELECT DISTINCT date FROM items WHERE deleted = 0 AND type = 'todo' AND done = 0 AND date >= ? AND date <= ? ORDER BY date"
+      )
     }
 
     let deviceId = this.getMeta('device_id')
@@ -220,6 +224,11 @@ export class Repository {
 
   datesWithItems(from: ISODate, to: ISODate): ISODate[] {
     return (this.stmts.dates.all(from, to) as Array<{ date: string }>).map((r) => r.date)
+  }
+
+  /** Days in the range with an unfinished to-do, oldest first. */
+  datesWithOpenTodos(from: ISODate, to: ISODate): ISODate[] {
+    return (this.stmts.openTodoDates.all(from, to) as Array<{ date: string }>).map((r) => r.date)
   }
 
   /** All rows, optionally including tombstones, ordered for export. */
@@ -422,7 +431,8 @@ export class Repository {
     }
     const theme = ['system', 'light', 'dark'].includes(stored.theme as string) ? stored.theme! : DEFAULT_SETTINGS.theme
     const weekStartsOn = stored.weekStartsOn === 0 || stored.weekStartsOn === 1 ? stored.weekStartsOn : DEFAULT_SETTINGS.weekStartsOn
-    return { theme, weekStartsOn }
+    const looseEnds = typeof stored.looseEnds === 'boolean' ? stored.looseEnds : DEFAULT_SETTINGS.looseEnds
+    return { theme, weekStartsOn, looseEnds }
   }
 
   setSettings(patch: Partial<Settings>): Settings {

@@ -21,6 +21,8 @@ export interface UIState {
   dragging: boolean
   /** A line to point out briefly (opened from search). */
   flash: { id: string; at: number } | null
+  /** Today's "open from earlier days" list is unfolded. For this session only. */
+  looseEndsOpen: boolean
 }
 
 const today = todayISO()
@@ -33,7 +35,8 @@ export const ui = new Store<UIState>({
   keyboard: false,
   toast: null,
   dragging: false,
-  flash: null
+  flash: null,
+  looseEndsOpen: false
 })
 
 let toastSeq = 0

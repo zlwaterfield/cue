@@ -38,6 +38,7 @@ export const COMMANDS: CommandMeta[] = [
   { id: 'go.prevDay', title: 'Previous day', group: 'Navigate', shortcut: 'Mod+[', keywords: 'back yesterday' },
   { id: 'go.nextDay', title: 'Next day', group: 'Navigate', shortcut: 'Mod+]', keywords: 'forward' },
   { id: 'go.date', title: 'Go to date…', group: 'Navigate', shortcut: 'Mod+J', keywords: 'jump calendar pick' },
+  { id: 'looseEnds.toggle', title: 'Show earlier open to-dos', group: 'Navigate', keywords: 'loose ends overdue unfinished leftover carry over' },
 
   { id: 'edit.undo', title: 'Undo', group: 'Edit', shortcut: 'Mod+Z' },
   { id: 'edit.redo', title: 'Redo', group: 'Edit', shortcut: 'Mod+Shift+Z' },
@@ -60,6 +61,7 @@ export const COMMANDS: CommandMeta[] = [
   { id: 'move.nextWeekday', title: 'Move to next weekday', group: 'Move', keywords: 'defer reschedule business day', needsItem: true },
   { id: 'move.nextWeek', title: 'Move to next week', group: 'Move', keywords: 'defer reschedule monday', needsItem: true },
   { id: 'move.date', title: 'Move to date…', group: 'Move', shortcut: 'Mod+Shift+D', keywords: 'defer reschedule pick', needsItem: true },
+  { id: 'looseEnds.moveAll', title: 'Move earlier open to-dos to today', group: 'Move', keywords: 'loose ends overdue unfinished carry over reschedule' },
 
   { id: 'export.markdown', title: 'Export as Markdown…', group: 'Data', keywords: 'backup save files' },
   { id: 'export.json', title: 'Export JSON backup…', group: 'Data', keywords: 'backup save' },
