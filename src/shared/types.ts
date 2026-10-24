@@ -104,7 +104,12 @@ export interface SyncState {
   needsSignIn: boolean
   /** With `needsSignIn`, the account to offer signing in again to. Null if it was deleted. */
   previousEmail: string | null
+  /** How that account signed in, so signing in again goes the same way. */
+  previousMethod: SignInMethod | null
 }
+
+/** An emailed six-digit code, or Sign in with Apple. */
+export type SignInMethod = 'email' | 'apple'
 
 export const SYNC_OFF: SyncState = {
   available: false,
@@ -114,7 +119,8 @@ export const SYNC_OFF: SyncState = {
   pending: 0,
   message: null,
   needsSignIn: false,
-  previousEmail: null
+  previousEmail: null,
+  previousMethod: null
 }
 
 /** The outcome of an account action. `error` is always written for people. */
@@ -127,6 +133,13 @@ export interface SyncBridge {
   sendCode(email: string): Promise<SyncResult>
   /** Finish signing in; sync starts right away. */
   verifyCode(email: string, code: string): Promise<SyncResult>
+  /**
+   * Sign in with Apple in the browser; sync starts once it comes back. Resolves with an
+   * empty error if cancelled (`cancelSignIn`).
+   */
+  signInWithApple(): Promise<SyncResult>
+  /** Stop waiting for the browser. */
+  cancelSignIn(): void
   /** Offline, this fails with "Offline. Changes will sync when you’re back online." */
   syncNow(): Promise<SyncResult>
   /** Stop syncing on this Mac (or dismiss `needsSignIn`). Notes stay here. */

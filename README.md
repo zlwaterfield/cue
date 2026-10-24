@@ -51,8 +51,8 @@ tomorrow (⌘D) or any date (⇧⌘D), and select several lines to act on them t
 (the tests `kill -9` the app to check), a daily snapshot is kept for 14 days, and you can
 export to Markdown or JSON at any time.
 
-**Sync.** Optional on the Mac and off by default. Sign in with your email and a six-digit
-code, and edits reach your other devices about a second after you stop typing. It works
+**Sync.** Optional on the Mac and off by default. Sign in with Apple, or with your email and
+a six-digit code, and edits reach your other devices about a second after you stop typing. It works
 offline and never interrupts typing.
 
 **Assistants.** With sync on, connect Claude, ChatGPT or another assistant over MCP to read

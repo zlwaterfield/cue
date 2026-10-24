@@ -41,7 +41,9 @@ name: Account deleted
 - extendedWaitUntil:
     visible: "Your account was deleted on another device."
     timeout: 15000
-# The email field has focus already. Send goes from the keyboard.
+# Send goes from the keyboard.
+- tapOn:
+    id: "email"
 - inputText: ${output.email}
 - pressKey: Enter
 - extendedWaitUntil:
@@ -62,6 +64,8 @@ name: Account deleted
     file: scripts/email.js
     env:
       PREFIX: deleted-b
+- tapOn:
+    id: "email"
 - inputText: ${output.email}
 - pressKey: Enter
 - extendedWaitUntil:

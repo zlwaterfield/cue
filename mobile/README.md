@@ -15,7 +15,7 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 ## How it differs from the Mac
 
 - **Sync is required.** The Mac works without an account; the phone signs in first, with
-  the same email and six-digit code. The phone holds a local copy of the account in SQLite,
+  Sign in with Apple or the same email and six-digit code. The phone holds a local copy of the account in SQLite,
   so it opens instantly and works offline. Signing out removes that copy (after checking
   nothing is left unsent); the account keeps everything. Right after signing in, today
   and the week around it download first; an empty day whose notes haven't arrived yet says
@@ -138,6 +138,8 @@ needed for TestFlight and the App Store, and it makes the install last a year in
    `-allowProvisioningUpdates`. If your team's profile can't include App Groups, set
    `CUE_SHARE_EXTENSION=off` there too and regenerate the project
    (`npx expo prebuild --platform ios --clean`); Cue then builds without the share sheet.
+   Sign in with Apple also needs a paid team: with a free Personal Team, set
+   `CUE_APPLE_SIGN_IN=off` the same way, and sign-in offers email codes only.
 5. Run `npx expo run:ios --device --configuration Release` and pick the phone. Release
    builds carry their own JavaScript, so the app works away from the Mac.
 

@@ -1,8 +1,10 @@
 import { AppState, type AppStateStatus } from 'react-native'
+import * as AppleAuthentication from 'expo-apple-authentication'
+import * as Crypto from 'expo-crypto'
 import * as SecureStore from 'expo-secure-store'
 import type { ItemStore } from '@shared/itemStore'
 import type { Repository } from '@shared/repository'
-import { errorMessage, OfflineError, SessionError, SyncEngine, type SessionEnd } from '@shared/sync/engine'
+import { errorMessage, OfflineError, SessionError, SyncEngine, SyncError, type SessionEnd } from '@shared/sync/engine'
 import { DELETE_FAILED, SIGN_IN_FAILED, SYNC_OFFLINE } from '@shared/sync/status'
 import { SupabaseSync, type Account, type SessionStore, type SyncConfig } from '@shared/sync/supabase'
 import type { SyncResult } from '@shared/types'
@@ -221,16 +223,37 @@ export class MobileSync {
     const client = this.client
     if (!client) return { ok: false, error: 'This build of Cue has no sync server.' }
     return attempt(async () => {
-      const account = await client.verifyCode(email.trim(), code.replace(/\s+/g, ''))
-      const previous = this.repo.getMeta(SYNCED_WITH)
-      if (previous !== account.id) {
-        // Notes left by another account (signed out by the server) leave with it.
-        if (previous) this.clearLocal()
-        this.repo.setMeta(CURSOR, '0')
-        this.repo.setMeta(JOINING, '1')
-        this.repo.setMeta(SYNCED_WITH, account.id)
-      }
-      this.begin(account)
+      this.signedIn(await client.verifyCode(email.trim(), code.replace(/\s+/g, '')))
+    }, SIGN_IN_FAILED)
+  }
+
+  /**
+   * Sign in with Apple: the system sheet, then the sync server checks Apple's identity
+   * token. Apple gets only a hash of the nonce, so a token can't be replayed. Cancelled,
+   * it resolves with an empty error: there's nothing to explain.
+   */
+  async signInWithApple(): Promise<SyncResult> {
+    const client = this.client
+    if (!client) return { ok: false, error: 'This build of Cue has no sync server.' }
+    const nonce = Crypto.randomUUID()
+    let token: string | null
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [AppleAuthentication.AppleAuthenticationScope.EMAIL],
+        nonce: await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, nonce)
+      })
+      token = credential.identityToken
+    } catch (error) {
+      const code = (error as { code?: string }).code
+      if (code === 'ERR_REQUEST_CANCELED') return { ok: false, error: '' }
+      console.warn('Sign in with Apple failed', error)
+      // Most often there's no Apple Account on the phone, and its prompt was closed.
+      if (code === 'ERR_REQUEST_UNKNOWN') return { ok: false, error: 'Sign in with Apple didn’t finish. Check that this iPhone is signed in to an Apple Account, or use your email.' }
+      return { ok: false, error: SIGN_IN_FAILED }
+    }
+    return attempt(async () => {
+      if (!token) throw new SyncError(SIGN_IN_FAILED)
+      this.signedIn(await client.signInWithApple(token, nonce))
     }, SIGN_IN_FAILED)
   }
 
@@ -277,6 +300,18 @@ export class MobileSync {
   }
 
   /* ------------------------------------------------------------ Internals */
+
+  private signedIn(account: Account): void {
+    const previous = this.repo.getMeta(SYNCED_WITH)
+    if (previous !== account.id) {
+      // Notes left by another account (signed out by the server) leave with it.
+      if (previous) this.clearLocal()
+      this.repo.setMeta(CURSOR, '0')
+      this.repo.setMeta(JOINING, '1')
+      this.repo.setMeta(SYNCED_WITH, account.id)
+    }
+    this.begin(account)
+  }
 
   private begin(account: Account): void {
     const client = this.client!

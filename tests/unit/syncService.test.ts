@@ -8,13 +8,16 @@ import { memoryRepo, newItem } from './helpers'
 
 const config = { url: 'http://sync.test', key: 'key' }
 
-function setup(repo: Repository = memoryRepo(), server = new MemorySyncServer()) {
+function setup(repo: Repository = memoryRepo(), server = new MemorySyncServer(), browser = vi.fn(async (_url: string) => {})) {
   const states: SyncState[] = []
   let signedOut: ((reason: SessionEnd) => void) | null = null
   const client: SyncClient = {
     ...server.transport(),
     sendCode: vi.fn(async () => {}),
     verifyCode: vi.fn(async (email: string) => ({ id: `user-${email}`, email })),
+    // Apple's page "comes back" to wherever it was asked to.
+    appleSignInUrl: vi.fn(async (redirectTo: string) => `https://appleid.test/auth?redirect=${encodeURIComponent(redirectTo)}`),
+    exchangeCode: vi.fn(async (code: string) => ({ id: `apple-${code}`, email: 'me@privaterelay.appleid.com', method: 'apple' as const })),
     onSignedOut: (callback) => void (signedOut = callback),
     checkSession: vi.fn(async () => {}),
     signOut: vi.fn(async () => {}),
@@ -23,8 +26,8 @@ function setup(repo: Repository = memoryRepo(), server = new MemorySyncServer())
     unlisten: vi.fn()
   }
   const connect = vi.fn(async () => client)
-  const service = new SyncService(repo, { config, connect, onState: (s) => states.push(s), onRemoteChanges: () => {} })
-  return { repo, server, service, client, connect, states, endSession: (reason: SessionEnd = 'expired') => signedOut?.(reason) }
+  const service = new SyncService(repo, { config, connect, openBrowser: browser, onState: (s) => states.push(s), onRemoteChanges: () => {} })
+  return { repo, server, service, client, connect, states, browser, endSession: (reason: SessionEnd = 'expired') => signedOut?.(reason) }
 }
 
 describe('SyncService', () => {
@@ -87,6 +90,7 @@ describe('SyncService', () => {
       status: 'off',
       needsSignIn: true,
       previousEmail: 'me@example.com',
+      previousMethod: 'email',
       message: 'Your sync session ended. Sign in again to keep syncing.'
     })
 
@@ -246,6 +250,92 @@ describe('SyncService', () => {
     vi.mocked(client.sendCode).mockRejectedValueOnce(new Error('net::ERR_CONNECTION_RESET'))
     expect(await service.sendCode('me@example.com')).toEqual({ ok: false, error: 'Couldn’t sign in. Try again in a moment.' })
     warn.mockRestore()
+  })
+
+  it('signs in with Apple through the browser, which comes back to this Mac', async () => {
+    // The "browser" follows Apple's page back to the loopback address with a code.
+    const browser = vi.fn(async (url: string) => {
+      const back = new URL(new URL(url).searchParams.get('redirect')!)
+      expect(back.hostname).toBe('127.0.0.1')
+      back.searchParams.set('code', 'abc')
+      const page = await fetch(back)
+      // The page leaves the verdict to Cue, which hasn't exchanged the code yet.
+      expect(await page.text()).toContain('Cue is finishing signing you in.')
+    })
+    const { repo, server, service, client } = setup(memoryRepo(), new MemorySyncServer(), browser)
+    repo.saveItems([newItem({ text: 'before Apple' })])
+    expect(await service.signInWithApple()).toEqual({ ok: true })
+    expect(client.exchangeCode).toHaveBeenCalledWith('abc')
+    expect(service.state()).toMatchObject({ email: 'me@privaterelay.appleid.com', needsSignIn: false })
+    await vi.waitFor(() => expect(server.snapshot().map((i) => i.text)).toEqual(['before Apple']))
+
+    // Once the answer is in, nothing listens there any more.
+    const back = new URL(new URL(browser.mock.calls[0][0]).searchParams.get('redirect')!)
+    await expect(fetch(back)).rejects.toThrow()
+  })
+
+  it('stops waiting for Apple when cancelled, in the app or on Apple’s page', async () => {
+    const { service, browser } = setup()
+    const waiting = service.signInWithApple()
+    await vi.waitFor(() => expect(browser).toHaveBeenCalled())
+    service.cancelSignIn()
+    expect(await waiting).toEqual({ ok: false, error: '' })
+    expect(service.state().email).toBeNull()
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    browser.mockImplementationOnce(async (url) => {
+      const back = new URL(new URL(url).searchParams.get('redirect')!)
+      back.searchParams.set('error', 'access_denied')
+      expect(await (await fetch(back)).text()).toContain('Sign-in didn’t finish')
+    })
+    expect(await service.signInWithApple()).toEqual({ ok: false, error: '' })
+    browser.mockImplementationOnce(async (url) => {
+      const back = new URL(new URL(url).searchParams.get('redirect')!)
+      back.searchParams.set('error', 'server_error')
+      await fetch(back)
+    })
+    expect(await service.signInWithApple()).toEqual({ ok: false, error: 'Couldn’t sign in. Try again in a moment.' })
+    warn.mockRestore()
+  })
+
+  it('stays off when cancelled while the server is still exchanging the code', async () => {
+    const browser = vi.fn(async (url: string) => {
+      const back = new URL(new URL(url).searchParams.get('redirect')!)
+      back.searchParams.set('code', 'abc')
+      await fetch(back)
+    })
+    const { repo, service, client } = setup(memoryRepo(), new MemorySyncServer(), browser)
+    let answer: () => void = () => {}
+    vi.mocked(client.exchangeCode).mockImplementationOnce(async (code) => {
+      await new Promise<void>((resolve) => (answer = resolve))
+      return { id: `apple-${code}`, email: 'me@privaterelay.appleid.com', method: 'apple' }
+    })
+    const queueAll = vi.spyOn(repo, 'queueAll')
+    const waiting = service.signInWithApple()
+    await vi.waitFor(() => expect(client.exchangeCode).toHaveBeenCalled())
+    service.cancelSignIn()
+    answer()
+    expect(await waiting).toEqual({ ok: false, error: '' })
+    // The session the server made is dropped, and nothing was queued for upload.
+    expect(client.signOut).toHaveBeenCalled()
+    expect(queueAll).not.toHaveBeenCalled()
+    expect(service.state()).toMatchObject({ email: null, status: 'off' })
+  })
+
+  it('offers Sign in with Apple again when an Apple session ends', async () => {
+    const browser = vi.fn(async (url: string) => {
+      const back = new URL(new URL(url).searchParams.get('redirect')!)
+      back.searchParams.set('code', 'abc')
+      await fetch(back)
+    })
+    const { repo, server, service, endSession } = setup(memoryRepo(), new MemorySyncServer(), browser)
+    await service.signInWithApple()
+    endSession('expired')
+    expect(service.state()).toMatchObject({ needsSignIn: true, previousEmail: 'me@privaterelay.appleid.com', previousMethod: 'apple' })
+    // Still true after a restart.
+    const restarted = setup(repo, server)
+    await restarted.service.start()
+    expect(restarted.service.state()).toMatchObject({ needsSignIn: true, previousMethod: 'apple' })
   })
 
   it('stores the session encrypted', async () => {

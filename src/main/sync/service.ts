@@ -2,7 +2,8 @@ import type { Repository } from '../../shared/repository'
 import { errorMessage, OfflineError, SessionError, SyncEngine, SyncError, type SessionEnd, type SyncTransport } from '../../shared/sync/engine'
 import { DELETE_FAILED, SIGN_IN_FAILED, SYNC_OFFLINE } from '../../shared/sync/status'
 import type { Account, SessionStore, SupabaseSync, SyncConfig } from '../../shared/sync/supabase'
-import type { Item, SyncResult, SyncState } from '../../shared/types'
+import type { Item, SignInMethod, SyncResult, SyncState } from '../../shared/types'
+import { awaitBrowserReturn, SignInCancelled, type BrowserReturn } from './browserReturn'
 
 /**
  * Sync's lifecycle and the state the UI shows. Sync is off by default. Until someone
@@ -13,7 +14,7 @@ import type { Item, SyncResult, SyncState } from '../../shared/types'
 /** The sync server connection, as the service needs it (`SupabaseSync`, or a fake in tests). */
 export type SyncClient = Pick<
   SupabaseSync,
-  'sendCode' | 'verifyCode' | 'onSignedOut' | 'checkSession' | 'signOut' | 'deleteAccount' | 'listen' | 'unlisten'
+  'sendCode' | 'verifyCode' | 'appleSignInUrl' | 'exchangeCode' | 'onSignedOut' | 'checkSession' | 'signOut' | 'deleteAccount' | 'listen' | 'unlisten'
 > &
   SyncTransport
 
@@ -23,6 +24,8 @@ export interface SyncServiceOptions {
   cipher?: { encrypt(text: string): string; decrypt(text: string): string }
   onState: (state: SyncState) => void
   onRemoteChanges: (items: Item[]) => void
+  /** Opens a page in the browser (Electron's `shell.openExternal`), for Sign in with Apple. */
+  openBrowser?: (url: string) => Promise<void>
   /** Overridable for tests. */
   connect?: (config: SyncConfig, store: SessionStore) => Promise<SyncClient>
 }
@@ -30,6 +33,7 @@ export interface SyncServiceOptions {
 interface Ended {
   email: string
   reason: SessionEnd
+  method?: SignInMethod
 }
 
 const ACCOUNT = 'sync_account'
@@ -66,6 +70,10 @@ export class SyncService {
   private checkedAt = 0
   private verifiedAt = 0
   private shownPending = 0
+  /** Sign in with Apple, while it waits for the browser. */
+  private browserSignIn: BrowserReturn | null = null
+  /** Counts Sign in with Apple attempts; Cancel moves it on, so a late answer is ignored. */
+  private signInAttempt = 0
 
   constructor(
     private readonly repo: Repository,
@@ -100,7 +108,8 @@ export class SyncService {
       message: ended ? ENDED_MESSAGES[ended.reason] : this.message,
       needsSignIn: !!ended,
       // A deleted account can't be signed back in to; turning sync on starts afresh.
-      previousEmail: ended?.reason === 'expired' ? ended.email : null
+      previousEmail: ended?.reason === 'expired' ? ended.email : null,
+      previousMethod: ended?.reason === 'expired' ? (ended.method ?? 'email') : null
     }
   }
 
@@ -168,16 +177,48 @@ export class SyncService {
   async verifyCode(email: string, code: string): Promise<SyncResult> {
     return attempt(async () => {
       const client = await this.connect()
-      const account = await client.verifyCode(email.trim(), code.replace(/\s+/g, ''))
-      if (this.repo.getMeta(SYNCED_WITH) !== account.id) {
-        // First sync for this database with this account: upload everything it has.
-        this.repo.queueAll()
-        this.repo.setMeta(CURSOR, '0')
-        this.repo.setMeta(SYNCED_WITH, account.id)
-      }
-      this.message = null
-      await this.begin(account)
+      await this.signedIn(await client.verifyCode(email.trim(), code.replace(/\s+/g, '')))
     }, SIGN_IN_FAILED)
+  }
+
+  /**
+   * Sign in with Apple: Apple's page opens in the browser, which comes back to this Mac
+   * with a one-time code, and sync starts. Cancelled (`cancelSignIn`, or Cancel on Apple's
+   * page), it resolves with an empty error: there's nothing to explain.
+   */
+  async signInWithApple(): Promise<SyncResult> {
+    this.cancelSignIn()
+    const attempt = this.signInAttempt
+    let pending: BrowserReturn | null = null
+    try {
+      // Listen first, so Cancel works from the very start.
+      pending = this.browserSignIn = await awaitBrowserReturn()
+      const client = await this.connect()
+      const open = this.options.openBrowser
+      if (!open) throw new SyncError('Sign in with Apple isn’t available here.')
+      await open(await client.appleSignInUrl(pending.url))
+      const code = await pending.code
+      const account = await client.exchangeCode(code)
+      if (attempt !== this.signInAttempt) {
+        // Cancelled while the server answered: forget the session it just made.
+        await client.signOut().catch((error) => console.error('Sign out failed', error))
+        throw new SignInCancelled()
+      }
+      await this.signedIn(account)
+      return { ok: true }
+    } catch (error) {
+      if (error instanceof SignInCancelled) return { ok: false, error: '' }
+      return { ok: false, error: errorMessage(error, SIGN_IN_FAILED) }
+    } finally {
+      pending?.cancel()
+      if (this.browserSignIn === pending) this.browserSignIn = null
+    }
+  }
+
+  /** Stop Sign in with Apple, whether it's still waiting for the browser or for the server. */
+  cancelSignIn(): void {
+    this.signInAttempt += 1
+    this.browserSignIn?.cancel()
   }
 
   /** Stop syncing on this Mac. Local notes are untouched and keep working. */
@@ -203,6 +244,17 @@ export class SyncService {
   }
 
   /* ------------------------------------------------------------ Internals */
+
+  private async signedIn(account: Account): Promise<void> {
+    if (this.repo.getMeta(SYNCED_WITH) !== account.id) {
+      // First sync for this database with this account: upload everything it has.
+      this.repo.queueAll()
+      this.repo.setMeta(CURSOR, '0')
+      this.repo.setMeta(SYNCED_WITH, account.id)
+    }
+    this.message = null
+    await this.begin(account)
+  }
 
   private async begin(account: Account): Promise<void> {
     await this.end()
@@ -271,7 +323,7 @@ export class SyncService {
         client.onSignedOut((reason) => {
           const account = this.account
           if (!account) return
-          this.setEnded({ email: account.email, reason })
+          this.setEnded({ email: account.email, reason, method: account.method })
           void this.end({ forget: true })
           this.emit()
         })

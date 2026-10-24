@@ -123,3 +123,44 @@ describe('checkSession', () => {
     expect(fine.ended).toEqual([])
   })
 })
+
+describe('Sign in with Apple on the Mac', () => {
+  function apple(answer: Answer) {
+    const values = new Map<string, string>()
+    const store: SessionStore = { get: (k) => values.get(k) ?? null, set: (k, v) => void values.set(k, v), remove: (k) => void values.delete(k) }
+    const asked: URL[] = []
+    const fetch = async (input: RequestInfo | URL): Promise<Response> => {
+      asked.push(new URL(String(input)))
+      if (answer === 'network') throw new TypeError('fetch failed')
+      return answer.clone()
+    }
+    return { client: new SupabaseSync({ url: 'http://sync.test', key: 'key', fetch }, store), asked, values }
+  }
+
+  it('asks the server for Apple’s page, with a PKCE challenge and the way back to this Mac', async () => {
+    const page = 'https://appleid.apple.com/auth/authorize?client_id=app.cue.signin&state=abc'
+    const { client, asked, values } = apple(new Response(null, { status: 302, headers: { Location: page } }))
+    expect(await client.appleSignInUrl('http://127.0.0.1:51234/auth/callback')).toBe(page)
+    const authorize = asked[0]
+    expect(authorize.pathname).toBe('/auth/v1/authorize')
+    expect(authorize.searchParams.get('provider')).toBe('apple')
+    expect(authorize.searchParams.get('redirect_to')).toBe('http://127.0.0.1:51234/auth/callback')
+    expect(authorize.searchParams.get('code_challenge_method')).toBe('s256')
+    // The verifier stays here; only this client can exchange the code that comes back.
+    expect([...values.keys()].some((key) => key.includes('code-verifier'))).toBe(true)
+  })
+
+  it('says so in Cue when the server doesn’t offer it, or can’t be reached', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    for (const msg of ['Unsupported provider: provider is not enabled', 'Unsupported provider: missing OAuth secret']) {
+      const { client } = apple(json(400, { code: 400, error_code: 'validation_failed', msg }))
+      await expect(client.appleSignInUrl('http://127.0.0.1:1/auth/callback')).rejects.toThrow(
+        'This sync server doesn’t offer Sign in with Apple. Use your email instead.'
+      )
+    }
+    const offline = apple('network')
+    await expect(offline.client.appleSignInUrl('http://127.0.0.1:1/auth/callback')).rejects.toBeInstanceOf(OfflineError)
+    const broken = apple(json(400, { error_code: 'bad_oauth_state', msg: 'nope' }))
+    await expect(broken.client.appleSignInUrl('http://127.0.0.1:1/auth/callback')).rejects.toThrow('Couldn’t sign in. Try again in a moment.')
+  })
+})
