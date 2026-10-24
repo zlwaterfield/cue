@@ -207,6 +207,14 @@ describe('Moving between days', () => {
     expect(render(store)).toBe('P')
     expect(render(store, NEXT)).toBe('child')
   })
+
+  it('keeps a to-do nested when a to-do further up is moved too', async () => {
+    await setup('[ ] outer\n  - note\n    [ ] inner\nkeep')
+    const moved = run((tx) => ops.moveToDate(tx, ['outer', 'inner'], NEXT))
+    expect(moved).toEqual(['outer'])
+    expect(render(store)).toBe('keep')
+    expect(render(store, NEXT)).toBe('[ ] outer\n  - note\n    [ ] inner')
+  })
 })
 
 describe('Completion and conversion', () => {
