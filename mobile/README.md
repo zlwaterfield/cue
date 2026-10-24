@@ -146,6 +146,14 @@ needed for TestFlight and the App Store, and it makes the install last a year in
 The first time, iOS asks you to trust the developer under Settings → General → VPN &
 Device Management.
 
+### TestFlight
+
+With a paid team in `.env.local` and its Apple ID signed in to Xcode, `pnpm testflight`
+regenerates the native project, archives a Release build with a new build number, and
+uploads it to App Store Connect. Apple takes 5–15 minutes to process it before it shows
+in TestFlight. `pnpm testflight --no-upload` stops at the `.ipa` in `ios/build/testflight`.
+The app's record in App Store Connect has to exist before the first upload.
+
 `app.config.ts` reads `CUE_SUPABASE_URL` and `CUE_SUPABASE_KEY` when Metro or a build
 starts, from `.env.development.local` for Metro and Debug builds and from
 `.env.production.local` for Release builds. Keep them out of `.env.local`, which Expo ranks

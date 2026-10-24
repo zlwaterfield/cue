@@ -26,6 +26,8 @@ const config: ExpoConfig = {
   icon: './assets/icon.png',
   ios: {
     bundleIdentifier: process.env.CUE_IOS_BUNDLE_ID || 'app.cue',
+    // Each upload to App Store Connect needs a new one; scripts/testflight.mjs sets it.
+    buildNumber: process.env.CUE_IOS_BUILD_NUMBER || '1',
     appleTeamId: process.env.CUE_APPLE_TEAM_ID || undefined,
     supportsTablet: true,
     // The Icon Composer source shared with the Mac app (docs/brand/app-icon/ICON-COMPOSER.md).
