@@ -7,14 +7,14 @@ import { ui } from './ui'
 /**
  * Links and text shared to Cue from other apps. The share extension can't reach the notes,
  * so it leaves each share in the app group's inbox; here they're added to today when Cue
- * comes to the screen, and taken out of the inbox once they're stored. The account syncs
- * them like any other new line.
+ * comes to the screen, and taken out of the inbox once they're stored. With sync on, they
+ * sync like any other new line.
  */
 
 let receiving = false
 
 export async function receiveShared(): Promise<void> {
-  if (receiving || sync.state.get().phase !== 'signedIn') return
+  if (receiving) return
   const { today } = ui.get()
   // During the first download onto this phone, today waits for its notes (and so do shares).
   if (arriving(sync.state.get(), today, today)) return

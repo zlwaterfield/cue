@@ -9,14 +9,6 @@ name: Touch
 ---
 - runFlow: subflows/launch.yaml
 - runScript: scripts/today.js
-- runScript:
-    file: scripts/email.js
-    env:
-      PREFIX: touch
-- runFlow:
-    file: subflows/sign-in.yaml
-    env:
-      EMAIL: ${output.email}
 
 - tapOn:
     id: ${'new-line-' + output.today}

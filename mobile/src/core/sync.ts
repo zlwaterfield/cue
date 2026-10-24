@@ -7,14 +7,15 @@ import type { Repository } from '@shared/repository'
 import { errorMessage, OfflineError, SessionError, SyncEngine, SyncError, type SessionEnd } from '@shared/sync/engine'
 import { DELETE_FAILED, SIGN_IN_FAILED, SYNC_OFFLINE } from '@shared/sync/status'
 import { SupabaseSync, type Account, type SessionStore, type SyncConfig } from '@shared/sync/supabase'
-import type { SyncResult } from '@shared/types'
+import type { SignInMethod, SyncResult, SyncState } from '@shared/types'
 import { backgroundTask } from '../../modules/cue-native'
 import { Store } from './store'
 
 /**
- * Sync on iPhone. Unlike the Mac, where sync is optional, the phone works only signed in:
- * the notes here are a local copy of the account, the database is how it stays fast and
- * works offline, and signing out removes them from the phone.
+ * Sync on iPhone, as on the Mac: off by default, and Cue works the same either way. Until
+ * someone turns it on, the Supabase client isn't created and nothing touches the network.
+ * Turning it on uploads the notes already on this phone to the account; turning it off
+ * stops syncing, and every note stays here.
  *
  * The protocol, merge rules, outbox and engine are the Mac's own (`shared/sync`). What's
  * different is the lifecycle: iOS suspends apps soon after they leave the screen, so edits
@@ -22,29 +23,28 @@ import { Store } from './store'
  * is pulled again the moment it comes back.
  */
 
-export type SyncPhase = 'starting' | 'signedOut' | 'signedIn'
-
-export interface SyncStatus {
-  phase: SyncPhase
-  email: string | null
-  status: 'idle' | 'syncing' | 'offline' | 'error'
-  lastSyncedAt: number | null
-  /** Local changes not yet uploaded. Kept current while offline or paused. */
-  pending: number
+/** The Mac's `SyncState`, plus the first download onto this phone. */
+export interface SyncStatus extends SyncState {
   /** The first download of this account to this phone hasn't finished yet. */
   downloading: boolean
   /** During that download: today ± 7 days have already arrived. */
   recent: boolean
-  /** Why sync stopped or failed, in words a person can act on. Never raw server text. */
-  message: string | null
+}
+
+interface Ended {
+  email: string
+  reason: SessionEnd
+  method?: SignInMethod
 }
 
 const ACCOUNT = 'sync_account'
-/** The account whose notes are in this database. */
+/** The account this database last synced with; switching accounts re-uploads everything. */
 const SYNCED_WITH = 'sync_user'
 const CURSOR = 'sync_cursor'
 /** The first download of this account to this phone hasn't finished, even across relaunches. */
 const JOINING = 'sync_joining'
+/** The session the server ended, kept so Settings can still offer to sign in again after a relaunch. */
+const ENDED = 'sync_ended'
 
 /** Faster than the Mac's 600 ms / 3 s: a phone is put down mid-thought. */
 const TIMING = { debounce: 450, maxWait: 2000 }
@@ -56,13 +56,16 @@ const CHECK_EVERY = 30_000
  * reads would otherwise keep saying "Synced just now".
  */
 const VERIFY_EVERY = 30 * 60_000
-/** When the server ends the session, sign-in shows once typing has paused this long. */
-const TYPING_PAUSE = 1000
 
 const ENDED_MESSAGES: Record<SessionEnd, string> = {
   expired: 'Your sync session ended. Sign in again to keep syncing.',
-  deleted: 'Your account was deleted on another device.'
+  deleted: 'Your account was deleted on another device. Notes on this iPhone stay here.'
 }
+
+const NO_SERVER = 'Sync isn’t available in this build.'
+
+/** Where supabase-js keeps the session (`storageKey`) and a pending PKCE verifier. */
+const SESSION_KEYS = ['session', 'session-code-verifier']
 
 /** The Supabase session lives in the Keychain, readable only on this device. */
 function keychainSessionStore(): SessionStore {
@@ -84,63 +87,54 @@ function keychainSessionStore(): SessionStore {
 
 export class MobileSync {
   readonly state = new Store<SyncStatus>({
-    phase: 'starting',
+    available: false,
     email: null,
-    status: 'idle',
+    status: 'off',
     lastSyncedAt: null,
     pending: 0,
+    message: null,
+    needsSignIn: false,
+    previousEmail: null,
+    previousMethod: null,
     downloading: false,
-    recent: false,
-    message: null
+    recent: false
   })
-  private readonly client: SupabaseSync | null
+  private client: SupabaseSync | null = null
   private engine: SyncEngine | null = null
   private account: Account | null = null
+  private message: string | null = null
+  private ended: Ended | null
   /** The first download hasn't finished: this engine's first sync completes it. */
   private joining = false
+  private recent = false
   private checkedAt = 0
   private verifiedAt = 0
-  private lastEdit = 0
-  private signInTimer: ReturnType<typeof setTimeout> | null = null
   private appState = (AppState.currentState ?? 'active') as AppStateStatus
 
   constructor(
     private readonly repo: Repository,
     private readonly store: ItemStore,
-    config: SyncConfig | null
+    private readonly config: SyncConfig | null
   ) {
-    this.client = config ? new SupabaseSync(config, keychainSessionStore()) : null
-    // The server ended the session: it expired or was revoked, or the account was deleted.
-    // The notes stay until someone signs in, so unsent edits aren't lost.
-    this.client?.onSignedOut((reason) => {
-      if (!this.account) return
-      void this.end({ forget: true })
-      this.showSignIn(ENDED_MESSAGES[reason])
-    })
+    this.ended = this.readEnded()
   }
 
-  get available(): boolean {
-    return !!this.client
-  }
-
-  /** Resume the account this phone was signed in to, if any. */
+  /** Resume syncing if this phone was signed in. */
   start(): void {
     AppState.addEventListener('change', (next) => this.onAppState(next))
-    const account = this.readAccount()
-    if (!this.client) {
-      this.emit({ phase: 'signedOut', message: 'This build of Cue has no sync server.' })
-      return
-    }
+    const account = this.config ? this.readAccount() : null
     if (!account) {
-      // A fresh install: the Keychain can outlive the app, so forget any old session.
-      void this.client.signOut().catch(() => {})
-      this.emit({ phase: 'signedOut' })
+      // Signed out, or a fresh install: the Keychain can outlive the app, so forget any
+      // session left there without loading the client.
+      const store = keychainSessionStore()
+      for (const key of SESSION_KEYS) store.remove(key)
+      this.emit()
       return
     }
-    // Show the notes already on the phone right away; start talking to the server once
-    // the first screen is up.
+    // The notes are already on the phone; start talking to the server once the first
+    // screen is up.
     this.account = account
-    this.emit({ phase: 'signedIn' })
+    this.emit()
     requestAnimationFrame(() =>
       setTimeout(() => {
         if (this.account !== account) return
@@ -154,7 +148,6 @@ export class MobileSync {
 
   /** A local edit was stored. `soon` for anything but typing, which goes without the typing pause. */
   localChange(options?: { soon?: boolean }): void {
-    this.lastEdit = Date.now()
     const engine = this.engine
     if (!engine) return
     engine.localChange(options)
@@ -172,7 +165,7 @@ export class MobileSync {
   /** Offline, this fails with "Offline. Changes will sync when you’re back online." */
   async syncNow(): Promise<SyncResult> {
     const engine = this.engine
-    if (!engine) return { ok: false, error: 'Not signed in.' }
+    if (!engine) return { ok: false, error: 'Sync is off.' }
     try {
       await engine.sync()
       return { ok: true }
@@ -214,16 +207,12 @@ export class MobileSync {
   /* ------------------------------------------------------------- Account */
 
   async sendCode(email: string): Promise<SyncResult> {
-    const client = this.client
-    if (!client) return { ok: false, error: 'This build of Cue has no sync server.' }
-    return attempt(() => client.sendCode(email.trim()), SIGN_IN_FAILED)
+    return attempt(() => this.connect().sendCode(email.trim()), SIGN_IN_FAILED)
   }
 
   async verifyCode(email: string, code: string): Promise<SyncResult> {
-    const client = this.client
-    if (!client) return { ok: false, error: 'This build of Cue has no sync server.' }
     return attempt(async () => {
-      this.signedIn(await client.verifyCode(email.trim(), code.replace(/\s+/g, '')))
+      this.signedIn(await this.connect().verifyCode(email.trim(), code.replace(/\s+/g, '')))
     }, SIGN_IN_FAILED)
   }
 
@@ -233,8 +222,7 @@ export class MobileSync {
    * it resolves with an empty error: there's nothing to explain.
    */
   async signInWithApple(): Promise<SyncResult> {
-    const client = this.client
-    if (!client) return { ok: false, error: 'This build of Cue has no sync server.' }
+    if (!this.config) return { ok: false, error: NO_SERVER }
     const nonce = Crypto.randomUUID()
     let token: string | null
     try {
@@ -253,71 +241,52 @@ export class MobileSync {
     }
     return attempt(async () => {
       if (!token) throw new SyncError(SIGN_IN_FAILED)
-      this.signedIn(await client.signInWithApple(token, nonce))
+      this.signedIn(await this.connect().signInWithApple(token, nonce))
     }, SIGN_IN_FAILED)
   }
 
-  /** Local changes the server doesn't have yet, including any still being saved. */
-  unsent(): number {
-    return this.repo.pendingCount() + (this.store.persistence.hasPending() ? 1 : 0)
-  }
-
-  /**
-   * Signed out by the server with changes it never received. Signing in to a different
-   * account, or to one that was deleted, removes them. 0 while signed in.
-   */
-  unsentFromPreviousAccount(): number {
-    return !this.account && this.repo.getMeta(SYNCED_WITH) ? this.repo.pendingCount() : 0
-  }
-
-  /** Try to upload everything before signing out. Resolves with what's still unsent. */
-  async drain(timeout = 8000): Promise<number> {
-    await this.store.persistence.settle()
-    const engine = this.engine
-    if (engine && this.repo.pendingCount() > 0) {
-      await Promise.race([engine.flush().catch(() => {}), new Promise((resolve) => setTimeout(resolve, timeout))])
-    }
-    return this.unsent()
-  }
-
-  /** Sign out of this phone. Its copy of the notes is removed; the account keeps them. */
+  /** Stop syncing on this phone. Every note stays here and keeps working. */
   async signOut(): Promise<void> {
-    // The engine stops at once, so nothing in flight can write after the notes are gone.
-    this.cancelSignIn()
+    // Settings shows Off at once; a request still in flight finishes (or times out) after.
     const ending = this.end({ forget: true })
-    this.clearLocal()
-    this.emit({ phase: 'signedOut', message: null })
+    this.message = null
+    this.setEnded(null)
+    this.emit()
     await ending
     await this.client?.signOut().catch((error) => console.warn('Sign out failed', error))
   }
 
   async deleteAccount(): Promise<SyncResult> {
     const client = this.client
-    if (!client || !this.account) return { ok: false, error: 'Not signed in.' }
+    if (!client || !this.account) return { ok: false, error: 'Sync is off.' }
     const result = await attempt(() => client.deleteAccount(), DELETE_FAILED)
-    if (result.ok) await this.signOut()
+    if (!result.ok) return result
+    this.repo.deleteMeta(SYNCED_WITH)
+    this.repo.deleteMeta(CURSOR)
+    this.repo.deleteMeta(JOINING)
+    await this.signOut()
     return result
   }
 
   /* ------------------------------------------------------------ Internals */
 
   private signedIn(account: Account): void {
-    const previous = this.repo.getMeta(SYNCED_WITH)
-    if (previous !== account.id) {
-      // Notes left by another account (signed out by the server) leave with it.
-      if (previous) this.clearLocal()
+    if (this.repo.getMeta(SYNCED_WITH) !== account.id) {
+      // First sync for this database with this account: upload everything it has.
+      this.repo.queueAll()
       this.repo.setMeta(CURSOR, '0')
       this.repo.setMeta(JOINING, '1')
       this.repo.setMeta(SYNCED_WITH, account.id)
     }
+    this.message = null
     this.begin(account)
   }
 
   private begin(account: Account): void {
-    const client = this.client!
-    this.cancelSignIn()
+    const client = this.connect()
     this.repo.setMeta(ACCOUNT, JSON.stringify(account))
     this.account = account
+    this.setEnded(null)
     // The cursor moves on with every page, so a download cut short by a relaunch is
     // remembered in meta. Today ± 7 days were stored before the cursor first moved.
     const cursor = this.repo.getMeta(CURSOR)
@@ -328,7 +297,9 @@ export class MobileSync {
       {
         onRemoteChanges: (items) => this.store.applyExternal(items),
         onRecentReady: () => {
-          if (this.engine === engine) this.emit({ recent: true })
+          if (this.engine !== engine) return
+          this.recent = true
+          this.emit()
         },
         onStatus: (_status, error) => {
           if (this.engine !== engine) return
@@ -336,7 +307,8 @@ export class MobileSync {
             this.joining = false
             this.repo.deleteMeta(JOINING)
           }
-          this.emit({ message: error && !(error instanceof OfflineError) ? errorMessage(error) : null })
+          this.message = error && !(error instanceof OfflineError) ? errorMessage(error) : null
+          this.emit()
           if (error instanceof SessionError) this.checkSession(client, error.reason)
         }
       },
@@ -348,10 +320,12 @@ export class MobileSync {
       console.warn('Sync hints unavailable', error)
       engine.setLive(false)
     })
+    this.recent = cursor !== '0'
     engine.start()
-    this.emit({ phase: 'signedIn', recent: cursor !== '0', message: null })
+    this.emit()
   }
 
+  /** Stop syncing. With `forget`, this phone no longer counts as signed in. */
   private async end(options: { forget?: boolean } = {}): Promise<void> {
     const engine = this.engine
     this.engine = null
@@ -379,29 +353,22 @@ export class MobileSync {
     void client.checkSession('expired').catch((error) => console.warn('Couldn’t check the sync session', error))
   }
 
-  /**
-   * The server ended the session: show sign-in with the reason, but only once typing has
-   * paused, so the screen never changes under someone mid-word. Edits made meanwhile are
-   * stored and stay until the next sign-in, like any other unsent change.
-   */
-  private showSignIn(message: string): void {
-    this.cancelSignIn()
-    const wait = this.lastEdit + TYPING_PAUSE - Date.now()
-    if (wait > 0) this.signInTimer = setTimeout(() => this.showSignIn(message), wait)
-    else this.emit({ phase: 'signedOut', message })
-  }
-
-  private cancelSignIn(): void {
-    if (this.signInTimer) clearTimeout(this.signInTimer)
-    this.signInTimer = null
-  }
-
-  private clearLocal(): void {
-    this.store.reset()
-    this.repo.clearNotes()
-    this.repo.deleteMeta(SYNCED_WITH)
-    this.repo.deleteMeta(CURSOR)
-    this.repo.deleteMeta(JOINING)
+  /** Create the Supabase client on first use. */
+  private connect(): SupabaseSync {
+    if (this.client) return this.client
+    if (!this.config) throw new SyncError(NO_SERVER)
+    const client = new SupabaseSync(this.config, keychainSessionStore())
+    // The server ended the session: it expired or was revoked, or the account was deleted
+    // elsewhere. Sync stops, every note stays, and Settings offers to sign in again.
+    client.onSignedOut((reason) => {
+      const account = this.account
+      if (!account) return
+      this.setEnded({ email: account.email, reason, method: account.method })
+      void this.end({ forget: true })
+      this.emit()
+    })
+    this.client = client
+    return client
   }
 
   private readAccount(): Account | null {
@@ -413,15 +380,39 @@ export class MobileSync {
     }
   }
 
-  private emit(patch: Partial<SyncStatus> = {}): void {
+  private readEnded(): Ended | null {
+    try {
+      const value = JSON.parse(this.repo.getMeta(ENDED) ?? 'null') as Ended | null
+      return value && typeof value.email === 'string' && (value.reason === 'expired' || value.reason === 'deleted') ? value : null
+    } catch {
+      return null
+    }
+  }
+
+  private setEnded(ended: Ended | null): void {
+    if (!ended && !this.ended) return
+    this.ended = ended
+    if (ended) this.repo.setMeta(ENDED, JSON.stringify(ended))
+    else this.repo.deleteMeta(ENDED)
+  }
+
+  private emit(): void {
     const engine = this.engine
+    const ended = this.config && !this.account ? this.ended : null
     this.state.set({
+      available: !!this.config,
       email: this.account?.email ?? null,
-      status: engine ? engine.status : 'idle',
+      // Signed in, the engine starts once the first screen is up.
+      status: engine ? engine.status : this.account ? 'idle' : 'off',
       lastSyncedAt: engine?.lastSyncedAt ?? null,
       pending: this.account ? this.repo.pendingCount() : 0,
+      message: ended ? ENDED_MESSAGES[ended.reason] : this.message,
+      needsSignIn: !!ended,
+      // A deleted account can't be signed back in to; turning sync on starts afresh.
+      previousEmail: ended?.reason === 'expired' ? ended.email : null,
+      previousMethod: ended?.reason === 'expired' ? (ended.method ?? 'email') : null,
       downloading: !!engine && !engine.lastSyncedAt && this.joining,
-      ...patch
+      recent: this.recent
     })
   }
 }
