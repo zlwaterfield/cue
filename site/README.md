@@ -1,8 +1,9 @@
 # cue site
 
-The one-page website for Cue. It's plain static HTML with no build step: open `index.html`, or
-serve this folder from any static host (for example, set Vercel's or Netlify's root directory to
-`site/`, or publish it with GitHub Pages).
+The website for Cue: the home page (`index.html`) and the downloads page (`download/`). It's
+plain static HTML with no build step: open `index.html`, or serve this folder from any static
+host (for example, set Vercel's or Netlify's root directory to `site/`, or publish it with
+GitHub Pages).
 
 Everything comes from the brand kit in [`docs/brand`](../docs/brand): the color tokens, the
 outlined wordmark, the favicons and `site.webmanifest` (`docs/brand/web`), and the social image
