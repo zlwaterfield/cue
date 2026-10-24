@@ -1,4 +1,4 @@
-appId: com.zlwaterfield.cue
+appId: app.cue
 productName: Cue
 copyright: Copyright © 2026 Zach Waterfield
 directories:
@@ -22,10 +22,13 @@ mac:
       arch: [arm64]
   darkModeSupport: true
   # Ad-hoc signed ("-") so local builds verify and run without an Apple Developer account.
-  # Distributed builds should use a Developer ID identity and notarization instead.
+  # `pnpm release` signs with your Developer ID instead and notarizes (scripts/release.mjs).
   identity: '-'
-  # Hardened runtime is required for notarization; enable it with a Developer ID identity.
+  # Notarization requires the hardened runtime, which `pnpm release` turns on. An ad-hoc build
+  # can't use it: library validation rejects Electron's frameworks without a team ID.
   hardenedRuntime: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     LSApplicationCategoryType: public.app-category.productivity
     NSSupportsAutomaticGraphicsSwitching: true
