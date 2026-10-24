@@ -17,8 +17,9 @@
  */
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { readdirSync, readFileSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { loadEnv } from 'electron-vite'
 
 const root = resolve(import.meta.dirname, '..')
 const out = join(root, 'release')
@@ -31,14 +32,8 @@ function fail(message) {
 const capture = (command, args) => execFileSync(command, args, { cwd: root, encoding: 'utf8' })
 const run = (command, args, env = process.env) => execFileSync(command, args, { cwd: root, env, stdio: 'inherit' })
 
-// The sync server: electron-vite reads the same file, and the environment wins over it.
-const env = { ...process.env }
-if (existsSync(join(root, '.env.production.local'))) {
-  for (const line of readFileSync(join(root, '.env.production.local'), 'utf8').split('\n')) {
-    const match = line.match(/^\s*(CUE_SUPABASE_(?:URL|KEY))\s*=\s*(.*?)\s*$/)
-    if (match && !env[match[1]]) env[match[1]] = match[2].replace(/^(['"])(.*)\1$/, '$2')
-  }
-}
+// The sync server, read the same way electron.vite.config.mts reads it for the build.
+const env = { ...loadEnv('production', root, 'CUE_'), ...process.env }
 if (!env.CUE_SUPABASE_URL?.startsWith('https://') || !env.CUE_SUPABASE_KEY) {
   fail('.env.production.local needs the hosted sync server: CUE_SUPABASE_URL (https://…) and CUE_SUPABASE_KEY.')
 }
@@ -72,7 +67,7 @@ const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 console.log(`\nCue ${version}: signing as "${identity}", notarizing with "${profile}", sync ${new URL(env.CUE_SUPABASE_URL).host}\n`)
 
 rmSync(out, { recursive: true, force: true })
-run('npx', ['electron-vite', 'build'], env)
+run('npx', ['electron-vite', 'build'])
 // With APPLE_KEYCHAIN_PROFILE set, electron-builder notarizes and staples the app before
 // it packs the DMG and zip.
 run(
@@ -81,7 +76,7 @@ run(
     'electron-builder', '--mac', '--publish', 'never',
     `-c.mac.identity=${identity}`, '-c.mac.hardenedRuntime=true', '-c.dmg.sign=true'
   ],
-  { ...env, APPLE_KEYCHAIN_PROFILE: profile }
+  { ...process.env, APPLE_KEYCHAIN_PROFILE: profile }
 )
 
 const files = readdirSync(out)
