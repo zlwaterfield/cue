@@ -16,7 +16,7 @@ import { colors, metrics, useColors } from '../ui/theme'
 import { editor } from './controller'
 import { beginDrag, drag, dragTop, resetDrag, scrollState, updateDrag } from './drag'
 import { useItem } from './hooks'
-import { LinkLine } from './LinkLine'
+import { LinkIcon, LinkLine } from './LinkLine'
 import { Marker } from './Marker'
 import { swipe, SWIPE_ACT, SWIPE_DELETE_FRACTION, SWIPE_HOME, type SwipeKind } from './Swipe'
 
@@ -31,8 +31,8 @@ function placeholderFor(date: ISODate, today: ISODate): string {
   return 'Nothing written'
 }
 
-const haptic = (kind: 'lift' | 'tick' | 'threshold'): void => {
-  if (kind === 'lift') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+const haptic = (kind: 'lift' | 'tick' | 'threshold' | 'delete'): void => {
+  if (kind === 'lift' || kind === 'delete') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
   else if (kind === 'threshold') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
   else void Haptics.selectionAsync()
 }
@@ -76,6 +76,7 @@ const advance = (id: string): void => editor.advance(id)
 // shared offset resets, so Undo brings it back in place.
 const settleSwipe = (): void => {
   swipe.x.value = 0
+  swipe.leaving.value = 0
   swipe.id.value = ''
 }
 const remove = (id: string): void => {
@@ -103,7 +104,7 @@ const dropped = (date: ISODate, id: string, index: number, depth: number): void 
  *  - swipe right: to-do, then done       - swipe left: tomorrow; further: delete
  *
  * A line that is only a link shows its page instead (`LinkLine`) while it isn't being
- * edited. Tapping the page opens it; tapping the space beside it edits the link.
+ * edited. Tapping the page (or its icon) opens it; tapping the space beside it edits the link.
  */
 export const Row = memo(function Row({ id, date, depth, empty }: { id: string; date: ISODate; depth: number; empty?: boolean }) {
   const item = useItem(id)
@@ -119,6 +120,8 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
   const flash = useStore(ui, (s) => (s.flash?.id === id ? s.flash.at : 0))
   const kind: SwipeKind = item?.type !== 'todo' ? 0 : done ? 2 : 1
   const link = item && !focused ? soleLink(item.text) : null
+  // A plain line has no marker, so its link's icon hangs in the marker column.
+  const hangingLink = link && item?.type === 'text' ? link : null
   const linkWidth = useRef(0)
 
   const setRef = useCallback(
@@ -250,6 +253,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
       'worklet'
       swipe.id.value = id
       swipe.kind.value = kind
+      swipe.leaving.value = 0
       swipe.x.value = 0
     },
     onUpdate: (e) => {
@@ -261,7 +265,8 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
       const next = Math.abs(x) <= limit ? x : Math.sign(x) * (limit + (Math.abs(x) - limit) * 0.25)
       const was = swipe.x.value
       const crossed = (t: number) => (Math.abs(was) < t) !== (Math.abs(next) < t)
-      if (crossed(SWIPE_ACT) || (next < 0 && crossed(deleteAt))) scheduleOnRN(haptic, 'threshold')
+      if (next < 0 && crossed(deleteAt)) scheduleOnRN(haptic, 'delete')
+      else if (crossed(SWIPE_ACT)) scheduleOnRN(haptic, 'threshold')
       swipe.x.value = next
     },
     onDeactivate: () => {
@@ -272,8 +277,10 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
         scheduleOnRN(advance, id)
         swipe.x.value = withSpring(0, SWIPE_HOME)
       } else if (x <= -deleteAt) {
+        swipe.leaving.value = 2
         swipe.x.value = withTiming(-width, { duration: 160 }, () => scheduleOnRN(remove, id))
       } else if (x <= -SWIPE_ACT) {
+        swipe.leaving.value = 1
         swipe.x.value = withTiming(-width, { duration: 160 }, () => scheduleOnRN(toTomorrow, id))
       } else {
         swipe.x.value = withSpring(0, SWIPE_HOME)
@@ -309,6 +316,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
     runOnJS: true,
     onActivate: () => {
       if (ghost) editor.focus(id, 0)
+      else if (hangingLink) void openLink(hangingLink)
       else editor.tapMarker(id)
     }
   })
@@ -332,7 +340,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
         {/* The whole marker column takes the tap, the gutter to its left included. */}
         <GestureDetector gesture={markerGesture}>
           <View style={styles.markerHit} collapsable={false}>
-            <Marker type={item?.type ?? 'text'} done={!!done} />
+            {hangingLink ? <LinkIcon url={hangingLink} done={!!done} /> : <Marker type={item?.type ?? 'text'} done={!!done} />}
           </View>
         </GestureDetector>
         <GestureDetector gesture={bodyGesture}>
@@ -374,7 +382,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
               }
               onAccessibilityAction={(e) => onAccessibilityAction(id, e.nativeEvent.actionName)}
             />
-            {link ? <LinkLine url={link} done={!!done} onWidth={(w) => (linkWidth.current = w)} /> : null}
+            {link ? <LinkLine url={link} done={!!done} icon={!hangingLink} onWidth={(w) => (linkWidth.current = w)} /> : null}
           </View>
         </GestureDetector>
       </View>

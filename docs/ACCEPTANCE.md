@@ -7,7 +7,7 @@ E2E tests drive the real Electron app (`pnpm test:e2e`); unit tests run under Vi
 | # | Criterion | How | Verified by |
 | - | --- | --- | --- |
 | 1 | Open Cue and immediately type into today's page | The caret starts on today's blank line; typing creates the first item. | every e2e test (`launch()` asserts focus), *north star* |
-| 2 | Create plain text, bullets, to-dos, and nested items | Typing, `- ` / `[] ` shortcuts, ⇧⌘T, the palette's Convert commands, Tab | *north star*, *markdown shortcuts*, *Enter on an empty list item* |
+| 2 | Create plain text, bullets, to-dos, and nested items | Typing, `- ` / `[] ` shortcuts, ⇧⌘↩, the palette's Convert commands, Tab | *north star*, *markdown shortcuts*, *Enter on an empty list item* |
 | 3 | Reorder and indent using only the keyboard | ⌥↑/⌥↓, Tab/⇧Tab, block selection (Esc, ⇧↑/⇧↓) | *reorder and indent with only the keyboard*, `ops.test.ts` |
 | 4 | Complete and reopen a task | ⌘↩, or click the checkbox | *north star*, *undo and redo…*, *shift-click…checkbox* |
 | 5 | Move an item and its children to tomorrow with one command | ⌘D | *undo and redo…* (move step), `ops.test.ts` "moves the item and its children" |

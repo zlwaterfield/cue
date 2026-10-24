@@ -7,6 +7,8 @@ import { rollover } from '@shared/editor/rollover'
 import { Tx } from '@shared/editor/tx'
 import { revert, UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
 import { uuidv7 } from '@shared/ids'
+import { soleLink } from '@shared/links'
+import { movedToTodayLabel } from '@shared/looseEnds'
 import { parseMarkdownLines } from '@shared/markdown'
 import type { ISODate, Item, ItemType } from '@shared/types'
 import { itemStore, sync } from '../core/app'
@@ -581,6 +583,24 @@ export class Editor {
     return this.moveTo(id, item.date < tomorrow ? tomorrow : addDays(item.date, 1))
   }
 
+  /* ======================================================= Loose ends */
+
+  /** Check off or reopen a to-do from Today's list of earlier ones, leaving the caret alone. */
+  completeElsewhere(id: string): void {
+    this.complete(id)
+  }
+
+  /** Move earlier to-dos (with what's under them) to the end of today, leaving the caret alone. */
+  async pullToToday(ids: string[]): Promise<void> {
+    const today = ui.get().today
+    await itemStore.ensureLoaded([today])
+    const live = ids.filter((id) => itemStore.get(id))
+    const moved = this.commit('Move', (tx) => void ops.moveToDate(tx, live, today), { animate: today })
+    if (!moved) return
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    this.announce(movedToTodayLabel(live.length))
+  }
+
   /** The line the caret moves to when the focused line leaves the page. */
   private neighborAfterRemoval(id: string): Focus {
     const item = itemStore.get(id)!
@@ -609,7 +629,11 @@ export class Editor {
       if (!lines.length) continue
       let created: string[] = []
       this.undo.seal()
-      this.commit('Add from Share', (tx) => void (created = ops.insertLinesAfter(tx, today, null, lines)))
+      // A link goes under the day's Links bullet; text goes at the end of the day.
+      const link = lines.length === 1 && soleLink(lines[0].text) ? lines[0] : null
+      this.commit('Add from Share', (tx) => {
+        created = link ? [ops.addToLinks(tx, today, link)] : ops.insertLinesAfter(tx, today, null, lines)
+      })
       last = created[0] ?? last
     }
     if (!last) return

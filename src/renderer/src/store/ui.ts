@@ -66,6 +66,8 @@ export interface UIState {
   overlay: Overlay
   toast: Toast | null
   dragging: boolean
+  /** Today's "open from earlier days" list is unfolded. For this session only. */
+  looseEndsOpen: boolean
 }
 
 export const ui = new Store<UIState>({
@@ -75,7 +77,8 @@ export const ui = new Store<UIState>({
   selection: { kind: 'none' },
   overlay: null,
   toast: null,
-  dragging: false
+  dragging: false,
+  looseEndsOpen: false
 })
 
 let toastSeq = 0

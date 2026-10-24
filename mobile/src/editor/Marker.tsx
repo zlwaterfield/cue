@@ -5,7 +5,11 @@ import Svg, { Path } from 'react-native-svg'
 import type { ItemType } from '@shared/types'
 import { metrics, useColors } from '../ui/theme'
 
-const BOX = 18
+export const BOX = 18
+
+/** Where the centre of a line's first capitals sits, from the top of its row. */
+export const capCentre = (fontScale: number): number =>
+  metrics.rowPadding + metrics.lineHeight * fontScale - metrics.fontSize * fontScale * 0.593
 
 /** A marker that just changed comes in with a small spring, so it registers under a finger. */
 const pop = () => {
@@ -32,19 +36,19 @@ export const Marker = memo(function Marker({ type, done }: { type: ItemType; don
   const [shown, setShown] = useState({ type, done, changes: 0 })
   if (shown.type !== type || shown.done !== done) setShown({ type, done, changes: shown.changes + 1 })
 
-  const capCentre = metrics.rowPadding + metrics.lineHeight * fontScale - metrics.fontSize * fontScale * 0.593
+  const centre = capCentre(fontScale)
   const box = Math.min(24, Math.max(BOX, Math.round(BOX * fontScale)))
 
   return (
     <View style={[styles.marker, { height: metrics.lineHeight * fontScale + 2 * metrics.rowPadding }]} pointerEvents="none">
       {type === 'bullet' ? (
-        <Glyph changes={shown.changes} style={[styles.dot, { marginTop: capCentre - 3, backgroundColor: c.text2 }]} />
+        <Glyph changes={shown.changes} style={[styles.dot, { marginTop: centre - 3, backgroundColor: c.text2 }]} />
       ) : type === 'todo' ? (
         <Glyph
           changes={shown.changes}
           style={[
             styles.box,
-            { width: box, height: box, borderRadius: (box * 5.5) / BOX, marginTop: capCentre - box / 2 },
+            { width: box, height: box, borderRadius: (box * 5.5) / BOX, marginTop: centre - box / 2 },
             done ? { backgroundColor: c.accent, borderColor: c.accent } : { borderColor: c.lineStrong }
           ]}
         >
@@ -78,15 +82,15 @@ const styles = StyleSheet.create({
   marker: {
     width: metrics.marker
   },
+  // Centred on the box, whose left edge is the marker edge.
   dot: {
     width: 6,
     height: 6,
-    marginLeft: 7,
+    marginLeft: (BOX - 6) / 2,
     borderRadius: 3,
     opacity: 0.8
   },
   box: {
-    marginLeft: 1,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center'

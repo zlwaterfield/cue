@@ -47,7 +47,12 @@ const dark: typeof light = {
 export type Colors = typeof light
 export const colors = { light, dark }
 
-/** Editor metrics: iOS body text, with the Mac's hanging markers and 24 pt indent steps. */
+/**
+ * Editor metrics: iOS body text with hanging markers. A screen has two left edges: the
+ * outer one (`gutter`), where the month, the week's first day and the markers start, and
+ * the inner one (`gutter + marker`), where every line of text starts. A nested line's
+ * marker sits on its parent's text edge.
+ */
 export const metrics = {
   fontSize: 17,
   lineHeight: 24,
@@ -55,8 +60,8 @@ export const metrics = {
   /** Height of a single-line row. */
   rowHeight: 32,
   marker: 28,
-  indent: 24,
-  gutter: 16,
+  indent: 28,
+  gutter: 20,
   column: 680
 }
 

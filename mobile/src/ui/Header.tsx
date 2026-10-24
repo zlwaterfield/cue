@@ -15,11 +15,16 @@ import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
 import { metrics, useColors } from './theme'
 
-/** The week strip's side margins; its seven days share the rest equally. */
-const STRIP_INSET = metrics.gutter - 8
-/** Half a two-digit day number ("12") at standard text size; it sits centered in its column. */
-const HALF_DAY_NUMBER = 9
 const DAY_MAX_FONT_SCALE = 1.3
+const DAY_CIRCLE = 34
+const ICON_BUTTON = 36
+const ICON_SIZE = 21
+
+/**
+ * The week strip's side margins: its seven days share the rest equally, and the first and
+ * last day circles land on the screen's outer edge (`metrics.gutter`).
+ */
+const stripInset = (width: number): number => ((metrics.gutter + DAY_CIRCLE / 2 - width / 14) * 7) / 6
 
 /** Another week opens on its first day, or on today in this week. */
 const shiftWeek = (weeks: number): void => {
@@ -40,13 +45,10 @@ export function Header() {
   const today = useStore(ui, (s) => s.today)
   const { year, month } = parts(date)
   const isToday = date === today
-  // The month starts where the week's first day number does.
-  const { width, fontScale } = useWindowDimensions()
-  const inset = STRIP_INSET + (width - 2 * STRIP_INSET) / 14 - HALF_DAY_NUMBER * Math.min(fontScale, DAY_MAX_FONT_SCALE)
 
   return (
     <View style={[styles.header, { backgroundColor: c.bg }]}>
-      <View style={[styles.bar, { paddingLeft: inset }]}>
+      <View style={styles.bar}>
         <Pressable
           onPress={() => router.push('/calendar')}
           accessibilityRole="button"
@@ -88,7 +90,7 @@ function IconButton({ icon, label, onPress }: { icon: SFSymbol; label: string; o
   const c = useColors()
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} hitSlop={8} style={styles.icon}>
-      <SymbolView name={icon} size={21} tintColor={c.text2} />
+      <SymbolView name={icon} size={ICON_SIZE} tintColor={c.text2} />
     </Pressable>
   )
 }
@@ -115,6 +117,7 @@ function WeekStrip({ date, today }: { date: ISODate; today: ISODate }) {
   const start = startOfWeek(date, weekStartsOn)
   const days = useMemo(() => dateRange(start, addDays(start, 6)), [start])
   const marked = useMarked(days)
+  const { width } = useWindowDimensions()
   const offset = useSharedValue(0)
 
   useEffect(() => {
@@ -148,7 +151,7 @@ function WeekStrip({ date, today }: { date: ISODate; today: ISODate }) {
 
   return (
     <GestureDetector gesture={pan}>
-      <Animated.View style={[styles.strip, slide]} accessibilityRole="tablist">
+      <Animated.View style={[styles.strip, { paddingHorizontal: stripInset(width) }, slide]} accessibilityRole="tablist">
         {days.map((day) => {
           const selected = day === date
           const isToday = day === today
@@ -241,7 +244,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
-    paddingRight: metrics.gutter - 6
+    // The month and the glyph of the last icon sit on the outer edge.
+    paddingLeft: metrics.gutter,
+    paddingRight: metrics.gutter - (ICON_BUTTON - ICON_SIZE) / 2
   },
   month: {
     flexDirection: 'row',
@@ -263,8 +268,8 @@ const styles = StyleSheet.create({
     flexShrink: 0
   },
   icon: {
-    width: 36,
-    height: 36,
+    width: ICON_BUTTON,
+    height: ICON_BUTTON,
     alignItems: 'center',
     justifyContent: 'center'
   },
@@ -305,7 +310,6 @@ const styles = StyleSheet.create({
   },
   strip: {
     flexDirection: 'row',
-    paddingHorizontal: STRIP_INSET,
     paddingBottom: 6
   },
   day: {
@@ -320,9 +324,9 @@ const styles = StyleSheet.create({
     marginBottom: 4
   },
   dayNumber: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: DAY_CIRCLE,
+    height: DAY_CIRCLE,
+    borderRadius: DAY_CIRCLE / 2,
     alignItems: 'center',
     justifyContent: 'center'
   },

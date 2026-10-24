@@ -207,6 +207,14 @@ describe('Moving between days', () => {
     expect(render(store)).toBe('P')
     expect(render(store, NEXT)).toBe('child')
   })
+
+  it('keeps a to-do nested when a to-do further up is moved too', async () => {
+    await setup('[ ] outer\n  - note\n    [ ] inner\nkeep')
+    const moved = run((tx) => ops.moveToDate(tx, ['outer', 'inner'], NEXT))
+    expect(moved).toEqual(['outer'])
+    expect(render(store)).toBe('keep')
+    expect(render(store, NEXT)).toBe('[ ] outer\n  - note\n    [ ] inner')
+  })
 })
 
 describe('Completion and conversion', () => {
@@ -246,6 +254,28 @@ describe('Paste', () => {
     const empty = store.outline(DAY)[1].id
     run((tx) => ops.pasteLines(tx, empty, 0, 0, [{ depth: 0, type: 'todo', done: true, text: 'done thing' }]))
     expect(render(store)).toBe('a\n[x] done thing')
+  })
+})
+
+describe('Sharing a link', () => {
+  const link = { depth: 0, type: 'text' as const, done: false, text: 'https://example.com' }
+
+  it('adds it under a new Links bullet at the end of the day', async () => {
+    await setup('a\n  b')
+    run((tx) => ops.addToLinks(tx, DAY, link))
+    expect(render(store)).toBe('a\n  b\n- Links\n  https://example.com')
+  })
+
+  it('adds it last under the day’s Links line, whatever its marker or case', async () => {
+    await setup('links:\n  https://one.com\n    note\nlater')
+    run((tx) => ops.addToLinks(tx, DAY, link))
+    expect(render(store)).toBe('links:\n  https://one.com\n    note\n  https://example.com\nlater')
+  })
+
+  it('ignores a nested Links line', async () => {
+    await setup('- a\n  - Links')
+    run((tx) => ops.addToLinks(tx, DAY, link))
+    expect(render(store)).toBe('- a\n  - Links\n- Links\n  https://example.com')
   })
 })
 

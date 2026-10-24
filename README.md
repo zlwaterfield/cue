@@ -8,10 +8,9 @@
   Fast, quiet and keyboard-first.
 </p>
 
-> [!WARNING]
-> **Cue is an early alpha.** The storage format may still change and your notes could be
-> lost. Don't keep anything in Cue you can't afford to lose, and export often
-> (File ▸ Export as Markdown).
+> [!NOTE]
+> **Cue is in beta.** I use it every day on my Mac and iPhone as my daily driver, without
+> any issues. It's still young, so export now and then (File ▸ Export as Markdown).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/week-dark.png">
@@ -56,6 +55,10 @@ export to Markdown or JSON at any time.
 a six-digit code, and edits reach your other devices about a second after you stop typing. It works
 offline and never interrupts typing.
 
+**Assistants.** With sync on, connect Claude, ChatGPT or another assistant over MCP to read
+your days, add to-dos, check them off and move them, from wherever you're chatting. See
+[docs/MCP.md](docs/MCP.md).
+
 **iPhone.** The same core as the Mac, built for touch: tap a bullet to make it a to-do, tap a
 box to check it, swipe to complete or send to tomorrow, and long-press to drag. It uses
 sync, so it needs an account. Share a link from any app to add it to today, and a line
@@ -76,7 +79,7 @@ seconds.
 | Go to date | ⌘J |
 | New item | ⌘N, or just start typing |
 | Complete / reopen | ⌘↩ |
-| Toggle bullet ↔ to-do | ⇧⌘T |
+| Toggle bullet ↔ to-do | ⇧⌘↩ |
 | Indent / outdent | Tab · ⇧Tab |
 | Move up / down | ⌥↑ · ⌥↓ |
 | Move to tomorrow | ⌘D |
@@ -163,19 +166,19 @@ happens.
 - **Sync:** an optional Supabase backend (Postgres, Auth, Realtime), newest edit wins per
   item.
 
-More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SYNC.md](docs/SYNC.md) and
-[docs/ACCEPTANCE.md](docs/ACCEPTANCE.md). The brand kit lives in [docs/brand](docs/brand).
+More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SYNC.md](docs/SYNC.md),
+[docs/MCP.md](docs/MCP.md) and [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md). The brand kit lives
+in [docs/brand](docs/brand).
 
 ## Roadmap
 
 There isn't a big one, on purpose. Cue is meant to stay small, so most of the work goes into
 making what's already here faster and more dependable. Nothing below is promised to a date.
 
-**Before beta:** a stable storage format with tested migrations, signed Mac downloads with
+**Before the stable 1.0:** a stable storage format with tested migrations, signed Mac downloads with
 automatic updates, and TestFlight builds for iPhone.
 
 **Exploring:**
-- **An MCP server**, so an assistant you already use can read your days and add to them.
 - **A hosted version**, so anyone can sign in and sync without running their own Supabase.
   Join the [waitlist](https://github.com/zlwaterfield/cue/issues/13) if you'd use it.
 
@@ -189,7 +192,7 @@ Issues and pull requests are welcome. For anything bigger than a fix, open an is
 ```sh
 pnpm test         # unit tests
 pnpm test:e2e     # end-to-end tests against the real app
-pnpm test:sync    # sync against a local Supabase (see docs/SYNC.md)
+pnpm test:sync    # sync and MCP against a local Supabase (see docs/SYNC.md)
 pnpm typecheck
 pnpm bench        # performance against the budgets
 ```

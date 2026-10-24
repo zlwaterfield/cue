@@ -78,7 +78,7 @@ export default function SettingsSheet() {
     )
   }
 
-  const version = Constants.expoConfig?.version ?? '0.2.1'
+  const version = Constants.expoConfig?.version ?? '1.0.0'
   const reportIssue = (): void => {
     void Linking.openURL(reportIssueUrl(`iPhone, version ${version} (iOS ${Platform.Version})`)).catch(() => {
       Alert.alert('Couldn’t open GitHub', 'Please try again.')
@@ -116,6 +116,17 @@ export default function SettingsSheet() {
         />
       </Section>
 
+      <Section title="Earlier to-dos on Today" footnote="Today starts with the to-dos you didn’t finish in the last 30 days, folded into one line.">
+        <Segmented<boolean>
+          value={settings.looseEnds}
+          options={[
+            [true, 'Show'],
+            [false, 'Hide']
+          ]}
+          onChange={(looseEnds) => updateSettings({ looseEnds })}
+        />
+      </Section>
+
       <Section footnote="Opens a new issue on GitHub with your version filled in.">
         <Row label="Report an Issue…" action="" onPress={reportIssue} />
       </Section>
@@ -131,7 +142,7 @@ export default function SettingsSheet() {
       <View style={styles.about}>
         <SvgXml xml={lockup(c.text3)} width={56} height={28} />
         <Text style={[styles.version, { color: c.text2 }]}>
-          Version {version} · alpha. Your notes sync across your devices.
+          Version {version} · beta. Your notes sync across your devices.
         </Text>
       </View>
     </ScrollView>
@@ -182,7 +193,7 @@ function Row({ label, action, onPress, disabled }: { label: string; action?: str
   )
 }
 
-function Segmented<T extends string | number>({
+function Segmented<T extends string | number | boolean>({
   value,
   options,
   onChange

@@ -2,6 +2,7 @@ import { flushSync } from 'react-dom'
 import { COMMANDS_BY_ID } from '@shared/commands'
 import { uuidv7 } from '@shared/ids'
 import { addDays, friendlyDate, nextWeekday, startOfWeek, todayISO, weekViewDates } from '@shared/dates'
+import { collectLooseEnds, looseEndsRange, movedToTodayLabel } from '@shared/looseEnds'
 import { linesToMarkdown, parseMarkdownLines, type LineSpec } from '@shared/markdown'
 import type { ISODate, Item, ItemType, Settings } from '@shared/types'
 import { backend } from '../data/backend'
@@ -859,6 +860,12 @@ class EditorController {
       case 'go.date':
         this.openOverlay({ kind: 'palette', mode: 'date', dateAction: 'go' })
         return
+      case 'looseEnds.toggle':
+        void this.toggleLooseEnds()
+        return
+      case 'looseEnds.moveAll':
+        void this.moveAllLooseEnds()
+        return
       case 'edit.undo':
       case 'edit.redo':
         if (isTextInput(document.activeElement)) {
@@ -1034,6 +1041,56 @@ class EditorController {
       showToast(`Moved to ${label}`, { undo: true })
       this.toastEntry = this.undo.top()
     }
+  }
+
+  /* ========================================================= Loose ends */
+
+  private async toggleLooseEnds(): Promise<void> {
+    const { settings, today, view, looseEndsOpen } = ui.get()
+    if (!settings.looseEnds) {
+      showToast('Earlier to-dos are turned off in Settings')
+      return
+    }
+    const showsToday = view.mode === 'week' || view.date === today
+    if (!showsToday) {
+      await this.navigate({ mode: 'day', date: today })
+      ui.set({ looseEndsOpen: true })
+    } else ui.set({ looseEndsOpen: !looseEndsOpen })
+  }
+
+  private async moveAllLooseEnds(): Promise<void> {
+    if (!ui.get().settings.looseEnds) {
+      showToast('Earlier to-dos are turned off in Settings')
+      return
+    }
+    // Found afresh, so this works from any page, not only where Today's list is showing.
+    const { today } = ui.get()
+    await itemStore.persistence.settle()
+    const { from, to } = looseEndsRange(today)
+    const dates = await backend.datesWithOpenTodos(from, to)
+    await itemStore.ensureLoaded(dates)
+    const ids = collectLooseEnds(itemStore, dates).map((item) => item.id)
+    if (!ids.length) {
+      showToast('Nothing open from earlier days')
+      return
+    }
+    await this.pullToToday(ids)
+  }
+
+  /** Move to-dos (with what's under them) to the end of today, leaving the caret where it is. */
+  async pullToToday(ids: string[]): Promise<void> {
+    const today = ui.get().today
+    await itemStore.ensureLoaded([today])
+    const live = ids.filter((id) => itemStore.get(id))
+    const moved = this.commit('Move', (tx) => void ops.moveToDate(tx, live, today), { keepSelection: true })
+    if (!moved) return
+    showToast(movedToTodayLabel(live.length), { undo: true })
+    this.toastEntry = this.undo.top()
+  }
+
+  /** Complete or reopen a to-do from somewhere other than its own line, leaving the caret where it is. */
+  toggleDoneElsewhere(id: string): void {
+    this.commit('Complete', (tx) => void ops.toggleDone(tx, [id]), { keepSelection: true })
   }
 
   /* ========================================================== Navigation */

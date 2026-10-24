@@ -38,13 +38,14 @@ export const COMMANDS: CommandMeta[] = [
   { id: 'go.prevDay', title: 'Previous day', group: 'Navigate', shortcut: 'Mod+[', keywords: 'back yesterday' },
   { id: 'go.nextDay', title: 'Next day', group: 'Navigate', shortcut: 'Mod+]', keywords: 'forward' },
   { id: 'go.date', title: 'Go to date…', group: 'Navigate', shortcut: 'Mod+J', keywords: 'jump calendar pick' },
+  { id: 'looseEnds.toggle', title: 'Show earlier open to-dos', group: 'Navigate', keywords: 'loose ends overdue unfinished leftover carry over' },
 
   { id: 'edit.undo', title: 'Undo', group: 'Edit', shortcut: 'Mod+Z' },
   { id: 'edit.redo', title: 'Redo', group: 'Edit', shortcut: 'Mod+Shift+Z' },
 
   { id: 'item.create', title: 'Create item', group: 'Item', shortcut: 'Mod+N', keywords: 'new add line' },
   { id: 'item.toggleDone', title: 'Complete or reopen to-do', group: 'Item', shortcut: 'Mod+Enter', keywords: 'check done finish', needsItem: true },
-  { id: 'item.toggleTodo', title: 'Toggle bullet / to-do', group: 'Item', shortcut: 'Mod+Shift+T', keywords: 'task checkbox convert', needsItem: true },
+  { id: 'item.toggleTodo', title: 'Toggle bullet / to-do', group: 'Item', shortcut: 'Mod+Shift+Enter', keywords: 'task checkbox convert', needsItem: true },
   { id: 'item.toText', title: 'Convert to plain text', group: 'Item', keywords: 'paragraph turn into', needsItem: true },
   { id: 'item.toBullet', title: 'Convert to bullet', group: 'Item', keywords: 'list turn into', needsItem: true },
   { id: 'item.toTodo', title: 'Convert to to-do', group: 'Item', keywords: 'task checkbox turn into', needsItem: true },
@@ -60,6 +61,7 @@ export const COMMANDS: CommandMeta[] = [
   { id: 'move.nextWeekday', title: 'Move to next weekday', group: 'Move', keywords: 'defer reschedule business day', needsItem: true },
   { id: 'move.nextWeek', title: 'Move to next week', group: 'Move', keywords: 'defer reschedule monday', needsItem: true },
   { id: 'move.date', title: 'Move to date…', group: 'Move', shortcut: 'Mod+Shift+D', keywords: 'defer reschedule pick', needsItem: true },
+  { id: 'looseEnds.moveAll', title: 'Move earlier open to-dos to today', group: 'Move', keywords: 'loose ends overdue unfinished carry over reschedule' },
 
   { id: 'export.markdown', title: 'Export as Markdown…', group: 'Data', keywords: 'backup save files' },
   { id: 'export.json', title: 'Export JSON backup…', group: 'Data', keywords: 'backup save' },

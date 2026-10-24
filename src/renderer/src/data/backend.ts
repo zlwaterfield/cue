@@ -71,6 +71,11 @@ class MemoryBackend implements Backend {
     return [...new Set([...this.items.values()].filter((i) => !i.deleted && i.date >= from && i.date <= to).map((i) => i.date))].sort()
   }
 
+  async datesWithOpenTodos(from: string, to: string): Promise<string[]> {
+    const open = [...this.items.values()].filter((i) => !i.deleted && i.type === 'todo' && !i.done && i.date >= from && i.date <= to)
+    return [...new Set(open.map((i) => i.date))].sort()
+  }
+
   async getSettings(): Promise<Settings> {
     return { ...this.settings }
   }
@@ -105,6 +110,14 @@ class MemoryBackend implements Backend {
 
   async openExternal(url: string): Promise<void> {
     window.open(url, '_blank', 'noopener')
+  }
+
+  async linkPreview(): Promise<null> {
+    return null
+  }
+
+  onLinkPreview(): () => void {
+    return () => {}
   }
 
   markInteractive(): void {}

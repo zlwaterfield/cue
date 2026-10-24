@@ -3,7 +3,9 @@ import type { ISODate } from '@shared/types'
 import { controller } from './controller'
 import { getOffsets, setOffsets } from './dom'
 import { updateLinks } from './highlights'
-import { useIsSelected, useItem, useSelectionDepth } from './hooks'
+import { useIsEditing, useIsSelected, useItem, useSelectionDepth } from './hooks'
+import { LinkLine } from './LinkLine'
+import { soleLink } from '@shared/links'
 import * as ops from '@shared/editor/ops'
 import { beginItemDrag, beginTextPointer } from './pointer'
 
@@ -11,11 +13,15 @@ import { beginItemDrag, beginTextPointer } from './pointer'
  * One line of a day: drag handle, marker (bullet / checkbox), and a plain-text
  * editable. The editable's text is owned by the DOM while typing and only written
  * from the store when it changes elsewhere (undo, paste, sync).
+ *
+ * A line that is only a link shows its page instead (`LinkLine`) while it isn't being
+ * edited; its editable waits behind, out of the layout, for the caret to arrive.
  */
 export const ItemRow = memo(function ItemRow({ id, depth, date }: { id: string; depth: number; date: ISODate }) {
   const item = useItem(id)
   const selected = useIsSelected(id)
   const bandDepth = useSelectionDepth(id, date)
+  const editing = useIsEditing(id)
   const ref = useRef<HTMLDivElement | null>(null)
 
   const setRef = useCallback(
@@ -53,6 +59,8 @@ export const ItemRow = memo(function ItemRow({ id, depth, date }: { id: string; 
   if (item.type === 'todo' && item.done) classes.push('is-done')
   if (selected) classes.push('is-selected')
   if (!text) classes.push('is-empty')
+  const link = editing ? null : soleLink(text)
+  if (link) classes.push('is-link')
 
   const style = { '--depth': depth, ...(bandDepth !== null && { '--sel-depth': bandDepth }) } as React.CSSProperties
 
@@ -103,6 +111,7 @@ export const ItemRow = memo(function ItemRow({ id, depth, date }: { id: string; 
         onCompositionStart={() => controller.onCompositionStart()}
         onCompositionEnd={(e) => controller.onCompositionEnd(id, e.currentTarget)}
       />
+      {link ? <LinkLine id={id} date={date} url={link} /> : null}
     </div>
   )
 })

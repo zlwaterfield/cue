@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   screen: {
     flexGrow: 1,
     paddingTop: 56,
-    paddingHorizontal: metrics.gutter + 8
+    paddingHorizontal: metrics.gutter + 4
   },
   brand: {
     alignItems: 'flex-start',
