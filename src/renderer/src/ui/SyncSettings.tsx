@@ -193,6 +193,8 @@ function SignIn({ state }: { state: SyncState }) {
           </div>
         )}
       </div>
+      {/* "Sign In Again…" skips the email step, so it needs the notice too. */}
+      {step.kind === 'off' && previous && <Agreement />}
       {step.kind === 'email' && (
         <>
           <div className="button-row">
@@ -252,7 +254,7 @@ function SignIn({ state }: { state: SyncState }) {
   )
 }
 
-/** Under both ways to sign in. Signing in records it (`SupabaseSync.acceptTerms`); links open in the browser. */
+/** Wherever a sign-in starts. Signing in records it (`SupabaseSync.acceptTerms`); links open in the browser. */
 function Agreement() {
   return (
     <div className="setting-legal">
