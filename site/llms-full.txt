@@ -3,8 +3,8 @@
 Daily notes and to-dos for Mac and iPhone. Fast, quiet and keyboard-first. Free, open
 source, and no tracking.
 
-> This file is the website's own writing in plain text, for anyone — person or assistant —
-> who would rather read it that way. The Terms and Privacy Policy are summarised here but
+> This file is the website’s own writing in plain text, for anyone — person or assistant —
+> who would rather read it that way. The Terms and Privacy Policy are summarized here but
 > not reproduced: those pages at https://www.usecue.today/terms and
 > https://www.usecue.today/privacy are the only versions that count.
 
@@ -17,7 +17,7 @@ October 17, 2026.
 
 # Home — https://www.usecue.today/
 
-**Every day is a page.** Daily notes and to-dos for Mac and iOS. Fast, quiet and
+**Every day is a page.** Daily notes and to-dos for Mac and iPhone. Fast, quiet and
 keyboard-first.
 
 ## Why I built it
@@ -26,34 +26,36 @@ I wanted one place to put the day. Not a project manager or a second brain, just
 today that I could open and type into without deciding where anything goes first.
 
 Every tool I tried wanted a project, a tag or a priority before it would take a note. So I
-built Cue, for myself: days are the only structure, the keyboard does everything, and it's
-ready before I've finished thinking of what to write.
+built Cue, for myself: days are the only structure, the keyboard does everything, and it’s
+ready before I’ve finished thinking of what to write.
 
 ## What makes it different
 
 **The day is the only folder.** Things belong to dates, not projects. No tags, priorities or
-dashboards. Whatever didn't get done moves to tomorrow with ⌘D.
+dashboards. Whatever didn’t get done moves to tomorrow with ⌘D.
 
 **Keyboard first.** Tab nests, ⌘↩ completes, and ⌘K does everything else, including dates
-like "move to fri". The mouse still works.
+like “move to fri”. The mouse still works.
 
 **Fast, and measured.** Ready to type 240 ms after launch, even with five years of notes. A
-keystroke renders in about 2 ms. Every number has a budget and a test.
+keystroke renders in 1.5 ms. Every number has a budget and a test.
 
-**On your Mac and your iPhone.** Saved as you type, with no telemetry and Markdown export
-any time. Neither app needs an account; turn on sync and the same notes are on both. Free,
-both ways.
+**On your Mac and your iPhone.** Saved as you type, with no telemetry, and the Mac exports
+to Markdown or JSON any time. Neither app needs an account; turn on sync and the same
+notes are on both. Free, both ways.
 
 Cue stays small on purpose: no reminders, recurring tasks, collaboration or AI in the app.
 
-## Where it's at
+## Where it’s at
 
-It's in beta. Cue is my daily driver on my Mac and my iPhone, and it runs without any
-issues. The Mac app is a free download that works offline with no account, and the iPhone
-app is in beta on TestFlight.
+It’s in beta, and it’s free. Cue is my daily driver on my Mac and my iPhone, and it runs
+without any issues. The Mac app is a free download that works offline with no account, and
+the iPhone app is in beta on TestFlight.
 
-Want the same notes on both? Sign in with Apple or your email and they sync. There's no
-tracking either way, and the code is open if you'd rather build it yourself.
+Want the same notes on both? Sign in with Apple or your email and they sync, free as well.
+That’s the only part with a server in it: a Postgres database at Supabase, and the MCP
+endpoint, and nothing else. No tracking either way, and the code is open if you’d rather
+build it yourself.
 
 ---
 
@@ -64,12 +66,12 @@ Free on your Mac and iPhone, with no account. Turn on sync whenever you like.
 ## Cue for Mac
 
 Works offline, totally free. No account, no sign-up: open it and start typing. Apple silicon
-Mac, signed and notarized. The download is a 122 MB .dmg, from
+Mac, signed and notarized. The download is 1.0.0-beta.1, a 122 MB .dmg, from
 https://github.com/zlwaterfield/cue/releases
 
 ## Cue for iPhone
 
-Today's page in your pocket, on its own or synced with your Mac. The same core as the Mac
+Today’s page in your pocket, on its own or synced with your Mac. The same core as the Mac
 app, built for touch. Free, no account needed, and in beta on TestFlight:
 https://testflight.apple.com/join/KyVXdDgz
 
@@ -81,22 +83,22 @@ iPhone, and without an account nothing you write ever leaves it.
 **An account for sync.** To have the same notes on your Mac and iPhone, turn on sync on both
 and sign in with Apple or your email. The notes already on each one come along.
 
-**No tracking.** No analytics, no telemetry, no ads and nothing sold. Cue doesn't know how
-you use it, and your notes are only ever used to sync them back to you.
+**No tracking.** Cue doesn’t know how you use it: nothing in either app reports back. Your
+notes are only ever used to sync them between your devices, and nothing about you is sold.
 
-**Yours to take, or delete.** Export everything as Markdown any time. Turning sync off keeps
-every note on your Mac or iPhone, and deleting your account in Settings deletes it from the
-server.
+**Yours to take, or delete.** Export everything from the Mac, as Markdown or JSON, any
+time. Turning sync off keeps every note on your Mac or iPhone, and deleting your account
+in Settings deletes it from the server.
 
 Cue is open source, so you can read exactly what it does, build it yourself or run your own
-sync server. It's all on GitHub: https://github.com/zlwaterfield/cue
+sync server. It’s all on GitHub: https://github.com/zlwaterfield/cue
 
 ---
 
 # Assistants — https://www.usecue.today/assistants
 
 **There’s no AI in Cue. There’s a door.** Cue will never write your notes for you, suggest a
-to-do or summarise your week. Instead it speaks MCP, the protocol assistants use to reach
+to-do or summarize your week. Instead it speaks MCP, the protocol assistants use to reach
 tools, so the assistant you already talk to can work on your days the way another device
 would. An edit it makes goes through the same sync everything else does and shows up on your
 Mac and iPhone about a second later. It’s free, like the rest of Cue.
@@ -133,8 +135,8 @@ https://github.com/zlwaterfield/cue/blob/main/docs/MCP.md
 
 # Questions people ask
 
-**Is Cue really free?** Yes. There's no paid plan, no trial, no credit card and no upsell.
-Sync is free too. It's a personal project, not a business.
+**Is Cue really free?** Yes. There’s no paid plan, no trial, no credit card and no upsell.
+Sync is free too. It’s a personal project, not a business, and I don’t plan to charge for it.
 
 **Is it open source?** Yes, MIT licensed, the whole thing: the Mac app, the iPhone app, the
 sync server and this website. https://github.com/zlwaterfield/cue
@@ -144,7 +146,7 @@ network at all. Without sync, Cue never talks to a server.
 
 **Where are my notes stored?** On the Mac, in one SQLite file at
 `~/Library/Application Support/Cue/cue.sqlite`, with a daily snapshot kept for 14 days. On
-the iPhone, in the app's own SQLite database. With sync on, also in a Postgres database at
+the iPhone, in the app’s own SQLite database. With sync on, also in a Postgres database at
 Supabase.
 
 **Do I need an account?** Only to sync between devices. Both apps work fully without one.
@@ -164,13 +166,13 @@ at Supabase that holds your notes, where row-level security means an account can
 its own rows, and the MCP endpoint an assistant talks to. There is nothing else — no analytics
 service, no ad network, no third party.
 
-**How fast is it?** Ready to type 240 ms after launch with five years of notes (36,545
+**How fast is it?** Ready to type 240 ms after launch with five years of notes (36,543
 items). A keystroke to a rendered frame is 1.5 ms, p95 3.7 ms. Searching all 36,543 items
 takes 0.5 ms. Every number is checked against a budget by `pnpm bench`, on the real packaged
 app.
 
-**What doesn't it do?** No projects, tags, priorities, folders, reminders, recurring tasks,
-attachments, collaboration, dashboards or AI writing your notes. That's on purpose.
+**What doesn’t it do?** No projects, tags, priorities, folders, reminders, recurring tasks,
+attachments, collaboration, dashboards or AI writing your notes. That’s on purpose.
 
 **What are the shortcuts?** ⌘K command palette, ⌘F search, ⌘1/⌘2/⌘3 today/tomorrow/this
 week, ⌘[ and ⌘] previous and next day, ⌘J go to date, ⌘N new item, ⌘↩ complete, ⇧⌘↩ toggle
@@ -181,15 +183,15 @@ bullet and to-do, Tab and ⇧Tab indent and outdent, ⌥↑ and ⌥↓ move, ⌘
 
 # Terms of Service — https://www.usecue.today/terms
 
-In short: Cue is free, in beta, and provided as it is. What you write belongs to you. Don't
-misuse the service or other people's accounts. You can export your notes and delete your
+In short: Cue is free, in beta, and provided as it is. What you write belongs to you. Don’t
+misuse the service or other people’s accounts. You can export your notes and delete your
 account at any time.
 
 The full text is at https://www.usecue.today/terms — that page is the version that counts.
 
 # Privacy Policy — https://www.usecue.today/privacy
 
-In short: your notes are yours, and they're used only to sync them to your devices. No ads,
+In short: your notes are yours, and they’re used only to sync them to your devices. No ads,
 analytics, tracking pixels or third-party trackers, in the apps or on this site. No AI: Cue
 never sends your notes to an AI model or uses them to train one. Without sync, nothing you
 write leaves your device.

@@ -34,13 +34,13 @@
 <meta property="og:video:alt" content="The Cue card typing itself: cue, every day is a page.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://www.usecue.today/images/og.png">
-<link rel="icon" href="favicon.ico" sizes="48x48">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="manifest" href="site.webmanifest">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
 <meta name="theme-color" content="#FAFAFB" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#18181A" media="(prefers-color-scheme: dark)">
-<link rel="preload" href="fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/cue.css">
 <!-- The light/dark choice from the last page, before the first paint. -->
 <script>try { const t = localStorage.getItem('cue-theme'); if (t) document.documentElement.dataset.theme = t } catch {}</script>
@@ -227,11 +227,11 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
       "featureList": [
         "Daily pages: notes, bullets and to-dos belong to dates, not projects",
         "Keyboard-first, with a command palette that understands dates",
-        "Move what's unfinished to tomorrow with one shortcut",
-        "Search every day you've written",
+        "Move what’s unfinished to tomorrow with one shortcut",
+        "Search every day you’ve written",
         "Works offline with no account; sync between devices is optional and free",
         "An MCP server, so Claude or ChatGPT can read and edit your days",
-        "Export to Markdown or JSON at any time",
+        "Export from the Mac to Markdown or JSON at any time",
         "No analytics, telemetry or tracking of any kind",
         "Open source, MIT licensed"
       ]
@@ -285,7 +285,7 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
           "name": "Where are my notes kept?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "On the Mac, in one SQLite file at ~/Library/Application Support/Cue/cue.sqlite, with a daily snapshot kept for 14 days. On the iPhone, in the app’s own database. Export everything as Markdown or JSON whenever you like."
+            "text": "On the Mac, in one SQLite file at ~/Library/Application Support/Cue/cue.sqlite, with a daily snapshot kept for 14 days. On the iPhone, in the app’s own database. Export everything from the Mac, as Markdown or JSON, whenever you like."
           }
         },
         {
@@ -329,7 +329,7 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
 <body>
 <div class="wrap">
   <nav>
-    <a href="./" aria-label="Cue home"><svg class="lockup" xmlns="http://www.w3.org/2000/svg" width="197" height="98.4" viewBox="4.14 -79.2 197 98.4" role="img" aria-label="Cue"><path d="M36.54 -62.76Q42.9 -62.76 46.86 -61.41Q50.82 -60.059999999999995 52.65 -57.92999999999999Q54.48 -55.8 54.48 -53.4Q54.48 -51.419999999999995 53.61 -49.949999999999996Q52.739999999999995 -48.48 51.269999999999996 -47.67Q49.8 -46.86 47.879999999999995 -46.86Q47.339999999999996 -46.86 46.23 -48.12Q45.12 -49.379999999999995 43.53 -51.239999999999995Q41.94 -53.1 39.989999999999995 -54.96Q38.04 -56.82 35.879999999999995 -58.08Q33.72 -59.339999999999996 31.439999999999998 -59.339999999999996Q27.54 -59.339999999999996 24.509999999999998 -57.03Q21.48 -54.72 19.8 -49.769999999999996Q18.12 -44.82 18.12 -36.9Q18.12 -26.88 20.43 -20.669999999999998Q22.74 -14.459999999999999 27.269999999999996 -11.64Q31.799999999999997 -8.82 38.4 -8.82Q43.26 -8.82 47.519999999999996 -10.71Q51.78 -12.6 55.08 -16.68L56.16 -15.84Q52.44 -9.48 48.66 -5.7Q44.879999999999995 -1.92 40.739999999999995 -0.30000000000000004Q36.6 1.3199999999999998 31.68 1.3199999999999998Q23.759999999999998 1.3199999999999998 17.52 -2.25Q11.28 -5.819999999999999 7.709999999999999 -12.72Q4.14 -19.62 4.14 -29.64Q4.14 -36.839999999999996 6.57 -42.87Q9.0 -48.9 13.41 -53.37Q17.82 -57.839999999999996 23.73 -60.3Q29.64 -62.76 36.54 -62.76ZM79.32 -19.32Q79.32 -15.6 80.58 -13.17Q81.84 -10.74 84.39 -9.54Q86.94 -8.34 91.02 -8.34Q95.16 -8.34 98.91 -9.6Q102.66 -10.86 105.36 -12.48L106.14 -11.1Q101.46000000000001 -7.199999999999999 98.13 -4.77Q94.8 -2.34 92.13 -1.02Q89.46000000000001 0.3 87.0 0.75Q84.53999999999999 1.2 81.66 1.2Q73.2 1.2 69.21000000000001 -3.4499999999999997Q65.22 -8.1 65.22 -17.82V-56.1L55.44 -58.5V-60.78L79.86 -61.98L79.32 -56.339999999999996ZM102.96000000000001 1.74 102.6 -9.66V-56.1L92.88 -58.5V-60.78L117.36 -61.98L116.69999999999999 -56.339999999999996V-7.08Q117.24 -6.779999999999999 118.38 -6.27Q119.52 -5.76 120.93 -5.13Q122.34 -4.5 123.69 -3.9Q125.03999999999999 -3.3 126.0 -2.88V-1.44L103.5 1.74ZM158.22 -62.76Q164.94 -62.76 169.82999999999998 -60.03Q174.72 -57.3 177.54 -52.05Q180.35999999999999 -46.8 180.95999999999998 -39.24H140.94V-43.08H173.57999999999998L167.4 -40.5Q166.86 -47.28 165.51 -51.42Q164.16 -55.559999999999995 161.91 -57.51Q159.66 -59.46 156.35999999999999 -59.46Q152.04 -59.46 148.95 -56.91Q145.85999999999999 -54.36 144.20999999999998 -49.230000000000004Q142.56 -44.1 142.56 -36.36Q142.56 -26.58 145.05 -20.49Q147.54 -14.399999999999999 152.31 -11.61Q157.07999999999998 -8.82 163.98 -8.82Q167.28 -8.82 170.34 -9.69Q173.4 -10.559999999999999 176.16 -12.329999999999998Q178.92 -14.1 181.14 -16.8L182.28 -15.959999999999999Q178.38 -9.54 174.48 -5.76Q170.57999999999998 -1.98 166.29 -0.33000000000000007Q162.0 1.3199999999999998 156.95999999999998 1.3199999999999998Q148.8 1.3199999999999998 142.38 -2.25Q135.96 -5.819999999999999 132.26999999999998 -12.72Q128.57999999999998 -19.62 128.57999999999998 -29.58Q128.57999999999998 -38.519999999999996 132.06 -46.08Q135.54 -53.64 142.17000000000002 -58.2Q148.8 -62.76 158.22 -62.76Z" fill="currentColor"/><rect x="192" y="-79.2" width="8.64" height="98.4" rx="4.32" fill="currentColor"/></svg></a>
+    <a href="/" aria-label="Cue home"><svg class="lockup" xmlns="http://www.w3.org/2000/svg" width="197" height="98.4" viewBox="4.14 -79.2 197 98.4" role="img" aria-label="Cue"><path d="M36.54 -62.76Q42.9 -62.76 46.86 -61.41Q50.82 -60.059999999999995 52.65 -57.92999999999999Q54.48 -55.8 54.48 -53.4Q54.48 -51.419999999999995 53.61 -49.949999999999996Q52.739999999999995 -48.48 51.269999999999996 -47.67Q49.8 -46.86 47.879999999999995 -46.86Q47.339999999999996 -46.86 46.23 -48.12Q45.12 -49.379999999999995 43.53 -51.239999999999995Q41.94 -53.1 39.989999999999995 -54.96Q38.04 -56.82 35.879999999999995 -58.08Q33.72 -59.339999999999996 31.439999999999998 -59.339999999999996Q27.54 -59.339999999999996 24.509999999999998 -57.03Q21.48 -54.72 19.8 -49.769999999999996Q18.12 -44.82 18.12 -36.9Q18.12 -26.88 20.43 -20.669999999999998Q22.74 -14.459999999999999 27.269999999999996 -11.64Q31.799999999999997 -8.82 38.4 -8.82Q43.26 -8.82 47.519999999999996 -10.71Q51.78 -12.6 55.08 -16.68L56.16 -15.84Q52.44 -9.48 48.66 -5.7Q44.879999999999995 -1.92 40.739999999999995 -0.30000000000000004Q36.6 1.3199999999999998 31.68 1.3199999999999998Q23.759999999999998 1.3199999999999998 17.52 -2.25Q11.28 -5.819999999999999 7.709999999999999 -12.72Q4.14 -19.62 4.14 -29.64Q4.14 -36.839999999999996 6.57 -42.87Q9.0 -48.9 13.41 -53.37Q17.82 -57.839999999999996 23.73 -60.3Q29.64 -62.76 36.54 -62.76ZM79.32 -19.32Q79.32 -15.6 80.58 -13.17Q81.84 -10.74 84.39 -9.54Q86.94 -8.34 91.02 -8.34Q95.16 -8.34 98.91 -9.6Q102.66 -10.86 105.36 -12.48L106.14 -11.1Q101.46000000000001 -7.199999999999999 98.13 -4.77Q94.8 -2.34 92.13 -1.02Q89.46000000000001 0.3 87.0 0.75Q84.53999999999999 1.2 81.66 1.2Q73.2 1.2 69.21000000000001 -3.4499999999999997Q65.22 -8.1 65.22 -17.82V-56.1L55.44 -58.5V-60.78L79.86 -61.98L79.32 -56.339999999999996ZM102.96000000000001 1.74 102.6 -9.66V-56.1L92.88 -58.5V-60.78L117.36 -61.98L116.69999999999999 -56.339999999999996V-7.08Q117.24 -6.779999999999999 118.38 -6.27Q119.52 -5.76 120.93 -5.13Q122.34 -4.5 123.69 -3.9Q125.03999999999999 -3.3 126.0 -2.88V-1.44L103.5 1.74ZM158.22 -62.76Q164.94 -62.76 169.82999999999998 -60.03Q174.72 -57.3 177.54 -52.05Q180.35999999999999 -46.8 180.95999999999998 -39.24H140.94V-43.08H173.57999999999998L167.4 -40.5Q166.86 -47.28 165.51 -51.42Q164.16 -55.559999999999995 161.91 -57.51Q159.66 -59.46 156.35999999999999 -59.46Q152.04 -59.46 148.95 -56.91Q145.85999999999999 -54.36 144.20999999999998 -49.230000000000004Q142.56 -44.1 142.56 -36.36Q142.56 -26.58 145.05 -20.49Q147.54 -14.399999999999999 152.31 -11.61Q157.07999999999998 -8.82 163.98 -8.82Q167.28 -8.82 170.34 -9.69Q173.4 -10.559999999999999 176.16 -12.329999999999998Q178.92 -14.1 181.14 -16.8L182.28 -15.959999999999999Q178.38 -9.54 174.48 -5.76Q170.57999999999998 -1.98 166.29 -0.33000000000000007Q162.0 1.3199999999999998 156.95999999999998 1.3199999999999998Q148.8 1.3199999999999998 142.38 -2.25Q135.96 -5.819999999999999 132.26999999999998 -12.72Q128.57999999999998 -19.62 128.57999999999998 -29.58Q128.57999999999998 -38.519999999999996 132.06 -46.08Q135.54 -53.64 142.17000000000002 -58.2Q148.8 -62.76 158.22 -62.76Z" fill="currentColor"/><rect x="192" y="-79.2" width="8.64" height="98.4" rx="4.32" fill="currentColor"/></svg></a>
     <div class="links"><a href="/download">Download</a><a href="/assistants">Assistants</a><a href="https://github.com/zlwaterfield/cue">GitHub</a></div>
   </nav>
 
@@ -337,7 +337,7 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
     <button class="status" type="button" data-egg="beta"><span class="status-text">Beta · my daily driver</span></button>
     <h1 class="serif"><span class="h1-text">Every day is a page.</span><span class="caret" aria-hidden="true"></span></h1>
     <p class="next-line serif" aria-hidden="true" hidden><span class="typed"></span></p>
-    <p class="lede">Daily notes and to-dos for Mac and iOS.<br>
+    <p class="lede">Daily notes and to-dos for Mac and iPhone.<br>
       Fast, quiet and keyboard-first.</p>
     <a class="btn primary" href="/download">Download</a>
   </header>
@@ -346,7 +346,7 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="images/week-dark.webp">
       <img src="images/week-light.webp" width="2192" height="1592"
-        alt="Cue's week view on the Mac: today's notes, to-dos and nested bullets, with tomorrow below">
+        alt="Cue’s week view on the Mac: today’s notes, to-dos and nested bullets, with tomorrow below">
     </picture>
     <div class="phone">
       <picture>
@@ -365,7 +365,7 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
         for today that I could open and type into without deciding where anything goes first.</p>
       <p>Every tool I tried wanted a project, a tag or a priority before it would take a note. So I
         built <strong>Cue, for myself</strong>: days are the only structure, the keyboard does
-        everything, and it's ready before I've finished thinking of what to write.</p>
+        everything, and it’s ready before I’ve finished thinking of what to write.</p>
     </section>
 
     <section class="narrow">
@@ -374,7 +374,7 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
           <div>
             <h3>The day is the only folder</h3>
             <p>Things belong to dates, not projects. No tags, priorities or dashboards.
-              Whatever didn't get done moves to tomorrow with <kbd>⌘D</kbd>.</p>
+              Whatever didn’t get done moves to tomorrow with <kbd>⌘D</kbd>.</p>
           </div>
           <div>
             <h3>Keyboard first</h3>
@@ -384,14 +384,14 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
           <div>
             <h3>Fast, and measured</h3>
             <p>Ready to type <span class="num" data-egg="speed">240 ms</span> after launch, even with five years
-              of notes. A keystroke renders in about <span class="num">2 ms</span>. Every number
+              of notes. A keystroke renders in <span class="num">1.5 ms</span>. Every number
               has a budget and a test.</p>
           </div>
           <div>
             <h3>On your Mac and your iPhone</h3>
-            <p>Saved as you type, with no telemetry and Markdown export any time. Neither
-              app needs an account; turn on sync and the same notes are on both. Free, both
-              ways.</p>
+            <p>Saved as you type, with no telemetry, and the Mac exports to Markdown or JSON
+              any time. Neither app needs an account; turn on sync and the same notes are on
+              both. Free, both ways.</p>
           </div>
         </div>
         <p class="not">Cue stays small on purpose: no <span class="item" data-egg="reminders">reminders</span>,
@@ -406,7 +406,7 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
         your days, add to-dos, check them off and move them. What it does lands on your Mac and
         your iPhone about a second later, exactly as if you’d typed it.</p>
       <p>Five tools, none of which can delete anything. It needs sync on, you connect it once at
-        <kbd>www.usecue.today/mcp</kbd>, and you can disconnect it whenever you like.</p>
+        <kbd>https://www.usecue.today/mcp</kbd>, and you can disconnect it whenever you like.</p>
       <a class="btn primary" href="/assistants">How assistants connect</a>
     </section>
 
@@ -457,8 +457,8 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
           <h3>Where are my notes kept?</h3>
           <p>On the Mac, in one SQLite file at
             <code>~/Library/Application Support/Cue/cue.sqlite</code>, with a daily snapshot kept
-            for 14 days. On the iPhone, in the app’s own database. Export everything as
-            Markdown or JSON whenever you like.</p>
+            for 14 days. On the iPhone, in the app’s own database. Export everything from the Mac,
+            as Markdown or JSON, whenever you like.</p>
         </div>
         <div>
           <h3>Does Cue track me?</h3>
@@ -499,13 +499,13 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
             <img src="images/zach.webp" width="40" height="40" alt="" loading="lazy">
             <span><span class="name">Zach Waterfield</span><span class="where">Toronto, Canada</span></span>
           </span>
-          Hey, I'm Zach! Engineer, investor and coffee enthusiast. I lead the engineering team at
+          Hey, I’m Zach! Engineer, investor and coffee enthusiast. I lead the engineering team at
           Rove Travel.
           <span class="links"><a href="https://zlwaterfield.com">zlwaterfield.com</a><a href="https://github.com/zlwaterfield">GitHub</a><a href="https://x.com/zlwaterfield">X</a></span>
         </span>
       </span>
     </div>
-    <span>Open source, MIT · <a href="https://github.com/zlwaterfield/cue">GitHub</a> · <a href="terms/">Terms</a> · <a href="privacy/">Privacy</a></span>
+    <span>Open source, MIT · <a href="https://github.com/zlwaterfield/cue">GitHub</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></span>
   </footer>
   <p class="farewell serif" aria-hidden="true">See you tomorrow.</p>
 </div>

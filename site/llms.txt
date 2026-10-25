@@ -19,14 +19,15 @@ driver. It is in beta and deliberately small.
 - No tracking. No analytics, no telemetry, no ads, no cookies on the website, nothing sold.
   Your notes are never training data for an AI model.
 - Fast, and measured against budgets in tests: ready to type 240 ms after launch with five
-  years of notes, about 2 ms from a keystroke to the frame, 0.5 ms to search 36,543 items.
-- Keyboard-first on the Mac: Tab nests, ⌘↩ completes, ⌘D moves what's unfinished to
-  tomorrow, and ⌘K is a command palette that understands dates like "move to fri".
+  years of notes, 1.5 ms from a keystroke to the frame, 0.5 ms to search 36,543 items.
+- Keyboard-first on the Mac: Tab nests, ⌘↩ completes, ⌘D moves what’s unfinished to
+  tomorrow, and ⌘K is a command palette that understands dates like “move to fri”.
 - Touch-first on the iPhone: tap a bullet to make it a to-do, swipe to complete or send to
   tomorrow, long-press to drag.
-- Export to Markdown or JSON at any time. One file per day.
+- Export from the Mac at any time: Markdown, one file per day, or the whole database as
+  JSON.
 
-## What it deliberately isn't
+## What it deliberately isn’t
 
 Cue has no projects, tags, priorities, folders, reminders, recurring tasks, attachments,
 collaboration, dashboards or AI writing your notes. Days are the only structure. If you want
@@ -58,7 +59,7 @@ no ad network and no third party watching.
 
 - [Cue](https://www.usecue.today/): what it is, why it exists, and what makes it different.
 - [Download](https://www.usecue.today/download): the Mac app, the iPhone app, and what an
-  account is and isn't for.
+  account is and isn’t for.
 - [Assistants](https://www.usecue.today/assistants): connecting Claude or ChatGPT over MCP,
   what the five tools do, and what they can’t.
 - [Privacy Policy](https://www.usecue.today/privacy): what Cue stores, who else is involved,
@@ -69,6 +70,6 @@ no ad network and no third party watching.
 
 - [Source code](https://github.com/zlwaterfield/cue): the apps, the sync server and this
   website.
-- [How it's built](https://github.com/zlwaterfield/cue/blob/main/docs/ARCHITECTURE.md)
+- [How it’s built](https://github.com/zlwaterfield/cue/blob/main/docs/ARCHITECTURE.md)
 - [How sync works](https://github.com/zlwaterfield/cue/blob/main/docs/SYNC.md)
 - [The whole site as plain text](https://www.usecue.today/llms-full.txt)
