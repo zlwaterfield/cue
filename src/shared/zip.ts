@@ -26,6 +26,10 @@ export function utf8(text: string): Uint8Array {
         i++
       }
     }
+    // A surrogate still here is half a pair with nothing to pair with. UTF-8 cannot hold
+    // one, and encoding it anyway makes three bytes a strict reader rejects, so it becomes
+    // U+FFFD, which is what TextEncoder does with it.
+    if (code >= 0xd800 && code <= 0xdfff) code = 0xfffd
     if (code < 0x80) out.push(code)
     else if (code < 0x800) out.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f))
     else if (code < 0x10000) out.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f))

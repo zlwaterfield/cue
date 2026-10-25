@@ -42,6 +42,16 @@ describe('utf8', () => {
     // One emoji, written as a surrogate pair, is four bytes and not two characters.
     expect([...utf8('🌲')]).toEqual([0xf0, 0x9f, 0x8c, 0xb2])
   })
+
+  // Half a pair, which a note can hold because JavaScript strings can. Encoding it as
+  // itself would make bytes that a strict reader rejects, and the zip is read by those.
+  it('replaces an unpaired surrogate, like TextEncoder', () => {
+    const encoder = new TextEncoder()
+    for (const text of ['\ud800', '\udc00', 'a\ud800b', 'ends with \ud83c', '\udfff starts']) {
+      expect([...utf8(text)]).toEqual([...encoder.encode(text)])
+    }
+    expect([...utf8('\ud800')]).toEqual([0xef, 0xbf, 0xbd])
+  })
 })
 
 describe('zip', () => {
@@ -57,6 +67,12 @@ describe('zip', () => {
       '2026/2026-10-17.md': '# Saturday, October 17, 2026\n\n- [x] Ship it\n',
       '2025/2025-01-02.md': 'Old thing — ☑ and 🌲\n'
     })
+  })
+
+  it('survives a note with half a surrogate pair in it', () => {
+    const bytes = zip([{ path: '2026/2026-10-17.md', text: 'broken \ud800 paste\n' }], WHEN)
+    // Python decodes strictly: the archive would not read back at all without the swap.
+    expect(unzip(bytes)).toEqual({ '2026/2026-10-17.md': 'broken \ufffd paste\n' })
   })
 
   it('writes an archive with nothing in it', () => {
