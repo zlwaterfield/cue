@@ -1,6 +1,6 @@
 # Cue for iPhone
 
-The iPhone app: today's page in your pocket, kept in sync with Cue on the Mac.
+The iPhone app: today's page in your pocket, on its own or kept in sync with Cue on the Mac.
 
 It's built on the same core as the Mac app. The data model, the SQLite schema and
 repository, the hybrid logical clock, the sync engine and Supabase transport, the outline,
@@ -14,14 +14,13 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 
 ## How it differs from the Mac
 
-- **Sync is required.** The Mac works without an account; the phone signs in first, with
-  Sign in with Apple or the same email and six-digit code. The phone holds a local copy of the account in SQLite,
-  so it opens instantly and works offline. Signing out removes that copy (after checking
-  nothing is left unsent); the account keeps everything. Right after signing in, today
-  and the week around it download first; an empty day whose notes haven't arrived yet says
-  "Getting your notes…" and can't be written in until they do, and an empty today then
-  gets the caret. If the app is closed mid-download, the next launch carries on and those
-  days keep waiting.
+- **Sync works the Mac's way.** It's off by default, the notes live in SQLite on the phone,
+  and Cue works the same either way. Turn it on in Settings with Sign in with Apple or the
+  same email and six-digit code; the notes already on the phone go to the account. Right
+  after signing in, today and the week around it download first; an empty day whose notes
+  haven't arrived yet says "Getting your notes…" and can't be written in until they do. If
+  the app is closed mid-download, the next launch carries on and those days keep waiting.
+  Turn Off Sync stops syncing and keeps every note on the phone.
 - **Sync is quicker to send.** iOS suspends apps soon after they leave the screen, so the
   phone pushes 450 ms after typing pauses (2 s at most during continuous typing), the
   moment a line is finished (focus leaves it), and when the app goes to the background
@@ -59,8 +58,7 @@ VoiceOver reads lines in the day's order.
   lines. A post on X shows its text, its author's handle and their picture. The preview
   comes from the page's own header (Open Graph and `<title>`, fetched the way iMessage
   fetches previews), parsed by `../src/shared/links.ts`; no third-party service sees the
-  link. Previews are cached on the phone (`links.sqlite`), never synced, and removed on
-  sign-out. Until a page answers, or if it can't, the line shows the link's address.
+  link. Previews are cached on the phone (`links.sqlite`) and never synced. Until a page answers, or if it can't, the line shows the link's address.
 - **Cue is in the share sheet.** Share a link (or text) from Safari, X, YouTube or any
   app, and it's added to today: a link goes last under the day's "Links" bullet (made at
   the end of the day if there isn't one), text goes at the end of the day. The extension
@@ -157,8 +155,7 @@ The app's record in App Store Connect has to exist before the first upload.
 `app.config.ts` reads `CUE_SUPABASE_URL` and `CUE_SUPABASE_KEY` when Metro or a build
 starts, from `.env.development.local` for Metro and Debug builds and from
 `.env.production.local` for Release builds. Keep them out of `.env.local`, which Expo ranks
-above `.env.production`. A build without them shows the sign-in screen with "This build of Cue has no sync
-server."
+above `.env.production`. A build without them works without sync, and Settings doesn't offer it.
 
 Checks:
 
@@ -172,7 +169,7 @@ cd .. && pnpm test              # shared core, including the drag geometry
 [`e2e/`](e2e) holds [Maestro](https://maestro.mobile.dev) flows that drive the real app on a
 simulator, against the local sync server:
 
-- **writing**: the caret waiting in a new account's empty today, Return, Markdown
+- **writing**: the caret waiting in a fresh install's empty today, Return, Markdown
   shortcuts, toolbar types and indent, Backspace, undo
 - **touch**: marker taps, swipes, the undo toast, drag to reorder and to nest, and
   swiping the page to the next and previous day
@@ -180,14 +177,15 @@ simulator, against the local sync server:
   result
 - **sync**: a line from the phone reaches the account, and a line pushed by another device
   appears on the phone within 3 s with no refresh
-- **account**: sign out removes the phone's copy; signing back in brings it back
-- **account-switch**: after signing in to a different account, Undo can't bring back the
-  first account's lines, on the phone or on the server
-- **account-deleted**: the account is deleted on another device. A phone that writes signs
-  out with the reason at its next push and warns before a sign-in that would remove an unsent
-  line. A phone that only reads notices on coming back to the foreground.
+- **account**: sync is off on a fresh install; turning it on uploads the lines already on
+  the phone; turning it off keeps them, and lines written meanwhile go up when it's back on
+- **account-switch**: turning sync on with a different account keeps the phone's lines and
+  uploads them to that account too, as on the Mac
+- **account-deleted**: the account is deleted on another device. A phone that writes stops
+  syncing at its next push, keeps the unsent line, and says why in the header and Settings,
+  even after a relaunch. A phone that only reads notices on coming back to the foreground.
 
-Each flow starts from a clean install and a new account.
+Each flow starts from a clean install, with sync off. The ones that sync use a new account.
 
 ```sh
 # Maestro needs Java 17+, e.g. brew install openjdk@21
@@ -204,7 +202,7 @@ in front of the app.
 
 ```
 src/app/        screens (Expo Router): day, sign-in, settings, search, move, calendar
-src/core/       database adapter (expo-sqlite), sync lifecycle, app state, link previews, share inbox
+src/core/       database adapter (expo-sqlite), optional sync lifecycle, app state, link previews, share inbox
 src/editor/     the day page: layout, rows, drag, swipe, toolbar, editing controller
 src/ui/         header and week strip, calendar, toast, theme (brand tokens)
 modules/        cue-native: caret-at-touch, background time, the share inbox (Swift)

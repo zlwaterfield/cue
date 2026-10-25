@@ -1,21 +1,26 @@
 # The account is deleted on another device. A phone that writes finds out at its next
-# push; one that only reads finds out when it comes back to the foreground. Either way it
-# says why it signed out, and warns before a sign-in could remove changes that never
-# reached the account. Also: an address that can't be one gets the Mac's words.
+# push; one that only reads finds out when it comes back to the foreground. Either way
+# sync stops, the header says so, Settings says why, and every note stays on the phone,
+# as on the Mac. Also: an address that can't be one gets the Mac's words.
 appId: app.cue
 name: Account deleted
 ---
 - runFlow: subflows/launch.yaml
 - runScript: scripts/today.js
+- tapOn: "Settings"
+- tapOn: "Turn On Sync…"
 - extendedWaitUntil:
     visible: "Sign in to sync your notes"
-    timeout: 30000
+    timeout: 10000
 - tapOn:
     id: "email"
 - inputText: "not-an-email"
 - tapOn: "Send Code"
 - assertVisible: "That doesn’t look like an email address."
-- eraseText: 80
+- tapOn:
+    id: sign-in-cancel
+- tapOn:
+    id: sheet-close
 
 - runScript:
     file: scripts/email.js
@@ -31,60 +36,60 @@ name: Account deleted
       EMAIL: ${output.email}
       SUPABASE_KEY: ${SUPABASE_KEY}
 
-# Writing after the deletion: the push is refused, the server confirms, and once typing
-# pauses the phone signs out with the reason. The line stays on the phone, unsent.
+# Writing after the deletion: the push is refused, the server confirms, and sync stops.
+# The line stays on the phone, unsent.
 - tapOn:
     id: ${'new-line-' + output.today}
 - inputText: "Written after it was deleted"
 - tapOn:
     id: tool-hide
 - extendedWaitUntil:
-    visible: "Your account was deleted on another device."
+    visible: "Sign in to sync"
     timeout: 15000
-# Send goes from the keyboard.
+- assertVisible:
+    id: "0/text:Written after it was deleted"
+- tapOn: "Sign in to sync"
+- assertVisible: "Your account was deleted on another device. Notes on this iPhone stay here."
+- assertVisible: "Turn On Sync…"
 - tapOn:
-    id: "email"
-- inputText: ${output.email}
-- pressKey: Enter
-- extendedWaitUntil:
-    visible: "Some changes haven’t synced"
-    timeout: 5000
-- assertVisible: "1 change on this iPhone hasn’t reached your account. Signing in to a different account, or to one that was deleted, removes it."
-- tapOn: "Cancel"
-- assertVisible: "Your account was deleted on another device."
-- assertNotVisible: "Enter the code we sent to"
+    id: sheet-close
 
-# The line is still there after a relaunch. Continuing to a different account starts
-# it from empty.
+# After a relaunch, the line and the reason are both still there.
 - launchApp
 - extendedWaitUntil:
-    visible: "Sign in to sync your notes"
+    visible:
+      id: "day-title"
     timeout: 15000
+- assertVisible:
+    id: "0/text:Written after it was deleted"
+- assertVisible: "Sign in to sync"
+
+# Turning sync on with another account takes the unsent line along, as on the Mac.
 - runScript:
     file: scripts/email.js
     env:
       PREFIX: deleted-b
-- tapOn:
-    id: "email"
-- inputText: ${output.email}
-- pressKey: Enter
-- extendedWaitUntil:
-    visible: "Some changes haven’t synced"
-    timeout: 5000
-- tapOn: "Continue"
-- extendedWaitUntil:
-    visible: "Enter the code we sent to"
-    timeout: 15000
-- runScript:
-    file: scripts/sign-in-code.js
+- runFlow:
+    file: subflows/sign-in.yaml
     env:
       EMAIL: ${output.email}
-- inputText: ${output.code}
-- extendedWaitUntil:
-    visible:
-      id: "day-title"
-    timeout: 20000
-- assertNotVisible: "Written after it was deleted"
+- assertNotVisible: "Sign in to sync"
+- runScript:
+    file: scripts/push-from-another-device.js
+    env:
+      EMAIL: ${output.email}
+      TODAY: ${output.today}
+      TEXT: "Written on the Mac"
+      SUPABASE_KEY: ${SUPABASE_KEY}
+- retry:
+    maxRetries: 3
+    commands:
+      - runScript:
+          file: scripts/pull-from-another-device.js
+          env:
+            TEXT: "Written after it was deleted"
+            SUPABASE_KEY: ${SUPABASE_KEY}
+      - assertTrue: ${output.found}
 
 # A phone that only reads: deleted elsewhere, it finds out when it comes back.
 - runScript:
@@ -96,5 +101,5 @@ name: Account deleted
 - launchApp:
     stopApp: false
 - extendedWaitUntil:
-    visible: "Your account was deleted on another device."
+    visible: "Sign in to sync"
     timeout: 15000

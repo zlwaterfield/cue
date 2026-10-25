@@ -14,7 +14,10 @@ import { lockup } from '../ui/lockup'
 import { SheetTitle } from '../ui/Sheet'
 import { metrics, useColors } from '../ui/theme'
 
-/** Account and sync, appearance, and the week. The sync words are the Mac's (`shared/sync/status`). */
+/**
+ * Sync, appearance, and the week. Sync is the Mac's: off until you turn it on, and turning
+ * it off keeps every note here. The words are the Mac's (`shared/sync/status`).
+ */
 export default function SettingsSheet() {
   const c = useColors()
   const state = useStore(sync.state, (s) => s)
@@ -36,34 +39,10 @@ export default function SettingsSheet() {
     if (!result.ok && status !== 'offline' && status !== 'error') Alert.alert('Couldn’t sync', result.error)
   }
 
-  const signOut = async (): Promise<void> => {
-    const unsent = await sync.drain()
-    const finish = async (): Promise<void> => {
-      router.back()
-      await sync.signOut()
-    }
-    if (!unsent) {
-      Alert.alert('Sign out?', 'Your notes stay in your account and on your other devices. This iPhone’s copy is removed.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: () => void finish() }
-      ])
-      return
-    }
-    const waiting = unsent === 1 ? '1 change on this iPhone hasn’t' : `${unsent} changes on this iPhone haven’t`
-    Alert.alert(
-      'Some changes haven’t synced',
-      `${waiting} reached your account yet. If you sign out now, they’ll be lost.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out Anyway', style: 'destructive', onPress: () => void finish() }
-      ]
-    )
-  }
-
   const deleteAccount = (): void => {
     Alert.alert(
       'Delete your account?',
-      'This deletes your account and every note in it from the sync server and this iPhone. Copies already on your other devices stay there. This can’t be undone.',
+      'This deletes your account and every note in it from the sync server. Notes on this iPhone and your other devices stay there. This can’t be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -71,8 +50,7 @@ export default function SettingsSheet() {
           style: 'destructive',
           onPress: async () => {
             const result = await sync.deleteAccount()
-            if (result.ok) router.back()
-            else Alert.alert('Couldn’t delete the account', result.error)
+            if (!result.ok) Alert.alert('Couldn’t delete the account', result.error)
           }
         }
       ]
@@ -90,9 +68,17 @@ export default function SettingsSheet() {
     <ScrollView contentContainerStyle={styles.sheet}>
       <SheetTitle title="Settings" />
 
-      <Section title="Account" footnote={statusLine(state, now)}>
-        <Row label={state.email ?? ''} action="Sync Now" onPress={syncNow} disabled={syncing || state.status === 'syncing'} />
-      </Section>
+      {state.available &&
+        (state.email ? (
+          <Section title="Sync" footnote={statusLine(state, now)}>
+            <Row label={state.email} action="Sync Now" onPress={syncNow} disabled={syncing || state.status === 'syncing'} />
+          </Section>
+        ) : (
+          <Section title="Sync" footnote={state.needsSignIn ? (state.message ?? undefined) : 'Off. Your notes are stored only on this iPhone. Turn on sync to keep them on your other devices too.'}>
+            <Row label={state.previousEmail ? 'Sign In Again…' : 'Turn On Sync…'} onPress={() => router.push('/sign-in')} />
+            {state.needsSignIn && <Row label="Not Now" onPress={() => void sync.signOut()} />}
+          </Section>
+        ))}
 
       <Section title="Appearance">
         <Segmented<Settings['theme']>
@@ -137,18 +123,22 @@ export default function SettingsSheet() {
         <Row label="Privacy Policy" action="" onPress={() => void Linking.openURL(PRIVACY_URL)} />
       </Section>
 
-      <Section>
-        <Row label="Sign Out" action="" onPress={signOut} />
-      </Section>
+      {state.email && (
+        <Section>
+          <Row label="Turn Off Sync" action="" onPress={() => void sync.signOut()} />
+        </Section>
+      )}
 
-      <Section footnote="Deletes your account and its notes from the sync server.">
-        <Row label="Delete Account…" action="" onPress={deleteAccount} />
-      </Section>
+      {state.email && (
+        <Section footnote="Deletes your account and its notes from the sync server. Notes on this iPhone stay here.">
+          <Row label="Delete Account…" action="" onPress={deleteAccount} />
+        </Section>
+      )}
 
       <View style={styles.about}>
         <SvgXml xml={lockup(c.text3)} width={56} height={28} />
         <Text style={[styles.version, { color: c.text2 }]}>
-          Version {version} · beta. Your notes sync across your devices.
+          Version {version} · beta
         </Text>
       </View>
     </ScrollView>

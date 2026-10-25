@@ -1,7 +1,5 @@
-# Switching accounts: when one account's notes leave the phone, so does everything the
-# editor remembered about them. Undo on the next account can't bring a line back.
-#
-# The long swipe uses the first line's position, measured on an iPhone 17 Pro.
+# Turning sync on with a different account works the Mac's way: the phone's notes stay,
+# and go to the new account too.
 appId: app.cue
 name: Account switch
 ---
@@ -18,32 +16,18 @@ name: Account switch
 
 - tapOn:
     id: ${'new-line-' + output.today}
-- inputText: "Secret A1"
+- inputText: "Written with A"
 - tapOn:
     id: tool-hide
-# A long swipe left deletes it (the toast offers Undo).
-- swipe:
-    start: "95%,32%"
-    end: "3%,32%"
-    duration: 400
-- extendedWaitUntil:
-    visible: "Deleted"
-    timeout: 5000
-- assertNotVisible: "Secret A1"
 
 - tapOn: "Settings"
-- tapOn: "Sign Out"
+- tapOn: "Turn Off Sync"
 - extendedWaitUntil:
-    visible: "Sign out?"
-    timeout: 10000
+    visible: "Turn On Sync…"
+    timeout: 5000
 - tapOn:
-    text: "Sign Out"
-    index: 0
-- extendedWaitUntil:
-    visible: "Sign in to sync your notes"
-    timeout: 10000
+    id: sheet-close
 
-# A different account: nothing from the first one may come back, on screen or on the server.
 - runScript:
     file: scripts/email.js
     env:
@@ -52,23 +36,10 @@ name: Account switch
     file: subflows/sign-in.yaml
     env:
       EMAIL: ${output.email}
-- tapOn:
-    id: ${'new-line-' + output.today}
-- tapOn:
-    id: tool-undo
-- assertNotVisible: "Secret A1"
-- tapOn:
-    id: tool-undo
-- tapOn:
-    id: tool-undo
-- assertNotVisible: "Secret A1"
 - assertVisible:
-    id: "day-title"
-    text: "Today"
+    id: "0/text:Written with A"
 
 # Another device signs in to B (writing a line as it does) and reads the account back.
-- tapOn:
-    id: tool-hide
 - runScript:
     file: scripts/push-from-another-device.js
     env:
@@ -76,9 +47,16 @@ name: Account switch
       TODAY: ${output.today}
       TEXT: "Written on the Mac"
       SUPABASE_KEY: ${SUPABASE_KEY}
-- runScript:
-    file: scripts/pull-from-another-device.js
-    env:
-      TEXT: "Secret A1"
-      SUPABASE_KEY: ${SUPABASE_KEY}
-- assertTrue: ${!output.found}
+- extendedWaitUntil:
+    visible:
+      id: "0/todo:Written on the Mac"
+    timeout: 5000
+- retry:
+    maxRetries: 3
+    commands:
+      - runScript:
+          file: scripts/pull-from-another-device.js
+          env:
+            TEXT: "Written with A"
+            SUPABASE_KEY: ${SUPABASE_KEY}
+      - assertTrue: ${output.found}

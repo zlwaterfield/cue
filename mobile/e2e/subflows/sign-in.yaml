@@ -1,11 +1,15 @@
-# Sign in with an emailed code (local Supabase; the code is read from Mailpit).
+# Turn on sync from Settings with an emailed code (local Supabase; the code is read from
+# Mailpit). Signed in, the day comes back.
 appId: app.cue
 ---
+- tapOn: "Settings"
+- tapOn: "Turn On Sync…"
 - extendedWaitUntil:
     visible: "Sign in to sync your notes"
-    timeout: 30000
+    timeout: 10000
 - tapOn:
     id: "email"
+- eraseText: 80
 - inputText: ${EMAIL}
 - tapOn: "Send Code"
 - extendedWaitUntil:

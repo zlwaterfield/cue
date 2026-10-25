@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { AccessibilityInfo, ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, useColorScheme, View, type TextInputInstance } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { AccessibilityInfo, ActivityIndicator, Keyboard, KeyboardAvoidingView, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, useColorScheme, View, type TextInputInstance } from 'react-native'
 import * as AppleAuthentication from 'expo-apple-authentication'
 import * as Haptics from 'expo-haptics'
-import * as SplashScreen from 'expo-splash-screen'
+import { router } from 'expo-router'
 import { SvgXml } from 'react-native-svg'
 import { PRIVACY_URL, TERMS_URL } from '@shared/terms'
 import { isEmailAddress, NOT_AN_EMAIL } from '@shared/text'
@@ -13,19 +12,18 @@ import { lockup } from '../ui/lockup'
 import { metrics, useColors } from '../ui/theme'
 
 /**
- * Cue on iPhone needs an account: the phone holds a copy of the notes, and sync keeps it
- * the same as every other device. Sign-in is the Mac's: Sign in with Apple, or an email
+ * Turning sync on, from Settings. Sign-in is the Mac's: Sign in with Apple, or an email
  * and then a six-digit code, which iOS offers from Mail or Messages above the keyboard.
+ * Signed in, the notes already on this phone go to the account, and the day comes back.
  * The words are the Mac's.
  */
 export default function SignIn() {
   const c = useColors()
   const scheme = useColorScheme()
-  const insets = useSafeAreaInsets()
-  // Why this phone was signed out, if the server ended the session.
-  const notice = useStore(sync.state, (s) => s.message)
+  // Why sync stopped, if the server ended the session; signing in again starts with its email.
+  const notice = useStore(sync.state, (s) => (s.needsSignIn ? s.message : null))
   const [step, setStep] = useState<'email' | 'code'>('email')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(() => sync.state.get().previousEmail ?? '')
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [appleBusy, setAppleBusy] = useState(false)
@@ -33,12 +31,11 @@ export default function SignIn() {
   const codeInput = useRef<TextInputInstance>(null)
 
   useEffect(() => {
-    void SplashScreen.hideAsync()
-  }, [])
-
-  useEffect(() => {
     if (error) AccessibilityInfo.announceForAccessibility(error)
   }, [error])
+
+  // Closed (Cancel, or swiped down) with the server still answering: that answer mustn't turn sync on.
+  useEffect(() => () => sync.cancelSignIn(), [])
 
   const sendCode = async (): Promise<void> => {
     if (busy) return
@@ -56,26 +53,6 @@ export default function SignIn() {
     requestAnimationFrame(() => codeInput.current?.focus())
   }
 
-  /** Before signing in, say so if it could remove changes the last account never got. */
-  const confirmUnsent = (proceed: () => void): void => {
-    const unsent = sync.unsentFromPreviousAccount()
-    if (!unsent) {
-      proceed()
-      return
-    }
-    const waiting = unsent === 1 ? '1 change on this iPhone hasn’t' : `${unsent} changes on this iPhone haven’t`
-    // With the keyboard up after a server sign-out, iOS can present the alert out of sight.
-    Keyboard.dismiss()
-    Alert.alert(
-      'Some changes haven’t synced',
-      `${waiting} reached your account. Signing in to a different account, or to one that was deleted, removes ${unsent === 1 ? 'it' : 'them'}.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue', onPress: proceed }
-      ]
-    )
-  }
-
   const submitEmail = (): void => {
     if (busy || appleBusy || !email.trim()) return
     if (!isEmailAddress(email)) {
@@ -83,7 +60,7 @@ export default function SignIn() {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
       return
     }
-    confirmUnsent(() => void sendCode())
+    void sendCode()
   }
 
   const signInWithApple = async (): Promise<void> => {
@@ -95,6 +72,7 @@ export default function SignIn() {
     setAppleBusy(false)
     if (result.ok) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      router.dismissAll()
       return
     }
     // Cancelled in Apple's sheet: nothing to say.
@@ -111,8 +89,11 @@ export default function SignIn() {
     setBusy(false)
     if (result.ok) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      router.dismissAll()
       return
     }
+    // Cancelled: this screen is already gone.
+    if (!result.error) return
     setError(result.error)
     setCode('')
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
@@ -125,9 +106,12 @@ export default function SignIn() {
   }
 
   return (
-    <KeyboardAvoidingView behavior="padding" style={[styles.keyboard, { backgroundColor: c.bg, paddingTop: insets.top }]}>
+    <KeyboardAvoidingView behavior="padding" style={[styles.keyboard, { backgroundColor: c.bg }]}>
       {/* At the largest text sizes the form can sit under the keyboard: it scrolls, and the first tap still sends. */}
       <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" style={styles.cancel} testID="sign-in-cancel">
+          <Text style={[styles.cancelText, { color: c.text }]}>Cancel</Text>
+        </Pressable>
         <View style={styles.brand}>
           <SvgXml xml={lockup(c.text)} width={104} height={52} accessibilityLabel="Cue" />
           <Text style={[styles.tagline, { color: c.text2 }]}>Every day is a page.</Text>
@@ -149,7 +133,7 @@ export default function SignIn() {
                         scheme === 'dark' ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
                       }
                       cornerRadius={12}
-                      onPress={() => confirmUnsent(() => void signInWithApple())}
+                      onPress={() => void signInWithApple()}
                       style={styles.apple}
                       testID="apple"
                     />
@@ -239,7 +223,7 @@ export default function SignIn() {
         </View>
 
         <Text style={[styles.footnote, { color: c.text2 }]}>
-          Your notes sync across your devices. New here? Signing in creates your account.
+          The notes on this iPhone join your account and sync across your devices. New here? Signing in creates your account.
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -267,8 +251,16 @@ const styles = StyleSheet.create({
   },
   screen: {
     flexGrow: 1,
-    paddingTop: 56,
+    paddingTop: 14,
+    paddingBottom: 24,
     paddingHorizontal: metrics.gutter + 4
+  },
+  cancel: {
+    alignSelf: 'flex-end',
+    marginBottom: 28
+  },
+  cancelText: {
+    fontSize: 17
   },
   brand: {
     alignItems: 'flex-start',

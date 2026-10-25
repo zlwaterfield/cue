@@ -10,3 +10,8 @@ appId: app.cue
       true: ${typeof METRO !== 'undefined' && METRO}
     commands:
       - openLink: "exp+cue://?__expo_url=${encodeURIComponent(METRO)}&__expo_disable_fab=1&__expo_disable_auto_launch=1&__expo_disable_onboarding=1"
+# Sync is off on a fresh install, as on the Mac: today opens straight away.
+- extendedWaitUntil:
+    visible:
+      id: "day-title"
+    timeout: 30000
