@@ -90,7 +90,6 @@ h1 { font-size: clamp(46px, 7.4vw, 72px); line-height: 1.02; margin: 26px 0 22px
 
 section { padding: 72px 0; border-top: 1px solid var(--line); }
 h2.section { font-size: clamp(32px, 4.4vw, 44px); line-height: 1.1; margin: 0 0 24px; }
-h2.section.narrow { max-width: 680px; }
 .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px 56px; margin-top: 8px; }
 .grid h3 { font-size: 17px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.005em; }
 .grid p { color: var(--text-2); font-size: 16px; }
@@ -119,17 +118,17 @@ footer a:hover { color: var(--text); }
 .prose a { color: var(--text); }
 kbd { font: 500 0.82em ui-monospace, "SF Mono", Menlo, monospace; padding: 2px 6px; border-radius: 6px;
   background: var(--bg-subtle); color: var(--text); border: 1px solid var(--line); white-space: nowrap; }
-ol.steps { max-width: 680px; margin: 0 auto; padding-left: 22px; color: var(--text-2); font-size: 17px; }
+ol.steps { padding-left: 22px; color: var(--text-2); font-size: 17px; }
 ol.steps li { margin-bottom: 14px; padding-left: 4px; }
 ol.steps li strong { color: var(--text); font-weight: 500; }
-table.tools { max-width: 680px; margin: 0 auto; border-collapse: collapse; width: 100%; font-size: 16px; }
+table.tools { border-collapse: collapse; width: 100%; font-size: 16px; }
 table.tools th { text-align: left; font-weight: 600; font-size: 14px; color: var(--text-3);
   text-transform: uppercase; letter-spacing: .04em; padding: 0 16px 10px 0; border-bottom: 1px solid var(--line); }
 table.tools td { padding: 14px 16px 14px 0; border-bottom: 1px solid var(--line); color: var(--text-2);
   vertical-align: top; }
 table.tools td:first-child { white-space: nowrap; color: var(--text);
   font: 500 14px ui-monospace, "SF Mono", Menlo, monospace; }
-.note { max-width: 680px; margin: 40px auto 0; padding: 20px 22px; border: 1px solid var(--line);
+.note { margin: 40px 0 0; padding: 20px 22px; border: 1px solid var(--line);
   border-radius: 14px; background: var(--bg-subtle); color: var(--text-2); font-size: 16px; }
 .note strong { color: var(--text); font-weight: 600; }
 .note p + p { margin-top: 12px; }
@@ -214,8 +213,8 @@ table.tools td:first-child { white-space: nowrap; color: var(--text);
         Cue.</strong></p>
     </section>
 
-    <section>
-      <h2 class="serif section narrow">Connecting one</h2>
+    <section class="narrow">
+      <h2 class="serif section">Connecting one</h2>
       <ol class="steps">
         <li><strong>Turn on sync</strong> in Cue’s Settings, on the Mac or the iPhone. An
           assistant works with your account rather than your computer, so this is the one part
@@ -226,14 +225,14 @@ table.tools td:first-child { white-space: nowrap; color: var(--text);
           consent page, which signs you in with a six-digit code by email and asks whether to
           connect. That’s it.</li>
       </ol>
-      <p class="not" style="max-width: 680px; margin-left: auto; margin-right: auto;">
+      <p class="not">
         Disconnect any assistant, any time, at
         <a href="/oauth/consent">usecue.today/oauth/consent</a>. The same page lists everything
         you’ve connected.</p>
     </section>
 
-    <section>
-      <h2 class="serif section narrow">What it can do</h2>
+    <section class="narrow">
+      <h2 class="serif section">What it can do</h2>
       <table class="tools">
         <thead><tr><th>Tool</th><th>What it does</th></tr></thead>
         <tbody>
