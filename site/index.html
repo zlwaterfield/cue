@@ -12,12 +12,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cue — every day is a page</title>
-<meta name="description" content="Cue is daily notes and to-dos for Mac and iOS. Fast, quiet and keyboard-first. A personal project, in beta.">
+<title>Cue — simple daily notes and to-dos for Mac and iPhone</title>
+<meta name="description" content="A free, open-source daily notes and to-do app for Mac and iPhone. Every day is a page: open it and type. Works offline, needs no account, and has no tracking.">
+<link rel="canonical" href="https://www.usecue.today/">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Cue">
+<meta property="og:url" content="https://www.usecue.today/">
 <meta property="og:title" content="Cue — every day is a page">
-<meta property="og:description" content="Daily notes and to-dos for Mac and iOS. Fast, quiet and keyboard-first. A personal project, in beta.">
-<meta property="og:image" content="images/og.png">
+<meta property="og:description" content="Free, open-source daily notes and to-dos for Mac and iPhone. Fast, quiet and keyboard-first. No account, no tracking.">
+<meta property="og:image" content="https://www.usecue.today/images/og.png">
+<meta property="og:image:alt" content="Cue: every day is a page.">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://www.usecue.today/images/og.png">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -144,6 +151,13 @@ h2 { font-size: clamp(32px, 4.4vw, 44px); line-height: 1.1; margin: 0 0 24px; }
 .not:hover .item:nth-child(3) { transition-delay: .3s; }
 .not:hover .item:nth-child(4) { transition-delay: .45s; }
 
+.qa > div { padding: 22px 0; border-top: 1px solid var(--line); }
+.qa > div:first-child { border-top: 0; padding-top: 0; }
+.qa h3 { font-size: 17px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.005em; }
+.qa p { color: var(--text-2); font-size: 16px; }
+.qa p a { color: var(--text); }
+.qa code { font: 500 0.85em ui-monospace, "SF Mono", Menlo, monospace; word-break: break-all; }
+
 .btn { display: inline-flex; align-items: center; height: 44px; padding: 0 18px; border-radius: 12px;
   font-size: 16px; font-weight: 500; text-decoration: none; margin-top: 32px; }
 .btn.primary { background: var(--accent); color: var(--on-accent); }
@@ -235,6 +249,136 @@ footer a:hover { color: var(--text); }
   .grid { grid-template-columns: 1fr; gap: 28px; }
 }
 </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://www.usecue.today/#website",
+      "url": "https://www.usecue.today/",
+      "name": "Cue",
+      "description": "Free, open-source daily notes and to-dos for Mac and iPhone.",
+      "inLanguage": "en",
+      "publisher": {
+        "@id": "https://www.usecue.today/#zach"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://www.usecue.today/#zach",
+      "name": "Zach Waterfield",
+      "url": "https://zlwaterfield.com"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://www.usecue.today/#app",
+      "name": "Cue",
+      "applicationCategory": "ProductivityApplication",
+      "applicationSubCategory": "Note-taking and to-do app",
+      "operatingSystem": "macOS, iOS",
+      "url": "https://www.usecue.today/",
+      "downloadUrl": "https://www.usecue.today/download",
+      "softwareVersion": "1.0.0-beta.1",
+      "releaseNotes": "https://github.com/zlwaterfield/cue/releases",
+      "description": "Daily notes and to-dos for Mac and iPhone. Every day is a page: open it and type, with no project, tag or priority to choose first. Free, open source, works offline with no account, and has no tracking.",
+      "isAccessibleForFree": true,
+      "license": "https://github.com/zlwaterfield/cue/blob/main/LICENSE",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
+      },
+      "author": {
+        "@id": "https://www.usecue.today/#zach"
+      },
+      "screenshot": "https://www.usecue.today/images/week-light.webp",
+      "codeRepository": "https://github.com/zlwaterfield/cue",
+      "featureList": [
+        "Daily pages: notes, bullets and to-dos belong to dates, not projects",
+        "Keyboard-first, with a command palette that understands dates",
+        "Move what's unfinished to tomorrow with one shortcut",
+        "Search every day you've written",
+        "Works offline with no account; sync between devices is optional and free",
+        "Export to Markdown or JSON at any time",
+        "No analytics, telemetry or tracking of any kind",
+        "Open source, MIT licensed"
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://www.usecue.today/#questions",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Cue really free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. There's no paid plan, no trial, no credit card and no upsell. Sync is free too. It's a personal project, not a business."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Cue open source?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "All of it, under the MIT license: the Mac app, the iPhone app, the sync server and the website. github.com/zlwaterfield/cue"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Cue work offline?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Completely. Both apps keep your notes on the device and need no network at all. With sync off, Cue never talks to a server."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I need an account to use Cue?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Only if you want the same notes on more than one device. Each app is complete on its own."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Where are my notes kept?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "On the Mac, in one SQLite file at ~/Library/Application Support/Cue/cue.sqlite, with a daily snapshot kept for 14 days. On the iPhone, in the app's own database. You can export everything as Markdown or JSON at any time."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Cue track me?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No analytics, no telemetry, no crash reporting, no ads, and no cookies on the website. Your notes are never training data for an AI model, and nothing is sold or shared."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How fast is Cue?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ready to type 240 ms after launch with five years of notes, 1.5 ms from a keystroke to the frame, and 0.5 ms to search 36,543 items. Every number has a budget that a test fails if it misses."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What doesn't Cue do?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No projects, tags, priorities, folders, reminders, recurring tasks, attachments, collaboration or dashboards. Days are the only structure, on purpose."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <div class="wrap">
@@ -308,6 +452,58 @@ footer a:hover { color: var(--text); }
       <a class="btn primary" href="download/">Download Cue</a>
     </section>
 
+    <section class="narrow" id="questions">
+      <h2 class="serif">Questions</h2>
+      <div class="qa">
+        <div>
+          <h3>Is Cue really free?</h3>
+          <p>Yes. There’s no paid plan, no trial, no credit card and no upsell. Sync is free
+            too. It’s a personal project, not a business, and I don’t plan to charge for it.</p>
+        </div>
+        <div>
+          <h3>Is it open source?</h3>
+          <p>All of it, under the MIT license: the Mac app, the iPhone app, the sync server and
+            this website. Read it, build it, or run your own copy — it’s on
+            <a href="https://github.com/zlwaterfield/cue">GitHub</a>.</p>
+        </div>
+        <div>
+          <h3>Does it work offline?</h3>
+          <p>Completely. Both apps keep your notes on the device and need no network at all.
+            With sync off, Cue never talks to a server.</p>
+        </div>
+        <div>
+          <h3>Do I need an account?</h3>
+          <p>Only if you want the same notes on more than one device. Each app is complete on
+            its own: open it and type.</p>
+        </div>
+        <div>
+          <h3>Where are my notes kept?</h3>
+          <p>On the Mac, in one SQLite file at
+            <code>~/Library/Application Support/Cue/cue.sqlite</code>, with a daily snapshot kept
+            for 14 days. On the iPhone, in the app’s own database. Export everything as
+            Markdown or JSON whenever you like.</p>
+        </div>
+        <div>
+          <h3>Does Cue track me?</h3>
+          <p>No analytics, no telemetry, no crash reporting, no ads, and no cookies on this
+            website. Your notes are never training data for an AI model, and nothing is sold or
+            shared. The <a href="privacy/">privacy policy</a> is short, because there isn’t much
+            to say.</p>
+        </div>
+        <div>
+          <h3>How fast is it?</h3>
+          <p>Ready to type 240 ms after launch with five years of notes, 1.5 ms from a keystroke
+            to the frame, and 0.5 ms to search 36,543 items. Every number has a budget that a
+            test fails if it misses, measured on the real packaged app.</p>
+        </div>
+        <div>
+          <h3>What doesn’t it do?</h3>
+          <p>No projects, tags, priorities, folders, reminders, recurring tasks, attachments,
+            collaboration or dashboards. If you want a project manager or a second brain, Cue is
+            the wrong tool, and would rather say so than grow into one.</p>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer>
@@ -532,6 +728,7 @@ footer a:hover { color: var(--text); }
     { label: 'Download Cue', run: () => { location.href = 'download/' } },
     { label: 'Go to GitHub', run: () => { location.href = GITHUB } },
     { label: 'Why I built it', run: () => $('#why').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' }) },
+    { label: 'Questions', run: () => $('#questions').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' }) },
     { label: 'Move to fri', move: true, run: () => moveTo(parseDay('fri')) },
     { label: 'Toggle dark mode', run: toggleTheme },
     { label: 'Print today’s page', hint: '⌘P', run: () => print() },

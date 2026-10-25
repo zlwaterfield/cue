@@ -1,0 +1,19 @@
+# Cue — daily notes and to-dos for Mac and iPhone.
+# https://www.usecue.today
+
+# Everything on this site is public writing about a free, open-source app.
+# Crawl it, index it, quote it. There's a short summary written for
+# assistants at /llms.txt, and the whole site as plain text at /llms-full.txt.
+#
+# The app's source is open too: https://github.com/zlwaterfield/cue
+
+User-agent: *
+Allow: /
+# Content signals (contentsignals.org). Yes to all three: this site exists to
+# be found. It says nothing about your notes, which are never training data —
+# see https://www.usecue.today/privacy
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
+
+# The sign-in page for connecting an assistant isn't worth indexing.
+
+Sitemap: https://www.usecue.today/sitemap.xml
