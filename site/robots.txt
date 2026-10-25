@@ -15,6 +15,5 @@ Allow: /
 Content-Signal: search=yes, ai-input=yes, ai-train=yes
 
 # The sign-in page for connecting an assistant isn't worth indexing.
-Disallow: /oauth/
 
 Sitemap: https://www.usecue.today/sitemap.xml
