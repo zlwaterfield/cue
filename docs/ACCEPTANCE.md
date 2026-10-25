@@ -22,4 +22,4 @@ E2E tests drive the real Electron app (`pnpm test:e2e`); unit tests run under Vi
 
 **North-star test**: open Cue, capture several thoughts, turn two into tasks, nest
 one beneath another, complete one, and move another to Friday, all without the
-mouse. This is the first test in `tests/e2e/editor.spec.ts`.
+mouse. This is the first test in `apps/desktop/tests/e2e/editor.spec.ts`.

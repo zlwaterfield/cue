@@ -103,7 +103,7 @@ the same path an import uses, with one rule: **an edit in progress always wins.*
 - Undo reverses only what your action changed, so it never takes back another device's
   newer edit (see [ARCHITECTURE.md](ARCHITECTURE.md#undo)).
 
-### The service (`src/main/sync/service.ts`)
+### The service (`apps/desktop/src/main/sync/service.ts`)
 
 - **Off by default.** Until someone signs in, it does nothing. `@supabase/supabase-js` is
   a separate chunk loaded only on sign-in, or at launch if this Mac was signed in. Startup is
@@ -113,7 +113,7 @@ the same path an import uses, with one rule: **an edit in progress always wins.*
   refreshed automatically.
 - **Sign in with Apple** opens Apple's page in the browser. Apple returns to the sync
   server, which sends the browser on to a one-shot server on a loopback port
-  (`src/main/sync/browserReturn.ts`) with a one-time code. The code is exchanged with a
+  (`apps/desktop/src/main/sync/browserReturn.ts`) with a one-time code. The code is exchanged with a
   PKCE verifier that never leaves the Mac, so another app that sees it can't use it. The
   server answers one path, once, and closes when the code arrives, on Cancel, or after 10
   minutes. The browser tab then says Cue is finishing (only Cue says whether it worked),
@@ -130,7 +130,7 @@ the same path an import uses, with one rule: **an edit in progress always wins.*
 - **Network.** Uploads, downloads and sign-in use Electron's `net.fetch`, so they follow the
   Mac's proxy and certificate settings. The realtime hint socket uses Node's WebSocket, which
   doesn't; when it can't connect, Cue checks for changes every 30 seconds. A connection the
-  server resets can't freeze the app: `src/main/guard.ts`, imported first, keeps Node's
+  server resets can't freeze the app: `apps/desktop/src/main/guard.ts`, imported first, keeps Node's
   network stack from throwing where nothing can catch it.
 - **Signed out by the server.** A token outlives a deleted account, so the first sign is a
   refused push (the row's account no longer exists). On a `SessionError` the service asks the
@@ -249,7 +249,7 @@ functions are in [`supabase/migrations`](../supabase/migrations).
    Apple provider, the iPhone and Mac say "This sync server doesn’t offer Sign in with
    Apple. Use your email instead."
 5. Build Cue with the project URL and publishable (or anon) key. Put them in
-   `.env.production.local`, at the repo root for the Mac and in `mobile/` for the iPhone:
+   `.env.production.local`, in `apps/desktop/` for the Mac and `apps/mobile/` for the iPhone:
 
    ```sh
    CUE_SUPABASE_URL=https://<project>.supabase.co
@@ -257,7 +257,7 @@ functions are in [`supabase/migrations`](../supabase/migrations).
    ```
 
    Production builds (`pnpm dist`, an Xcode Release build) read `.env.production.local`.
-   Development (`pnpm dev`, `pnpm start` in `mobile/`, a Debug build) reads
+   Development (`pnpm dev`, `pnpm start` in `apps/mobile/`, a Debug build) reads
    `.env.development.local`, so it uses the local stack below. Tests build with
    `--mode test` and read neither. Keep these variables out of a plain `.env.local`: every
    mode reads it, and Expo ranks it above `.env.production`. The variables can also come from
@@ -287,14 +287,14 @@ npx supabase stop
   wording, the editor's in-progress rule, and a randomized three-device convergence test.
   That test replays 400 random offline edits, moves, deletes and reconnects, then checks that
   every replica ends with exactly the newest write of every item.
-- **`tests/integration`** runs the real protocol against Supabase. It covers sign-in by
+- **`apps/desktop/tests/integration`** runs the real protocol against Supabase. It covers sign-in by
   emailed code, starting Sign in with Apple with a PKCE challenge, refusing an Apple token
   it can't verify, realtime delivery (about 30 ms after the typing pause, locally), no echo
   downloads, account isolation under RLS, LWW and skipping malformed records, reading a
   range of days, a gap-free feed under concurrent pushes, 5,000 items (up ~0.2 s, down
   ~0.1 s locally), session restore, account deletion, and a device noticing its account was
   deleted on another.
-- **`tests/e2e/sync.spec.ts`** drives two real Cue apps. It checks that sync is off by
+- **`apps/desktop/tests/e2e/sync.spec.ts`** drives two real Cue apps. It checks that sync is off by
   default, that typing is undisturbed while the other Mac edits the same day, turning sync
   off, a quick quit still uploading, catching up on launch, that a network resetting
   every connection leaves Cue responsive and Offline, the email check, Sign in with Apple
@@ -304,7 +304,7 @@ npx supabase stop
 
 ## Mobile
 
-The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outbox and HLC
+The iPhone app ([apps/mobile/](../apps/mobile)) runs this exact code: the repository, outbox and HLC
 (`core/repository.ts`, `core/hlc.ts`), the engine and the Supabase transport
 (`core/sync/`). Its database is expo-sqlite with the same schema and migrations
 (`core/sqlite.ts`). Only the lifecycle differs:
@@ -348,7 +348,7 @@ The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outb
 - **The same words.** The header and Settings use `indicator` and `statusLine`, so the phone
   says what the Mac says, down to "Syncing…" fading in only after 1.2 s.
 
-The end-to-end flows in `mobile/e2e` test sync against the local stack. One has another
+The end-to-end flows in `apps/mobile/e2e` test sync against the local stack. One has another
 device sign in to the same account over HTTP and call `sync_push`, then checks that the
 phone shows the line within 3 s without a refresh. Another (`account-deleted`) has it
 delete the account: the phone stops syncing with the reason at its next push and keeps

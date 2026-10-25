@@ -63,7 +63,7 @@ and [docs/MCP.md](docs/MCP.md).
 **iPhone.** The same core as the Mac, built for touch: tap a bullet to make it a to-do, tap a
 box to check it, swipe to complete or send to tomorrow, and long-press to drag. Like the
 Mac, it needs no account; turn on sync to share notes with your Mac. Share a link from any app to add it to today, and a line
-that's only a link shows its page. See [mobile/README.md](mobile/README.md).
+that's only a link shows its page. See [apps/mobile/README.md](apps/mobile/README.md).
 
 **Feel.** One calm column in monochrome graphite, system typography, and light and dark
 appearance. The caret is the brand: it holds still while you type and rests after ten idle
@@ -138,15 +138,15 @@ Build Cue from source on an Apple silicon Mac with Node 24+ and pnpm:
 ```sh
 git clone https://github.com/zlwaterfield/cue.git
 cd cue
-pnpm install
-pnpm dev        # run with hot reload
-pnpm package    # or build release/mac-arm64/Cue.app
+pnpm install:all   # the Mac app and the iPhone app, each with its own lockfile
+pnpm dev           # run the Mac app with hot reload
+pnpm package       # or build apps/desktop/release/mac-arm64/Cue.app
 ```
 
 Development builds run as "Cue Dev" and keep their data separate from the packaged app, so
 working on Cue can't touch your notes.
 
-For the iPhone app, see [mobile/README.md](mobile/README.md). It needs Xcode 26 and a sync
+For the iPhone app, see [apps/mobile/README.md](apps/mobile/README.md). It needs Xcode 26 and a sync
 server: your own Supabase project, set up as in [docs/SYNC.md](docs/SYNC.md).
 
 ## Your data
@@ -168,8 +168,11 @@ server: your own Supabase project, set up as in [docs/SYNC.md](docs/SYNC.md).
 - **Mac:** Electron, React 19 and TypeScript. Storage is SQLite through Node's built-in
   `node:sqlite`, owned by the main process.
 - **iPhone:** Expo and React Native.
-- **Shared core:** both apps share `core`: the data model, storage, sync engine and
+- **Shared core:** both apps share [`core`](core): the data model, storage, sync engine and
   every editing operation.
+- **The folders:** `apps/desktop` (Mac) and `apps/mobile` (iPhone) are the two apps, each
+  installed and built on its own; `core` is what they share; `site` is usecue.today;
+  `supabase` is the sync server and the MCP endpoint.
 - **Sync:** an optional Supabase backend (Postgres, Auth, Realtime), newest edit wins per
   item.
 

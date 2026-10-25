@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
+    "paths": {
+      "@shared/*": ["../../core/*"],
+      // The shared core is outside this folder, so TypeScript would look for the packages it
+      // imports beside it. They belong to this app; keep them pointed here.
+      "@supabase/supabase-js": ["./node_modules/@supabase/supabase-js"],
+      "fractional-indexing": ["./node_modules/fractional-indexing"]
+    }
+  },
+  "include": ["../../core", "src", "tests", "electron.vite.config.mts", "vitest.config.mts", "playwright.config.ts"]
+}

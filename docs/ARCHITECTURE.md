@@ -16,7 +16,7 @@
 │  ui/              palette, sheets, header, toast                       │
 └────────────────────────────────────────────────────────────────────────┘
 
- core/ (also the iPhone app's core; see mobile/README.md)
+ core/ (also the iPhone app's core; see apps/mobile/README.md)
    types, dates, date parsing, outline, markdown, commands
    sqlite.ts       schema + migrations, for node:sqlite and expo-sqlite alike
    repository.ts   the storage boundary (validation, versions, outbox)
@@ -34,7 +34,7 @@
 The Mac app and the iPhone app share everything about the data and how it changes: the
 model, storage, merge rules, sync, and every editing operation. Each app adds only its
 platform: Electron, IPC and contenteditable on the Mac; touch, the keyboard and the iOS
-lifecycle on the phone ([mobile/README.md](../mobile/README.md)).
+lifecycle on the phone ([apps/mobile/README.md](../apps/mobile/README.md)).
 
 ## Decisions
 

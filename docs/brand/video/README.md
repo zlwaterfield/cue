@@ -18,10 +18,10 @@ sheet, the iPhone, and where to get it.
 pnpm build && pnpm video
 ```
 
-`scripts/launch-video.mjs` films the built app playing
-[`storyboard.mjs`](../../../scripts/launch-video/storyboard.mjs) at 30 fps, then
+`apps/desktop/scripts/launch-video.mjs` films the built app playing
+[`storyboard.mjs`](../../../apps/desktop/scripts/launch-video/storyboard.mjs) at 30 fps, then
 draws the captions, the window and the cards around that footage one frame at a
-time in [`stage.html`](../../../scripts/launch-video/stage.html) and encodes the
+time in [`stage.html`](../../../apps/desktop/scripts/launch-video/stage.html) and encodes the
 result. Needs `ffmpeg` on PATH and an X display; on Linux and CI it starts its
 own Xvfb. Working frames land in `.video/`, which is not committed.
 
@@ -38,7 +38,7 @@ thing takes a few minutes.
   muted everywhere it will be seen. The captions carry it, at seven words or
   fewer, in Newsreader like the rest of the brand's display type.
 - **The window is the README's window.** Same radius, shadow, hairline and
-  traffic lights as `scripts/frame.swift` puts on the screenshots in
+  traffic lights as `apps/desktop/scripts/frame.swift` puts on the screenshots in
   `docs/images`.
 - **Monochrome, and it ends on Night.** The film turns dark where the app does
   and stays there, so the closing card is the lockup on `#18181A`.

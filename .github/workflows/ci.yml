@@ -19,14 +19,18 @@ jobs:
   mac-app:
     name: Mac app
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/desktop
     steps:
       - uses: actions/checkout@v7
-      # Both use the pnpm from package.json's `packageManager`.
+      # Both read the pnpm version from the root package.json's `packageManager`.
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
@@ -36,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: mobile
+        working-directory: apps/mobile
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -44,6 +48,6 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: mobile/pnpm-lock.yaml
+          cache-dependency-path: apps/mobile/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck

@@ -57,7 +57,7 @@ cwebp -q 86 docs/images/week-dark.png -o site/images/week-dark.webp
 
 The iPhone in front of it is `images/phone-*.webp`, holding the same notes and to-dos as the
 window behind it, in a frame the page draws in CSS. Both come from `python3
-scripts/phone-shots.py`, which takes the App Store screen
+apps/desktop/scripts/phone-shots.py`, which takes the App Store screen
 [`docs/app-store/screens/08-mac.png`](../docs/app-store/screens/08-mac.png) and, since that day
 was only ever captured in light, derives the dark one from it with the app's own
 light-to-dark tone curve. That script's docstring has the details, and says what to delete
