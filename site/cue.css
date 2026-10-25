@@ -1,0 +1,132 @@
+/* Shared by every page: the brand tokens, the base layer, and the ⌘K palette.
+ * Tokens from docs/brand/tokens/tokens.css, with Paper (#FAFAFB) as the marketing ground.
+ * Page-specific CSS stays in the page it belongs to. */
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/newsreader-latin.woff2") format("woff2");
+}
+
+:root, :root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #FAFAFB; /* Paper, the marketing ground */
+  --bg-subtle: #F0F0F2;
+  --bg-hover: #0000000B;
+  --text: #1C1C1E;
+  --text-2: #6C6C72;
+  --text-3: #8E8E94;
+  --line: #00000012;
+  --line-strong: #0000003D;
+  --accent: #2C2C31;
+  --on-accent: #FFFFFF;
+  --text-selection: #2C2C3129;
+}
+/* The OS preference, unless the page has been told otherwise. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #18181A; /* Night */
+    --bg-subtle: #2C2C30;
+    --bg-hover: #FFFFFF0F;
+    --text: #ECECEF;
+    --text-2: #9D9DA4;
+    --text-3: #76767D;
+    --line: #FFFFFF13;
+    --line-strong: #FFFFFF42;
+    --accent: #E6E6EA;
+    --on-accent: #18181A;
+    --text-selection: #E6E6EA38;
+  }
+}
+/* The same dark tokens, for "Toggle dark mode" in the palette. cue.js remembers the choice. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #18181A;
+  --bg-subtle: #2C2C30;
+  --bg-hover: #FFFFFF0F;
+  --text: #ECECEF;
+  --text-2: #9D9DA4;
+  --text-3: #76767D;
+  --line: #FFFFFF13;
+  --line-strong: #FFFFFF42;
+  --accent: #E6E6EA;
+  --on-accent: #18181A;
+  --text-selection: #E6E6EA38;
+}
+
+* { box-sizing: border-box; }
+::selection { background: var(--text-selection); }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 17px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+.narrow { max-width: 680px; margin: 0 auto; }
+.serif { font-family: "Newsreader", "New York", ui-serif, Georgia, serif; font-weight: 400;
+  letter-spacing: -0.02em; font-optical-sizing: auto; }
+
+/* The chrome every page shares: the nav and the footer. Pages adjust what they need. */
+nav { display: flex; align-items: center; justify-content: space-between; height: 76px; }
+nav .lockup, nav .home svg { display: block; height: 26px; width: auto; color: var(--text); }
+nav .links { display: flex; align-items: center; gap: 24px; }
+nav .links a { font-size: 15px; color: var(--text-2); text-decoration: none; }
+nav .links a:hover, nav .links a[aria-current] { color: var(--text); }
+
+footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 32px 0 48px; border-top: 1px solid var(--line); font-size: 14px; color: var(--text-2); }
+footer .left { display: flex; align-items: center; gap: 12px; }
+footer .symbol { display: block; width: 20px; height: 20px; color: var(--text); }
+footer a { text-decoration: none; }
+footer a:hover { color: var(--text); }
+nav a:focus-visible, footer a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+kbd { font: 500 0.8em ui-monospace, "SF Mono", Menlo, monospace; padding: 2px 6px; border-radius: 6px;
+  background: var(--bg-subtle); color: var(--text); border: 1px solid var(--line); white-space: nowrap;
+  display: inline-block; transition: background .2s, color .2s, transform .2s; }
+kbd.pressed { background: var(--text); color: var(--bg); transform: translateY(1px); transition-duration: 0s; }
+
+/* The nav's palette button, added by cue.js so every page gets one. */
+.palette-trigger { display: inline-flex; align-items: center; padding: 0; border: 0; background: none;
+  font: inherit; color: var(--text-2); cursor: pointer; }
+.palette-trigger kbd { font-size: 13px; }
+.palette-trigger:hover kbd { color: var(--text); border-color: var(--line-strong); }
+.palette-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
+.palette-trigger .glyph { display: none; width: 22px; height: 22px; }
+.palette-trigger:hover .glyph { color: var(--text); }
+/* No room for a keycap on a phone, and no ⌘ key either. */
+@media (max-width: 720px) {
+  nav .links { gap: 16px; }
+  .palette-trigger kbd { display: none; }
+  .palette-trigger .glyph { display: block; }
+}
+@media (max-width: 380px) { nav .links { gap: 10px; } }
+
+.toast { position: fixed; z-index: 30; left: 50%; bottom: 28px; padding: 10px 16px; border-radius: 12px;
+  background: var(--text); color: var(--bg); font-size: 14px; max-width: calc(100vw - 32px); text-align: center;
+  pointer-events: none; opacity: 0; transform: translate(-50%, 8px); transition: opacity .2s, transform .2s; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ⌘K: a tiny command palette, like the app's. */
+.palette { width: min(520px, calc(100vw - 32px)); margin: 14vh auto auto; padding: 0; border: 1px solid var(--line-strong);
+  border-radius: 14px; background: var(--bg); color: var(--text); box-shadow: 0 24px 64px #00000033; }
+.palette::backdrop { background: #00000026; }
+.palette input { display: block; width: 100%; height: 54px; padding: 0 18px; border: 0; border-bottom: 1px solid var(--line);
+  background: transparent; color: var(--text); font: inherit; font-size: 17px; outline: none; }
+.palette input::placeholder { color: var(--text-3); }
+.palette ul { list-style: none; margin: 0; padding: 6px; max-height: 340px; overflow: auto; }
+.palette li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; padding: 8px 12px;
+  border-radius: 8px; font-size: 15px; color: var(--text-2); cursor: default; }
+.palette li[aria-selected="true"] { background: var(--bg-hover); color: var(--text); }
+.palette li.none { color: var(--text-3); }
+.palette li kbd { font-size: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  kbd.pressed { transform: none; }
+  .toast, .toast.show { transform: translateX(-50%); }
+}
+@media print {
+  .toast, .palette, .palette-trigger { display: none !important; }
+}
