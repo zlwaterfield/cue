@@ -1,0 +1,13 @@
+# pnpm's settings for the Mac app, and the only place pnpm still reads them: pnpm 11 ignores
+# `.npmrc` and the `pnpm` field in package.json. So this file has to be committed, or a fresh
+# clone installs differently from every working tree: `pnpm install` exits 1 on the build
+# script below, and node_modules comes out as symlinks into a virtual store.
+
+# electron-builder packages what it finds in node_modules, so it wants real directories
+# rather than pnpm's default symlinks.
+nodeLinker: hoisted
+
+# electron-winstaller builds Windows installers, which Cue doesn't ship, so its build script
+# never needs to run. Deciding that here keeps `pnpm install` from stopping to ask.
+allowBuilds:
+  electron-winstaller: false
