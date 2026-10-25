@@ -56,8 +56,9 @@ a six-digit code, and edits reach your other devices about a second after you st
 offline and never interrupts typing.
 
 **Assistants.** With sync on, connect Claude, ChatGPT or another assistant over MCP to read
-your days, add to-dos, check them off and move them, from wherever you're chatting. See
-[docs/MCP.md](docs/MCP.md).
+your days, add to-dos, check them off and move them, from wherever you're chatting. Nothing it
+can call deletes anything. See [usecue.today/assistants](https://www.usecue.today/assistants)
+and [docs/MCP.md](docs/MCP.md).
 
 **iPhone.** The same core as the Mac, built for touch: tap a bullet to make it a to-do, tap a
 box to check it, swipe to complete or send to tomorrow, and long-press to drag. Like the
@@ -126,8 +127,9 @@ pnpm bench --check    # exits non-zero if anything misses its budget
 ## Getting started
 
 Download Cue from [usecue.today/download](https://www.usecue.today/download): the Mac app for
-Apple silicon, and the iPhone beta on TestFlight. The Mac app is free and works offline with no
-account. Syncing it with your iPhone needs one (Sign in with Apple, or an emailed code).
+Apple silicon, signed and notarized, and the iPhone beta on TestFlight. Both are free and work
+offline with no account. Syncing them together needs an account (Sign in with Apple, or an
+emailed code), and that’s free as well.
 
 ### Build it yourself
 

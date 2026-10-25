@@ -1,9 +1,20 @@
 # cue site
 
-The website for Cue: the home page (`index.html`) and the downloads page (`download/`). It's
-plain static HTML with no build step: open `index.html`, or serve this folder from any static
-host (for example, set Vercel's or Netlify's root directory to `site/`, or publish it with
-GitHub Pages).
+The website for Cue: the home page (`index.html`), the downloads page (`download/`), the
+assistants page (`assistants/`), `terms/`, `privacy/`, the `404.html` you can type into, and
+the OAuth consent page (`oauth/consent/`). It's plain static HTML with no build step: open
+`index.html`, or serve this folder from any static host (for example, set Vercel's or
+Netlify's root directory to `site/`, or publish it with GitHub Pages).
+
+> [!IMPORTANT]
+> The assistants page is at `/assistants`, not `/mcp`, because `/mcp` is the MCP endpoint
+> itself: `vercel.json` rewrites it to the Edge Function. Vercel checks the filesystem before
+> it applies rewrites, so a page at `site/mcp/index.html` would shadow the endpoint and every
+> connected assistant would start getting HTML.
+
+Two links on the downloads page point outside the repo and need a hand now and then: the Mac
+button goes to the current GitHub release (releases carry their version in the file name), and
+the iPhone button goes to the TestFlight invitation.
 
 Everything comes from the brand kit in [`docs/brand`](../docs/brand): the color tokens, the
 outlined wordmark, the favicons and `site.webmanifest` (`docs/brand/web`), and the social image
@@ -27,7 +38,7 @@ Four files at the root are for crawlers and assistants:
 
 | File | What it's for |
 | --- | --- |
-| `robots.txt` | Allows everything, grants all three [content signals](https://contentsignals.org) (`search`, `ai-input`, `ai-train`), keeps `/oauth/` out of indexes, and points at the sitemap |
+| `robots.txt` | Allows everything, grants all three [content signals](https://contentsignals.org) (`search`, `ai-input`, `ai-train`), and points at the sitemap. The consent page stays out of indexes with its own `noindex`, so there is nothing to disallow |
 | `sitemap.xml` | The four public pages, with `lastmod` dates to keep current |
 | `llms.txt` | Cue in one page, in the [llms.txt](https://llmstxt.org) format: what it is, what it deliberately isn't, and where the pages are |
 | `llms-full.txt` | The site's own copy as plain text, plus the questions people ask. It summarises Terms and Privacy and links to them rather than repeating them, so the legal text has one home |

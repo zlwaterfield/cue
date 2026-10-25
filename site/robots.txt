@@ -14,6 +14,4 @@ Allow: /
 # see https://www.usecue.today/privacy
 Content-Signal: search=yes, ai-input=yes, ai-train=yes
 
-# The sign-in page for connecting an assistant isn't worth indexing.
-
 Sitemap: https://www.usecue.today/sitemap.xml
