@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite'
-import { fetchPreview, type LinkPreview } from '../shared/links'
+import { fetchPreview, type LinkPreview } from '@shared/links'
 
 /**
  * Previews for lines that are only a link, fetched once and kept on this Mac in their own

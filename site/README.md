@@ -101,5 +101,5 @@ When page copy changes in substance, change them too, and move the sitemap's `la
 `terms/` and `privacy/` share `legal.css`, on top of `cue.css`. Every sign-in (the Mac, the iPhone, and
 `oauth/consent`) says that continuing agrees to both, and records it in
 `public.terms_acceptances`. When either page changes in substance, change its "Last updated"
-date, `TERMS_VERSION` in `src/shared/terms.ts`, and the version in `oauth/consent/index.html`
+date, `TERMS_VERSION` in `core/terms.ts`, and the version in `oauth/consent/index.html`
 to match; each account's next sign-in records the new version.

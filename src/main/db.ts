@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite'
-import { migrate, PRAGMAS } from '../shared/sqlite'
+import { migrate, PRAGMAS } from '@shared/sqlite'
 
 /** SQLite connection for the Mac app. The schema and migrations are shared (`shared/sqlite.ts`). */
 export function openDatabase(file: string): DatabaseSync {
@@ -9,4 +9,4 @@ export function openDatabase(file: string): DatabaseSync {
   return db
 }
 
-export { migrate, transaction } from '../shared/sqlite'
+export { migrate, transaction } from '@shared/sqlite'

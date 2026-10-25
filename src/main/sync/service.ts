@@ -1,8 +1,8 @@
-import type { Repository } from '../../shared/repository'
-import { errorMessage, OfflineError, SessionError, SyncEngine, SyncError, type SessionEnd, type SyncTransport } from '../../shared/sync/engine'
-import { DELETE_FAILED, SIGN_IN_FAILED, SYNC_OFFLINE } from '../../shared/sync/status'
-import type { Account, SessionStore, SupabaseSync, SyncConfig } from '../../shared/sync/supabase'
-import type { Item, SignInMethod, SyncResult, SyncState } from '../../shared/types'
+import type { Repository } from '@shared/repository'
+import { errorMessage, OfflineError, SessionError, SyncEngine, SyncError, type SessionEnd, type SyncTransport } from '@shared/sync/engine'
+import { DELETE_FAILED, SIGN_IN_FAILED, SYNC_OFFLINE } from '@shared/sync/status'
+import type { Account, SessionStore, SupabaseSync, SyncConfig } from '@shared/sync/supabase'
+import type { Item, SignInMethod, SyncResult, SyncState } from '@shared/types'
 import { awaitBrowserReturn, SignInCancelled, type BrowserReturn } from './browserReturn'
 
 /**
@@ -315,7 +315,7 @@ export class SyncService {
   private connect(): Promise<SyncClient> {
     const config = this.options.config
     if (!config) return Promise.reject(new SyncError('Sync isn’t available in this build.'))
-    const connect = this.options.connect ?? (async (c, s) => new (await import('../../shared/sync/supabase')).SupabaseSync(c, s))
+    const connect = this.options.connect ?? (async (c, s) => new (await import('@shared/sync/supabase')).SupabaseSync(c, s))
     if (!this.client) {
       this.client = connect(config, this.sessionStore()).then((client) => {
         // The server ended the session: it expired or was revoked, or the account was

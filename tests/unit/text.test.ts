@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isEmailAddress } from '../../src/shared/text'
+import { isEmailAddress } from '../../core/text'
 
 describe('isEmailAddress', () => {
   it('accepts anything that could be an address', () => {

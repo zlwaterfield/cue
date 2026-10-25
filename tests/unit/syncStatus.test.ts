@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { indicator, statusLine, syncedAgo, type StatusInput } from '../../src/shared/sync/status'
+import { indicator, statusLine, syncedAgo, type StatusInput } from '../../core/sync/status'
 
 const NOW = new Date(2026, 9, 18, 15, 0).getTime()
 const ago = (ms: number): number => NOW - ms

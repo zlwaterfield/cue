@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Backend } from '../../src/renderer/src/data/backend'
-import { ItemStore } from '../../src/shared/itemStore'
-import type { Item } from '../../src/shared/types'
+import { ItemStore } from '../../core/itemStore'
+import type { Item } from '../../core/types'
 import { newItem } from './helpers'
 
 const DAY = '2026-10-17'

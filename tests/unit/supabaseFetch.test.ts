@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { OfflineError } from '../../src/shared/sync/engine'
-import { AUTH_TIMEOUT, REQUEST_TIMEOUT, SupabaseSync, withTimeout, type SessionStore } from '../../src/shared/sync/supabase'
+import { OfflineError } from '../../core/sync/engine'
+import { AUTH_TIMEOUT, REQUEST_TIMEOUT, SupabaseSync, withTimeout, type SessionStore } from '../../core/sync/supabase'
 
 /** A server that accepts the connection and never answers. */
 const silent = (): Promise<Response> => new Promise(() => {})

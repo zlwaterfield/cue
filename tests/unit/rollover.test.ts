@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { rollover, type DayState } from '../../src/shared/editor/rollover'
+import { rollover, type DayState } from '../../core/editor/rollover'
 
 const OLD = '2026-10-17'
 const NEW = '2026-10-18'

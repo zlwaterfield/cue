@@ -3,9 +3,9 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { openDatabase } from '../../src/main/db'
 import { backupJSON, exportMarkdown, runDailyBackup } from '../../src/main/portability'
-import { markdownFiles } from '../../src/shared/portability'
-import { Repository } from '../../src/shared/repository'
-import { todayISO } from '../../src/shared/dates'
+import { markdownFiles } from '../../core/portability'
+import { Repository } from '../../core/repository'
+import { todayISO } from '../../core/dates'
 import { memoryRepo, newItem, tempDir } from './helpers'
 
 describe('export', () => {

@@ -1,17 +1,17 @@
 import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { backup, type DatabaseSync } from 'node:sqlite'
-import { todayISO } from '../shared/dates'
-import { BACKUP_FORMAT, BACKUP_FORMAT_VERSION, markdownFiles, backupJSON as serializeBackup } from '../shared/portability'
-import type { Item } from '../shared/types'
-import type { Repository } from '../shared/repository'
+import { todayISO } from '@shared/dates'
+import { BACKUP_FORMAT, BACKUP_FORMAT_VERSION, markdownFiles, backupJSON as serializeBackup } from '@shared/portability'
+import type { Item } from '@shared/types'
+import type { Repository } from '@shared/repository'
 
 /**
  * The Mac's half of export, import and automatic backups: the filesystem around
- * `shared/portability`, which the iPhone shares. Users are never locked in.
+ * `core/portability`, which the iPhone shares. Users are never locked in.
  */
 
-export { BACKUP_FORMAT, BACKUP_FORMAT_VERSION, groupByDate } from '../shared/portability'
+export { BACKUP_FORMAT, BACKUP_FORMAT_VERSION, groupByDate } from '@shared/portability'
 
 /** Writes `<dir>/<year>/<date>.md` for every day with content. Returns the file count. */
 export function exportMarkdown(repo: Repository, dir: string): number {

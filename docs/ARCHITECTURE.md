@@ -4,10 +4,10 @@
 ┌──────────────────────── Electron main process ────────────────────────┐
 │  index.ts      window, lifecycle, IPC, dialogs, context menu          │
 │  guard.ts      first import: network errors never freeze the app      │
-│  menu.ts       native menu generated from shared/commands.ts          │
+│  menu.ts       native menu generated from core/commands.ts            │
 │  db.ts         SQLite (node:sqlite), WAL, synchronous=FULL             │
 │  sync/service  optional sync: account, lifecycle, Keychain session    │
-│  portability.ts the filesystem around shared/portability, backups      │
+│  portability.ts the filesystem around core/portability, backups        │
 └──────────────▲─────────────────────────────────────────────────────────┘
                │ narrow, typed IPC (preload/index.ts → window.cue)
 ┌──────────────┴──────────────── Renderer (React) ───────────────────────┐
@@ -16,7 +16,7 @@
 │  ui/              palette, sheets, header, toast                       │
 └────────────────────────────────────────────────────────────────────────┘
 
- shared/ (also the iPhone app's core; see mobile/README.md)
+ core/ (also the iPhone app's core; see mobile/README.md)
    types, dates, date parsing, outline, markdown, commands
    sqlite.ts       schema + migrations, for node:sqlite and expo-sqlite alike
    repository.ts   the storage boundary (validation, versions, outbox)
@@ -69,7 +69,7 @@ and ⌘Z right after reverts just the formatting.
 
 ## Data model
 
-See `src/shared/types.ts`. Items carry `id, date, parentId, position, type, text,
+See `core/types.ts`. Items carry `id, date, parentId, position, type, text,
 done, createdAt, updatedAt, deleted, version`. Order among siblings is a fractional
 index (`position`) with the id as a tiebreaker, so inserting never rewrites
 neighbors and concurrent inserts can't collide destructively. Siblings can end up with
@@ -80,12 +80,12 @@ after the slot get fresh keys, so the line lands exactly where asked, and the tw
 before it keep theirs. Only those rewritten twins could lose an unsynced edit another
 device makes to them at the same moment.
 
-The outline for a day is derived, never stored (`shared/outline.ts`). Derivation is
+The outline for a day is derived, never stored (`core/outline.ts`). Derivation is
 total: orphaned items render at the top level and parent cycles are broken.
 
 ## The storage boundary
 
-The renderer can only call the methods in `CueBridge` (`shared/types.ts`):
+The renderer can only call the methods in `CueBridge` (`core/types.ts`):
 `loadDates`, `saveItems`, `search`, `datesWithItems`, settings, export and import. It
 never sees SQL, versions, or the outbox. `Repository` validates every record,
 stamps versions, writes the outbox in the same transaction, and skips no-op writes.
@@ -97,7 +97,7 @@ sign in. See [SYNC.md](SYNC.md).
 
 - Edits apply to the in-memory store synchronously, so typing never waits.
 - The write-behind queue coalesces per item and flushes within 40 ms
-  (`shared/itemStore.ts`). Failures retry with backoff and surface a quiet "Couldn't
+  (`core/itemStore.ts`). Failures retry with backoff and surface a quiet "Couldn't
   save" notice; nothing is dropped.
 - When the window unloads (quit, close, reload), a synchronous IPC flushes whatever
   remains.
@@ -112,7 +112,7 @@ sign in. See [SYNC.md](SYNC.md).
 
 ## Undo
 
-`shared/editor/undo.ts`. Every action is one entry of before/after item copies plus the
+`core/editor/undo.ts`. Every action is one entry of before/after item copies plus the
 selection on each side. Typing coalesces into runs (split by pauses, focus changes,
 and structural actions). Undo and redo are *new writes* with new versions, which
 keeps them correct under sync. Undoing a move to Friday brings the item back and puts
@@ -125,7 +125,7 @@ deleted, and an undo with nothing left to do says "Already changed on another de
 
 ## Keyboard and menus
 
-`shared/commands.ts` is the single source for command titles and shortcuts. The
+`core/commands.ts` is the single source for command titles and shortcuts. The
 native menu, the palette, the keymap and the ⌘/ reference are all generated from it.
 Only ⌘-based shortcuts are registered as menu key equivalents, so Tab, ⌥↑ and
 Escape stay with the editor. The page's key handler and a menu accelerator can both

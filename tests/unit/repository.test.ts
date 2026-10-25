@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { openDatabase } from '../../src/main/db'
 import { backupJSON, importJSON } from '../../src/main/portability'
-import { Repository } from '../../src/shared/repository'
+import { Repository } from '../../core/repository'
 import { memoryRepo, newItem, tempDir } from './helpers'
 
 describe('Repository', () => {

@@ -1,6 +1,6 @@
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { parseDateInput } from '../../src/shared/dateParse'
-import { daySubtitle, longDate, MONTHS, parts, relativeLabel, shortDate } from '../../src/shared/dates'
+import { parseDateInput } from '../../core/dateParse'
+import { daySubtitle, longDate, MONTHS, parts, relativeLabel, shortDate } from '../../core/dates'
 import { focusedText, launch, outline, lines, today, typeLines, type Cue } from './app'
 
 /** The window around the editor: title bar, sheets, palette, menus. */

@@ -3,15 +3,15 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net,
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
-import { todayISO } from '../shared/dates'
-import type { ExportResult, ImportResult, Item, Settings, ThemePreference } from '../shared/types'
+import { todayISO } from '@shared/dates'
+import type { ExportResult, ImportResult, Item, Settings, ThemePreference } from '@shared/types'
 import { openDatabase } from './db'
 import { LinkPreviews } from './links'
 import { buildMenu } from './menu'
 import { backupJSON, exportMarkdown, importJSON, readText, runDailyBackup } from './portability'
-import { isTextOnlyChange, Repository } from '../shared/repository'
+import { isTextOnlyChange, Repository } from '@shared/repository'
 import { SyncService } from './sync/service'
-import type { SyncConfig } from '../shared/sync/supabase'
+import type { SyncConfig } from '@shared/sync/supabase'
 
 // Tests and power users can point Cue at a different data directory. Unpackaged
 // development builds use their own directory so they never touch real notes.

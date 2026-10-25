@@ -13,7 +13,7 @@ two Postgres functions.** Item-level last-write-wins, ordered by hybrid logical 
 | Option | Verdict |
 | --- | --- |
 | Supabase / Postgres | ✅ Chosen. Auth, TLS, row-level security, backups, and account deletion are provided. The sync logic is ~100 lines of SQL. Works the same for Electron and any mobile stack. |
-| Small custom server | Viable fallback using the identical protocol (the reference server is `src/shared/sync/memoryServer.ts`), but means running and securing a service. |
+| Small custom server | Viable fallback using the identical protocol (the reference server is `core/sync/memoryServer.ts`), but means running and securing a service. |
 | CloudKit | Apple-only and awkward from Electron (CKSyncEngine is native-only). Reconsider only if Cue becomes a native Apple-only app. |
 | Firebase | Document model and opaque conflict behavior; harder to reason about tombstones and ordering. |
 | CRDT framework (Automerge, Yjs) | More machinery than plain text lines need. Revisit only if character-level merging of concurrent edits to the *same line* becomes important. |
@@ -32,7 +32,7 @@ two Postgres functions.** Item-level last-write-wins, ordered by hybrid logical 
 
 - **Data model.** Items have UUIDv7 ids minted on-device; pages are identified by their ISO
   date, so two devices "creating" the same day never duplicate it. Every write is stamped with
-  a hybrid-logical-clock version (`src/shared/hlc.ts`) that compares as a plain string, never
+  a hybrid-logical-clock version (`core/hlc.ts`) that compares as a plain string, never
   goes backwards, and never ties across devices. Deletions are tombstones.
 - **Outbox.** Each local write upserts `outbox(item_id, version)` in the same transaction as
   the item, whether sync is on or not. Push sends the *current* row, so repeated edits
@@ -42,7 +42,7 @@ two Postgres functions.** Item-level last-write-wins, ordered by hybrid logical 
   Applying the same batch twice, or an old backup, is a no-op. Imported backups use the same
   path and are queued for upload.
 
-### The engine (`src/shared/sync/engine.ts`)
+### The engine (`core/sync/engine.ts`)
 
 - **Single flight.** One run at a time: push the outbox in batches of 500, then pull if needed.
   Triggers that arrive during a run share one follow-up run.
@@ -150,7 +150,7 @@ the same path an import uses, with one rule: **an edit in progress always wins.*
 
 ### UI
 
-The words are shared by the Mac and iPhone (`src/shared/sync/status.ts`): `indicator` for the
+The words are shared by the Mac and iPhone (`core/sync/status.ts`): `indicator` for the
 title bar or header, `statusLine` for Settings, `syncedAgo` for the time.
 
 - **Settings → Sync**: off, then **Continue with Apple** or your email, then (for email) the
@@ -204,7 +204,7 @@ functions are in [`supabase/migrations`](../supabase/migrations).
 - **Delete vs. edit:** also LWW. A newer edit restores the item; a newer delete removes it.
   A stale replica can never resurrect a deletion.
 - **Structure:** each item stores its own parent and position, so concurrent changes can
-  produce odd shapes. The outline builder (`src/shared/outline.ts`) is total by design:
+  produce odd shapes. The outline builder (`core/outline.ts`) is total by design:
   orphans render at the top level, parent cycles are broken, and nothing is ever hidden.
 
 **Known limitations**
@@ -305,9 +305,9 @@ npx supabase stop
 ## Mobile
 
 The iPhone app ([mobile/](../mobile)) runs this exact code: the repository, outbox and HLC
-(`src/shared/repository.ts`, `src/shared/hlc.ts`), the engine and the Supabase transport
-(`src/shared/sync/`). Its database is expo-sqlite with the same schema and migrations
-(`src/shared/sqlite.ts`). Only the lifecycle differs:
+(`core/repository.ts`, `core/hlc.ts`), the engine and the Supabase transport
+(`core/sync/`). Its database is expo-sqlite with the same schema and migrations
+(`core/sqlite.ts`). Only the lifecycle differs:
 
 - **Sync is optional, as on the Mac.** It's off by default and the phone works on its own
   database; until someone turns sync on, the Supabase client isn't created

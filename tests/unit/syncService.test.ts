@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import { SessionError, SyncError, type SessionEnd } from '../../src/shared/sync/engine'
-import { MemorySyncServer } from '../../src/shared/sync/memoryServer'
+import { SessionError, SyncError, type SessionEnd } from '../../core/sync/engine'
+import { MemorySyncServer } from '../../core/sync/memoryServer'
 import { SyncService, type SyncClient } from '../../src/main/sync/service'
-import type { Repository } from '../../src/shared/repository'
-import type { SyncState } from '../../src/shared/types'
+import type { Repository } from '../../core/repository'
+import type { SyncState } from '../../core/types'
 import { memoryRepo, newItem } from './helpers'
 
 const config = { url: 'http://sync.test', key: 'key' }
