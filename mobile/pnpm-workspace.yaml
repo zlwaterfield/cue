@@ -1,0 +1,11 @@
+# The iPhone app installs on its own, with its own lockfile: Expo SDK 58 pins React and
+# TypeScript to versions that aren't the Mac app's.
+#
+# An empty `packages` is what keeps it separate. pnpm walks up from here looking for a
+# workspace, and a pnpm-workspace.yaml further up would adopt this app into it: `pnpm install`
+# in this folder would then write to that lockfile and leave mobile/pnpm-lock.yaml stale.
+packages: []
+
+# As in the Mac app, a flat node_modules. Metro resolves out of it at runtime, and it's what
+# this app has always installed with.
+nodeLinker: hoisted
