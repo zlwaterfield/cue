@@ -155,6 +155,8 @@ happens.
 - With sync on, your notes are also stored in your Supabase account. Turning sync off keeps
   every note on your Mac, and you can delete the account from Settings.
 - File ▸ Export as Markdown writes one file per day; Export JSON Backup writes everything.
+- The hosted service's [Privacy Policy](https://www.usecue.today/privacy) and
+  [Terms](https://www.usecue.today/terms) are short and in plain words.
 
 ## How it's built
 

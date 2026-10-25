@@ -5,6 +5,7 @@ import { router } from 'expo-router'
 import { SvgXml } from 'react-native-svg'
 import { reportIssueUrl } from '@shared/feedback'
 import { statusLine } from '@shared/sync/status'
+import { PRIVACY_URL, TERMS_URL } from '@shared/terms'
 import type { Settings } from '@shared/types'
 import { sync, updateSettings } from '../core/app'
 import { useStore } from '../core/store'
@@ -129,6 +130,11 @@ export default function SettingsSheet() {
 
       <Section footnote="Opens a new issue on GitHub with your version filled in.">
         <Row label="Report an Issue…" action="" onPress={reportIssue} />
+      </Section>
+
+      <Section>
+        <Row label="Terms of Service" action="" onPress={() => void Linking.openURL(TERMS_URL)} />
+        <Row label="Privacy Policy" action="" onPress={() => void Linking.openURL(PRIVACY_URL)} />
       </Section>
 
       <Section>

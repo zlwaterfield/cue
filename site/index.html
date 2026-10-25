@@ -15,10 +15,10 @@
 <link rel="manifest" href="site.webmanifest">
 <meta name="theme-color" content="#FAFAFB" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#18181A" media="(prefers-color-scheme: dark)">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+@font-face { font-family: "Newsreader"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/newsreader-latin.woff2") format("woff2"); }
 /* Tokens from docs/brand/tokens/tokens.css. Monochrome graphite, no hue. */
 :root {
   color-scheme: light;
@@ -206,7 +206,7 @@ footer a:hover { color: var(--text); }
       <svg class="symbol" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="13.5" width="9" height="3" rx="1.5" fill="currentColor"/><rect x="16.5" y="3" width="3" height="18" rx="1.5" fill="currentColor"/></svg>
       <span>Made by <a href="https://github.com/zlwaterfield">Zach Waterfield</a></span>
     </div>
-    <span>Open source, MIT · <a href="https://github.com/zlwaterfield/cue">GitHub</a></span>
+    <span>Open source, MIT · <a href="https://github.com/zlwaterfield/cue">GitHub</a> · <a href="terms/">Terms</a> · <a href="privacy/">Privacy</a></span>
   </footer>
 </div>
 </body>

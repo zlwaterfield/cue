@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { SessionError, SyncEngine, type SessionEnd, type SyncTransport } from '../../src/shared/sync/engine'
 import { SupabaseSync, type Account, type SessionStore } from '../../src/shared/sync/supabase'
 import type { Repository } from '../../src/shared/repository'
+import { TERMS_VERSION } from '../../src/shared/terms'
 import type { Item } from '../../src/shared/types'
 import { signInCode, syncServer, testEmail } from '../syncServer'
 import { memoryRepo, newItem } from '../unit/helpers'
@@ -81,6 +82,28 @@ describe.skipIf(!syncServer)('sync with Supabase', { timeout: 30_000 }, () => {
     expect(laptop.account.id).toBe(desktop.account.id)
     expect(laptop.account.email).toMatch(/@example\.com$/)
     expect(other.account.id).not.toBe(laptop.account.id)
+  })
+
+  it('records agreeing to the terms at the first sign-in, readable only by its account', async () => {
+    const read = async (device: Device): Promise<Array<{ version: string; accepted_at: string }>> => {
+      const response = await fetch(`${syncServer!.url}/rest/v1/terms_acceptances?select=version,accepted_at`, {
+        headers: { apikey: syncServer!.key, Authorization: `Bearer ${accessToken(device)}` }
+      })
+      return response.json()
+    }
+    // Both Macs signed in to one account: the first time stands.
+    const [laptopSaw, desktopSaw, otherSaw] = await Promise.all([read(laptop), read(desktop), read(other)])
+    expect(laptopSaw).toEqual([{ version: TERMS_VERSION, accepted_at: expect.any(String) }])
+    expect(desktopSaw).toEqual(laptopSaw)
+    expect(otherSaw).toHaveLength(1)
+    expect(otherSaw[0].accepted_at).not.toBe(laptopSaw[0].accepted_at)
+
+    const anonymous = await fetch(`${syncServer!.url}/rest/v1/rpc/accept_terms`, {
+      method: 'POST',
+      headers: { apikey: syncServer!.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: TERMS_VERSION })
+    })
+    expect(anonymous.ok).toBe(false)
   })
 
   it('delivers an edit to the other Mac within about a second of typing pausing', async () => {
