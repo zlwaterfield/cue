@@ -529,8 +529,8 @@ footer a:hover { color: var(--text); }
     else toast(`See you ${long(date)}.`)
   }
   const COMMANDS = [
+    { label: 'Download Cue', run: () => { location.href = 'download/' } },
     { label: 'Go to GitHub', run: () => { location.href = GITHUB } },
-    { label: 'Join the waitlist', run: () => { location.href = `${GITHUB}/issues/13` } },
     { label: 'Why I built it', run: () => $('#why').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' }) },
     { label: 'Move to fri', move: true, run: () => moveTo(parseDay('fri')) },
     { label: 'Toggle dark mode', run: toggleTheme },
