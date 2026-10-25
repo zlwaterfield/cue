@@ -249,7 +249,8 @@ table.tools td:first-child { white-space: nowrap; color: var(--text);
           as well: a token an assistant holds can’t delete a line or your account even if it
           asks Supabase directly, can’t set a password on your account, and can’t change its
           email address on its own. The worst it can do is add something you didn’t want, which
-          you can undo.</p>
+          you can delete like any other line — ⇧⌘⌫ on the Mac, a long swipe on the iPhone.
+          (⌘Z won’t: undo reverses your own last action, not another device’s.)</p>
         <p><strong>And yes, I checked the row-level security.</strong> Every read and write runs
           as you, under Postgres RLS, and the database checks the token’s signature itself on
           every single query — so a forged one reads nothing at all. There are tests that try to
