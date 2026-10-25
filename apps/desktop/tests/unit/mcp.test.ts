@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { assistantUrls } from '@shared/assistants'
 import { formatVersion } from '@shared/hlc'
 import { SupabaseNotes, type Notes } from '@shared/mcp/notes'
 import { handleMessage } from '@shared/mcp/server'
@@ -221,5 +222,19 @@ describe('SupabaseNotes', () => {
     expect(day).toHaveLength(1005)
     expect(urls.map((u) => /offset=\d+/.exec(u)![0])).toEqual(['offset=0', 'offset=1000'])
     expect(urls[0]).toContain('order=id')
+  })
+})
+
+describe('where Settings says an assistant connects', () => {
+  it('is Cue’s own domain for the hosted server, with its consent page', () => {
+    expect(assistantUrls('https://oxjcfsgwzpnajxrkwiai.supabase.co/')).toEqual({
+      mcp: 'https://www.usecue.today/mcp',
+      connected: 'https://www.usecue.today/oauth/consent'
+    })
+  })
+
+  it('is the function itself on any other server, which has no known consent page', () => {
+    expect(assistantUrls('http://127.0.0.1:54321')).toEqual({ mcp: 'http://127.0.0.1:54321/functions/v1/mcp', connected: null })
+    expect(assistantUrls('https://another.supabase.co')).toEqual({ mcp: 'https://another.supabase.co/functions/v1/mcp', connected: null })
   })
 })

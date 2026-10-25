@@ -52,7 +52,8 @@ correct itself.
 1. In the assistant, add a custom connector with the URL `https://www.usecue.today/mcp`.
    The connected-apps page shows it with a Copy button, and so does **Settings → Assistants**
    on the Mac and the iPhone (`core/assistants.ts`), which until sync is on says to turn it on
-   first. The site proxies it to the function
+   first. A build on another sync server (the local stack, a project of your own) shows that
+   server's function URL instead, and no link to the consent page. The site proxies it to the function
    (`site/vercel.json`), so the assistant only ever sees Cue's domain for the server itself.
    Use `www`: the bare domain redirects there, and not every client follows a redirect on a
    POST.

@@ -101,6 +101,7 @@ export class SyncService {
     const ended = this.options.config && !this.account ? this.ended : null
     return {
       available: !!this.options.config,
+      server: this.options.config?.url ?? null,
       email: this.account?.email ?? null,
       status: engine ? engine.status : 'off',
       lastSyncedAt: engine?.lastSyncedAt ?? null,

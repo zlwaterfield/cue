@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ASSISTANTS_URL, CONNECTED_ASSISTANTS_URL, MCP_URL } from '@shared/assistants'
+import { ASSISTANTS_URL, assistantUrls } from '@shared/assistants'
 import { backend } from '../data/backend'
 import { syncState } from '../store/sync'
 import { useStore } from '../store/ui'
@@ -7,11 +7,12 @@ import { useStore } from '../store/ui'
 /**
  * The Assistants pane in Settings: the URL an assistant connects to over MCP, and how. An
  * assistant works with the account, not this Mac, so until sync is on the pane says so and
- * points to Sync. Builds without a sync server have no Assistants category, as for Sync.
- * The words are the iPhone's (`app/settings/assistants.tsx`).
+ * points to Sync. The URL is the build's sync server's (`assistantUrls`), and builds
+ * without one have no Assistants category, as for Sync. The words are the iPhone's (`app/settings/assistants.tsx`).
  */
 export function AssistantsSettings({ goToSync }: { goToSync: () => void }) {
   const email = useStore(syncState, (s) => s.email)
+  const server = useStore(syncState, (s) => s.server)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -20,8 +21,10 @@ export function AssistantsSettings({ goToSync }: { goToSync: () => void }) {
     return () => clearTimeout(timer)
   }, [copied])
 
+  if (!server) return null
+  const { mcp, connected } = assistantUrls(server)
   const copy = async (): Promise<void> => {
-    await backend.clipboardWrite(MCP_URL)
+    await backend.clipboardWrite(mcp)
     setCopied(true)
   }
 
@@ -56,7 +59,7 @@ export function AssistantsSettings({ goToSync }: { goToSync: () => void }) {
             </button>
           )}
         </div>
-        <code className="setting-url">{MCP_URL}</code>
+        <code className="setting-url">{mcp}</code>
       </div>
       <div className="setting">
         <div>
@@ -67,13 +70,13 @@ export function AssistantsSettings({ goToSync }: { goToSync: () => void }) {
           Learn More
         </button>
       </div>
-      {email && (
+      {email && connected && (
         <div className="setting">
           <div>
             <div className="setting-label">Connected assistants</div>
             <div className="setting-help">See and disconnect the assistants you’ve connected.</div>
           </div>
-          <button className="button is-quiet" onClick={() => void backend.openExternal(CONNECTED_ASSISTANTS_URL)}>
+          <button className="button is-quiet" onClick={() => void backend.openExternal(connected)}>
             Manage…
           </button>
         </div>
