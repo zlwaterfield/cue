@@ -13,6 +13,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, copyFileSyn
 import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { fixBins } from './bins.mjs'
+import { bin } from './common.mjs'
 
 const NAME = 'Cue Dev'
 const BUNDLE_ID = 'com.zlwaterfield.cue.dev'
@@ -56,6 +57,8 @@ if (process.platform === 'darwin') {
   }
 }
 
-fixBins() // Some bins come out of `pnpm install` without their executable bit (bins.mjs).
-const child = spawn('electron-vite', ['dev', ...process.argv.slice(2)], { stdio: 'inherit', env, shell: true })
+// Some commands come out of `pnpm install` without their executable bit, which stops `pnpm
+// build` and the rest. This one is run with Node, so it doesn't need one (bins.mjs).
+fixBins()
+const child = spawn(process.execPath, [bin('electron-vite'), 'dev', ...process.argv.slice(2)], { stdio: 'inherit', env })
 child.on('exit', (code) => process.exit(code ?? 0))
