@@ -48,7 +48,7 @@ tomorrow (⌘D) or any date (⇧⌘D), and select several lines to act on them t
 </p>
 
 **Reliability.** Saves as you type, with undo and redo for everything. Edits survive a crash
-(the tests `kill -9` the app to check), a daily snapshot is kept for 14 days, and you can
+(the tests `kill -9` the app to check), a daily snapshot is kept for 14 days, and both apps
 export to Markdown or JSON at any time.
 
 **Sync.** Optional on the Mac and iPhone, and off by default. Sign in with Apple, or with your email and
@@ -158,6 +158,8 @@ server: your own Supabase project, set up as in [docs/SYNC.md](docs/SYNC.md).
   build it yourself). Turning sync off keeps every note on your Mac, and you can delete the
   account from Settings.
 - File ▸ Export as Markdown writes one file per day; Export JSON Backup writes everything.
+  On the iPhone, Settings → Your notes shares the same two: the Markdown as a zip, the
+  backup as the file the Mac imports.
 - The hosted service's [Privacy Policy](https://www.usecue.today/privacy) and
   [Terms](https://www.usecue.today/terms) are short and in plain words.
 

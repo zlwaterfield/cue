@@ -2,7 +2,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { openDatabase } from '../../src/main/db'
-import { exportMarkdown, runDailyBackup } from '../../src/main/portability'
+import { backupJSON, exportMarkdown, runDailyBackup } from '../../src/main/portability'
+import { markdownFiles } from '../../src/shared/portability'
 import { Repository } from '../../src/shared/repository'
 import { todayISO } from '../../src/shared/dates'
 import { memoryRepo, newItem, tempDir } from './helpers'
@@ -25,6 +26,29 @@ describe('export', () => {
     )
     expect(readFileSync(join(dir, '2025', '2025-01-02.md'), 'utf8')).toContain('- [x] Old thing')
     expect(existsSync(join(dir, '2025', '2025-01-03.md'))).toBe(false)
+  })
+
+  // The iPhone has no folder to write to: it zips these same files instead.
+  it('names the same files for a device without folders', () => {
+    const repo = memoryRepo()
+    repo.saveItems([
+      newItem({ date: '2026-10-17', type: 'text', text: 'Morning notes' }),
+      newItem({ date: '2025-01-02', type: 'todo', done: true, text: 'Old thing' }),
+      newItem({ date: '2025-01-03', type: 'text', text: '   ' })
+    ])
+    expect(markdownFiles(repo.allItems()).map((f) => f.path)).toEqual(['2025/2025-01-02.md', '2026/2026-10-17.md'])
+  })
+
+  it('backs up tombstones, so a restore cannot resurrect them', () => {
+    const repo = memoryRepo()
+    const gone = newItem({ date: '2026-10-17', text: 'Deleted later' })
+    repo.saveItems([gone, newItem({ date: '2026-10-17', text: 'Still here' })])
+    repo.saveItems([{ ...repo.get(gone.id)!, deleted: true }])
+    const parsed = JSON.parse(backupJSON(repo))
+    expect(parsed.format).toBe('cue.backup')
+    expect(parsed.deviceId).toBe(repo.deviceId)
+    expect(parsed.items.filter((i: { deleted: boolean }) => i.deleted).map((i: { id: string }) => i.id)).toEqual([gone.id])
+    expect(repo.allItems().map((i: { text: string }) => i.text)).toEqual(['Still here'])
   })
 })
 

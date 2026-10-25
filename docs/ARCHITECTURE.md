@@ -7,7 +7,7 @@
 │  menu.ts       native menu generated from shared/commands.ts          │
 │  db.ts         SQLite (node:sqlite), WAL, synchronous=FULL             │
 │  sync/service  optional sync: account, lifecycle, Keychain session    │
-│  portability.ts Markdown/JSON export, JSON import, daily backups       │
+│  portability.ts the filesystem around shared/portability, backups      │
 └──────────────▲─────────────────────────────────────────────────────────┘
                │ narrow, typed IPC (preload/index.ts → window.cue)
 ┌──────────────┴──────────────── Renderer (React) ───────────────────────┐
@@ -23,6 +23,8 @@
    hlc.ts          hybrid logical clock
    sync/           engine, Supabase transport, in-memory reference server, status words
    itemStore.ts    in-memory items for loaded days + write-behind queue
+   portability.ts  what export is: the Markdown tree, and the backup's JSON
+   zip.ts          the Markdown tree as one file, for a phone with no folders
    editor/ops.ts   structural operations (pure functions over a draft)
    editor/tx.ts    draft transaction over the store
    editor/undo.ts  application-level undo

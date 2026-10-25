@@ -1,54 +1,31 @@
 import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { backup, type DatabaseSync } from 'node:sqlite'
 import { todayISO } from '../shared/dates'
-import { dayToMarkdown } from '../shared/markdown'
+import { BACKUP_FORMAT, BACKUP_FORMAT_VERSION, markdownFiles, backupJSON as serializeBackup } from '../shared/portability'
 import type { Item } from '../shared/types'
 import type { Repository } from '../shared/repository'
 
-/** Export, import, and automatic backups. Users are never locked in. */
+/**
+ * The Mac's half of export, import and automatic backups: the filesystem around
+ * `shared/portability`, which the iPhone shares. Users are never locked in.
+ */
 
-export const BACKUP_FORMAT = 'cue.backup'
-export const BACKUP_FORMAT_VERSION = 1
-
-export function groupByDate(items: Item[]): Map<string, Item[]> {
-  const byDate = new Map<string, Item[]>()
-  for (const item of items) {
-    const list = byDate.get(item.date)
-    if (list) list.push(item)
-    else byDate.set(item.date, [item])
-  }
-  return byDate
-}
+export { BACKUP_FORMAT, BACKUP_FORMAT_VERSION, groupByDate } from '../shared/portability'
 
 /** Writes `<dir>/<year>/<date>.md` for every day with content. Returns the file count. */
 export function exportMarkdown(repo: Repository, dir: string): number {
-  const byDate = groupByDate(repo.allItems())
-  let count = 0
-  for (const [date, items] of [...byDate].sort(([a], [b]) => (a < b ? -1 : 1))) {
-    if (!items.some((i) => i.text.trim() !== '')) continue
-    const yearDir = join(dir, date.slice(0, 4))
-    mkdirSync(yearDir, { recursive: true })
-    writeFileSync(join(yearDir, `${date}.md`), dayToMarkdown(date, items), 'utf8')
-    count += 1
+  const files = markdownFiles(repo.allItems())
+  for (const file of files) {
+    const path = join(dir, file.path)
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, file.text, 'utf8')
   }
-  return count
+  return files.length
 }
 
 export function backupJSON(repo: Repository): string {
-  return JSON.stringify(
-    {
-      format: BACKUP_FORMAT,
-      formatVersion: BACKUP_FORMAT_VERSION,
-      app: 'Cue',
-      exportedAt: new Date().toISOString(),
-      deviceId: repo.deviceId,
-      // Tombstones are included so restoring a backup can never resurrect deletions.
-      items: repo.allItems({ includeDeleted: true })
-    },
-    null,
-    2
-  )
+  return serializeBackup(repo.deviceId, repo.allItems({ includeDeleted: true }))
 }
 
 export function importJSON(repo: Repository, json: string): { applied: Item[]; skipped: number } {

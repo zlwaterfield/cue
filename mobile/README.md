@@ -27,6 +27,13 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
   (holding a short background task until the upload finishes). It pulls the moment it
   comes back. A change from another device arrives as a realtime hint and is applied about
   15 ms after the other device's push lands (measured against the local server).
+- **Export goes to the share sheet.** The Mac writes a folder you pick; a phone has
+  nowhere to write, so Settings → Your notes hands iOS a file instead: Markdown as a zip of
+  `<year>/<date>.md`, or the JSON backup the Mac imports. Both files are the Mac's, built by
+  [`../src/shared/portability.ts`](../src/shared/portability.ts), and the zip is written by
+  [`../src/shared/zip.ts`](../src/shared/zip.ts) rather than a dependency. They are built in
+  the cache directory, which iOS may empty whenever it likes: the copy that matters is the
+  one you saved or sent.
 - **One day at a time**, with a week strip above it. Swipe the page (anywhere but on a
   line) for the next or previous day, tap a day to open it, swipe the strip for other weeks
   (opening on their first day, or on today in this week), or tap the month for a calendar
@@ -202,7 +209,7 @@ in front of the app.
 
 ```
 src/app/        screens (Expo Router): day, sign-in, settings, search, move, calendar
-src/core/       database adapter (expo-sqlite), optional sync lifecycle, app state, link previews, share inbox
+src/core/       database adapter (expo-sqlite), optional sync lifecycle, app state, link previews, share inbox, export
 src/editor/     the day page: layout, rows, drag, swipe, toolbar, editing controller
 src/ui/         header and week strip, calendar, toast, theme (brand tokens)
 modules/        cue-native: caret-at-touch, background time, the share inbox (Swift)
