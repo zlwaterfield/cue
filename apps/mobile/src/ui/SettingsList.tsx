@@ -1,7 +1,7 @@
 import { Children } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { router, useNavigation } from 'expo-router'
 import { SymbolView } from 'expo-symbols'
+import { SheetTitle } from './Sheet'
 import { metrics, useColors } from './theme'
 
 /**
@@ -10,48 +10,13 @@ import { metrics, useColors } from './theme'
  * this screen's index, so each category is a push (`app/settings/`).
  */
 
-/** A sub-screen of Settings: back to the index on the left, close the sheet on the right. */
+/** A sub-screen of Settings: the same sheet, with a way back to the index above its title. */
 export function SettingsScreen({ title, children }: { title: string; children: React.ReactNode }) {
-  const c = useColors()
-  // Close goes to the day, not back to the index. An action raised here reaches this
-  // stack first, and a stack answers "dismiss" by popping to its own first screen
-  // (`expo-router`'s `findActionHandler`), so it has to be the sheet that's asked.
-  const sheet = useNavigation().getParent()
   return (
-    <View style={[styles.screen, { backgroundColor: c.bgElevated }]}>
-      <View style={[styles.nav, { borderBottomColor: c.line }]}>
-        <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button" testID="settings-back" style={styles.back}>
-          {({ pressed }) => (
-            <>
-              <SymbolView name="chevron.left" size={15} weight="semibold" tintColor={pressed ? c.text2 : c.text} />
-              <Text style={[styles.backText, { color: pressed ? c.text2 : c.text }]} maxFontSizeMultiplier={1.4}>
-                Settings
-              </Text>
-            </>
-          )}
-        </Pressable>
-        <Text
-          style={[styles.navTitle, { color: c.text }]}
-          pointerEvents="none"
-          accessibilityRole="header"
-          numberOfLines={1}
-          maxFontSizeMultiplier={1.4}
-        >
-          {title}
-        </Text>
-        <Pressable
-          onPress={() => sheet?.goBack()}
-          hitSlop={7}
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          testID="sheet-close"
-          style={({ pressed }) => [styles.close, { backgroundColor: pressed ? c.bgHover : c.bgSubtle }]}
-        >
-          <SymbolView name="xmark" size={13} weight="semibold" tintColor={c.text2} />
-        </Pressable>
-      </View>
-      <ScrollView contentContainerStyle={styles.body}>{children}</ScrollView>
-    </View>
+    <ScrollView contentContainerStyle={styles.sheet}>
+      <SheetTitle title={title} back="Settings" />
+      {children}
+    </ScrollView>
   )
 }
 
@@ -176,50 +141,6 @@ export function Segmented<T extends string | number | boolean>({
 }
 
 export const styles = StyleSheet.create({
-  screen: {
-    flex: 1
-  },
-  nav: {
-    height: 46,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth
-  },
-  back: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    marginLeft: -4
-  },
-  backText: {
-    fontSize: 16
-  },
-  // Centred over the whole bar, so it doesn't shift with the back label's width.
-  navTitle: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    height: 46,
-    lineHeight: 46,
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '600'
-  },
-  close: {
-    width: 30,
-    height: 30,
-    marginLeft: 'auto',
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  body: {
-    padding: metrics.gutter,
-    paddingTop: 20,
-    gap: 22
-  },
   sheet: {
     padding: metrics.gutter,
     paddingTop: 22,
