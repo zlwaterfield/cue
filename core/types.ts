@@ -87,6 +87,8 @@ export interface ImportResult {
 export interface SyncState {
   /** False when this build has no sync server configured. Sync isn't offered at all. */
   available: boolean
+  /** That server's URL, which says where an assistant connects (`assistantUrls`). */
+  server: string | null
   /** The signed-in account. Null means sync is off. */
   email: string | null
   status: 'off' | 'idle' | 'syncing' | 'offline' | 'error'
@@ -113,6 +115,7 @@ export type SignInMethod = 'email' | 'apple'
 
 export const SYNC_OFF: SyncState = {
   available: false,
+  server: null,
   email: null,
   status: 'off',
   lastSyncedAt: null,

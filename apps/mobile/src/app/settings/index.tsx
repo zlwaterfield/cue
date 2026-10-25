@@ -16,7 +16,7 @@ const THEMES = { system: 'System', light: 'Light', dark: 'Dark' } as const
 
 /**
  * The categories, with each one's state beside it, and what sync is doing underneath.
- * Sync is missing from builds without a sync server, as on the Mac.
+ * Sync and Assistants are missing from builds without a sync server, as on the Mac.
  */
 export default function Settings() {
   const c = useColors()
@@ -49,6 +49,15 @@ export default function Settings() {
             chevron
             onPress={() => router.push('/settings/sync')}
             testID="settings-sync"
+          />
+        )}
+        {state.available && (
+          <Row
+            label="Assistants"
+            value={state.email ? undefined : 'Needs sync'}
+            chevron
+            onPress={() => router.push('/settings/assistants')}
+            testID="settings-assistants"
           />
         )}
         <Row label="Your data" chevron onPress={() => router.push('/settings/data')} testID="settings-data" />

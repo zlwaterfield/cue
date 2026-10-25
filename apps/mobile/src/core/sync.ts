@@ -88,6 +88,7 @@ function keychainSessionStore(): SessionStore {
 export class MobileSync {
   readonly state = new Store<SyncStatus>({
     available: false,
+    server: null,
     email: null,
     status: 'off',
     lastSyncedAt: null,
@@ -433,6 +434,7 @@ export class MobileSync {
     const ended = this.config && !this.account ? this.ended : null
     this.state.set({
       available: !!this.config,
+      server: this.config?.url ?? null,
       email: this.account?.email ?? null,
       // Signed in, the engine starts once the first screen is up.
       status: engine ? engine.status : this.account ? 'idle' : 'off',
