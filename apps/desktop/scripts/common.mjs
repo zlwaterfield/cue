@@ -9,7 +9,7 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 
 export const root = resolve(import.meta.dirname, '..')
 export const out = join(root, 'release')
@@ -42,8 +42,14 @@ export function run(command, args, env = process.env) {
   } catch (error) {
     // The command has just said on its own stderr what went wrong. Node would follow that with
     // a stack trace through child_process and a dump of every argument, burying it.
-    fail(`\`${command} ${args[0] ?? ''}\` failed${error.status ? ` (exit ${error.status})` : ''}.`)
+    fail(`\`${describe(command, args)}\` failed${error.status ? ` (exit ${error.status})` : ''}.`)
   }
+}
+
+/** What to call a command in a message: `node …/electron-vite.js build` is `electron-vite build`. */
+function describe(command, args) {
+  const name = names.get(args[0])
+  return name ? `${name} ${args[1] ?? ''}`.trim() : `${basename(command)} ${args[0] ?? ''}`.trim()
 }
 
 /** Whether a command succeeds, for the checks where failing is one of the answers. */
@@ -57,6 +63,7 @@ export const succeeds = (command, args) => {
 }
 
 const require = createRequire(import.meta.url)
+const names = new Map() // Each command's path back to the name you'd type, for messages.
 
 /**
  * Where a dependency's command lives, so it can be run with this Node: `node <bin>` rather
@@ -69,7 +76,9 @@ export function bin(name) {
   const { bin: entries } = require(manifestPath)
   const entry = typeof entries === 'string' ? entries : entries?.[name]
   if (!entry) fail(`${name} has no \`${name}\` command. Run \`pnpm install\`.`)
-  return join(dirname(manifestPath), entry)
+  const path = join(dirname(manifestPath), entry)
+  names.set(path, name)
+  return path
 }
 
 /** How long something took, for a script that spends minutes waiting on Apple. */

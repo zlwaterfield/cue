@@ -9,15 +9,16 @@
  *   sh: node_modules/.bin/electron-vite: Permission denied
  *
  * pnpm sets the bit when it first links a package, and not again: once a node_modules has one
- * of these, `pnpm install` answers "Already up to date" and leaves it broken, so the only other
- * cure is deleting node_modules. Setting the bit after every install keeps that from happening,
- * and `pnpm dev` and `pnpm release` call it as well, to mend a node_modules that already has.
+ * of these, `pnpm install` answers "Already up to date" and leaves it broken, and so does
+ * `--force`, which leaves deleting node_modules as the only other cure. Setting the bit after
+ * every install keeps that from happening, and `pnpm dev` and `pnpm release` call it as well,
+ * to mend a node_modules that already has.
  */
 import { chmodSync, lstatSync, readdirSync, readlinkSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 
-export function fixBins() {
-  const bin = resolve(import.meta.dirname, '../node_modules/.bin')
+/** Sets the executable bit on the commands that are missing it, and says which those were. */
+export function fixBins(bin = resolve(import.meta.dirname, '../node_modules/.bin')) {
   const fixed = []
   let entries
   try {
@@ -31,7 +32,7 @@ export function fixBins() {
       // Only the symlinks: pnpm's own shims are executable already.
       if (!lstatSync(link).isSymbolicLink()) continue
       const target = resolve(dirname(link), readlinkSync(link))
-      const { mode } = statSync(target)
+      const { mode } = statSync(target) // Follows the link, and throws if it dangles.
       if (mode & 0o111) continue
       chmodSync(target, mode | 0o755)
       fixed.push(entry)
