@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cue — social card, typed</title>
+<!--
+  The 1280x640 social card, writing itself: the icon arrives, "cue" is typed
+  under a caret, then the tagline, the line under it and the shortcut row.
+  It holds on the finished card and fades back to the ground, so it loops.
+
+  Geometry mirrors social() in ../source/build.py, so the last held frame is
+  github-social-preview.png (= site/images/og.png, the og:image fallback).
+  Open this file in a browser to watch it; `pnpm og-video` renders it to
+  site/images/og.mp4 one frame at a time via window.cueFrame(t).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400&family=Geist+Mono:wght@400&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
+<!-- The latin subset stops at U+FF, so ask for the two keycap arrows by name. -->
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono&text=%E2%87%A5%E2%86%A9&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: #18181A; }
+  svg { display: block; }
+  text { white-space: pre; font-optical-sizing: none; }
+  /* Newsreader at optical size 72 is "Newsreader-Display-*" in the brand kit. */
+  .word { font-family: "Newsreader", serif; font-variation-settings: "opsz" 72; font-weight: 500;
+          font-size: 132px; letter-spacing: -0.02em; }
+  .tag  { font-family: "Newsreader", serif; font-variation-settings: "opsz" 72; font-weight: 400;
+          font-size: 46px; }
+  .sub  { font-family: "Geist", sans-serif; font-size: 22px; }
+  .key  { font-family: "Geist Mono", monospace; font-size: 20px; }
+  .lbl  { font-family: "Geist", sans-serif; font-size: 20px; }
+</style>
+</head>
+<body>
+<svg id="card" width="1280" height="640" viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-label="Cue — every day is a page">
+  <rect width="1280" height="640" fill="#18181A"/>
+  <g id="scene">
+    <g id="icon-g"><image href="../app-icon/macos/cue-icon-light.svg" x="96" y="166" width="320" height="320"/></g>
+    <text id="word" class="word" x="476" y="292" fill="#ECECEF"></text>
+    <rect id="caret" fill="#ECECEF"/>
+    <g id="tag-g"><text class="tag" x="480" y="370" fill="#9D9DA4">Every day is a page.</text></g>
+    <g id="sub-g"><text id="sub" class="sub" x="481" y="414" fill="#76767D">Daily notes and to-dos for Mac and iPhone. Keyboard-first and open source.</text></g>
+    <g id="chips"></g>
+  </g>
+</svg>
+<script>
+// ---------------------------------------------------------------- the score
+const DURATION = 7.0          // seconds; frame 0 and the last frame are both bare ground
+const WORD = 'cue'
+const LETTER = [0.55, 0.78, 1.00]   // when each of c, u, e lands
+const TYPED = LETTER[LETTER.length - 1]
+const SHORTCUTS = [['⇥', 'nest'], ['⌘↩', 'done'], ['⌘D', 'tomorrow'], ['⌘K', 'everything']]
+
+const ease = x => 1 - Math.pow(1 - x, 3)
+const clamp = x => Math.max(0, Math.min(1, x))
+// A fade-and-rise: returns { o, dy } for a beat starting at `at`, lasting `len`.
+const rise = (t, at, len, px = 10) => {
+  const k = ease(clamp((t - at) / len))
+  return { o: k, dy: (1 - k) * px }
+}
+const $ = id => document.getElementById(id)
+
+// ---------------------------------------------------------------- the chips
+// Mirrors keycap() / shortcut_row() in build.py: x=480, y=470, h=44, 20px glyphs,
+// 12px from cap to label, 36px between pairs. '⌘' is a path, not a glyph.
+const CMD = '<g fill="none" stroke="#ECECEF" stroke-width="1.6" stroke-linecap="round">' +
+  '<rect x="9" y="9" width="6" height="6"/><circle cx="6.6" cy="6.6" r="2.4"/>' +
+  '<circle cx="17.4" cy="6.6" r="2.4"/><circle cx="6.6" cy="17.4" r="2.4"/>' +
+  '<circle cx="17.4" cy="17.4" r="2.4"/></g>'
+const SVGNS = 'http://www.w3.org/2000/svg'
+const el = (name, attrs, text) => {
+  const n = document.createElementNS(SVGNS, name)
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v)
+  if (text !== undefined) n.textContent = text
+  return n
+}
+
+const chipGroups = []
+function layOutChips () {
+  const chips = $('chips')
+  const [x0, y, h, mono, label] = [480, 470, 44, 20, 20]
+  let cx = x0
+  for (const [keys, desc] of SHORTCUTS) {
+    const g = el('g', {})
+    const cap = el('g', {})
+    let kx = cx + 12
+    const glyphs = []
+    for (const ch of keys) {
+      if (ch === '⌘') {
+        const sz = mono * 0.95
+        const c = el('g', { transform: `translate(${kx} ${y + h / 2 - sz / 2}) scale(${sz / 24})` })
+        c.innerHTML = CMD
+        glyphs.push(c)
+        kx += sz + 2
+      } else {
+        const t = el('text', { class: 'key', x: kx, y: y + h / 2 + mono * 0.36, fill: '#ECECEF' }, ch)
+        glyphs.push(t)
+        chips.appendChild(t)          // attach to measure, then move into the cap
+        kx += t.getComputedTextLength() + 1
+      }
+    }
+    const w = kx - cx + 10
+    cap.appendChild(el('rect', { x: cx, y, width: w, height: h, rx: 9, fill: '#232326',
+                                 stroke: '#3A3A40', 'stroke-width': 1.5 }))
+    for (const n of glyphs) cap.appendChild(n)
+    g.appendChild(cap)
+    cx += w + 12
+    const lab = el('text', { class: 'lbl', x: cx, y: y + h / 2 + label * 0.36, fill: '#9D9DA4' }, desc)
+    g.appendChild(lab)
+    chips.appendChild(g)
+    cx += lab.getComputedTextLength() + 36
+    chipGroups.push(g)
+  }
+}
+
+// ---------------------------------------------------------------- one frame
+// Caret geometry from brand.py: 0.072em wide, from -0.66em to +0.16em around the
+// baseline, sitting 0.085em past the ink of the last letter.
+const SIZE = 132, BASE = 292
+const CARET = { w: SIZE * 0.072, top: BASE - SIZE * 0.66, h: SIZE * (0.66 + 0.16), gap: SIZE * 0.085 }
+
+function inkRight (text) {
+  const w = $('word')
+  w.textContent = text
+  if (!text) return 476
+  const b = w.getBBox()
+  return b.x + b.width
+}
+
+function cueFrame (t) {
+  // 1. the icon arrives
+  const icon = rise(t, 0.05, 0.55, 8)
+  $('icon-g').setAttribute('opacity', icon.o)
+  $('icon-g').setAttribute('transform', `translate(0 ${icon.dy})`)
+
+  // 2. "cue" is typed, the caret following the ink
+  let typed = 0
+  while (typed < LETTER.length && t >= LETTER[typed]) typed++
+  // The caret goes where the insertion point is, with no glide — a glide would
+  // drag it across the letter that just landed.
+  const caretX = inkRight(WORD.slice(0, typed)) + CARET.gap
+  const c = $('caret')
+  // Solid while typing, then the app's own 1.1 s blink.
+  const lit = t < TYPED + 0.25 || ((t - TYPED - 0.25) % 1.1) < 0.6
+  c.setAttribute('x', caretX)
+  c.setAttribute('y', CARET.top)
+  c.setAttribute('width', CARET.w)
+  c.setAttribute('height', CARET.h)
+  c.setAttribute('rx', CARET.w / 2)
+  c.setAttribute('opacity', t < 0.45 ? 0 : (lit ? 1 : 0))
+
+  // 3. the tagline, 4. the line under it, 5. the shortcuts
+  for (const [id, at, len, px] of [['tag-g', 1.40, 0.45, 10], ['sub-g', 1.80, 0.40, 8]]) {
+    const r = rise(t, at, len, px)
+    $(id).setAttribute('opacity', r.o)
+    $(id).setAttribute('transform', `translate(0 ${r.dy})`)
+  }
+  chipGroups.forEach((g, i) => {
+    const r = rise(t, 2.25 + i * 0.13, 0.40, 6)
+    g.setAttribute('opacity', r.o)
+    g.setAttribute('transform', `translate(0 ${r.dy})`)
+  })
+
+  // 6. hold, then fade back to the ground so the loop has no seam
+  const out = ease(clamp((t - 6.55) / 0.45))
+  $('scene').setAttribute('opacity', 1 - out)
+}
+
+// ---------------------------------------------------------------- driving it
+// The renderer awaits window.cueReady, then calls cueFrame(t) for each frame.
+// cueFrame is pure: any t can be drawn at any time.
+window.cueFrame = cueFrame
+window.cueDuration = DURATION
+// document.fonts.ready only waits for faces the page is already using, and the
+// wordmark starts empty, so ask for each face (and the keycap arrows) by hand.
+window.cueFonts = [
+  ['500 132px Newsreader', 'cue'],
+  ['400 46px Newsreader', 'Every day is a page.'],
+  ['400 22px Geist', $('sub').textContent],
+  ['400 20px "Geist Mono"', '⇥↩DK']
+]
+window.cueReady = Promise.all(window.cueFonts.map(([f, s]) => document.fonts.load(f, s)))
+  .then(() => document.fonts.ready)
+  .then(() => {
+    layOutChips()
+    cueFrame(0)
+  })
+
+// Opened in a browser rather than the renderer? Play it on a loop.
+if (!navigator.webdriver) {
+  window.cueReady.then(() => {
+    const t0 = performance.now()
+    const tick = () => {
+      cueFrame(((performance.now() - t0) / 1000) % DURATION)
+      requestAnimationFrame(tick)
+    }
+    tick()
+  })
+}
+</script>
+</body>
+</html>
