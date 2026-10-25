@@ -10,13 +10,13 @@ Three things build against it, each reaching it differently:
 
 | Consumer | How it imports |
 | --- | --- |
-| The Mac app, `src/` | `@shared/*`, aliased in `tsconfig.json`, `electron.vite.config.mts` and `vitest.config.mts` |
-| The iPhone app, `mobile/` | `@shared/*`, resolved by `mobile/metro.config.js` and `mobile/tsconfig.json` |
+| The Mac app, `apps/desktop/` | `@shared/*`, aliased in `tsconfig.json`, `electron.vite.config.mts` and `vitest.config.mts` |
+| The iPhone app, `apps/mobile/` | `@shared/*`, resolved by its `metro.config.js` and `tsconfig.json` |
 | The MCP endpoint, `supabase/functions/mcp/` | relative paths, with extensions mapped in its `deno.json` |
 
 That's what the rules here are for:
 
-- **Nothing points back out.** No file here imports from `src/` or `mobile/`. What differs
+- **Nothing points back out.** No file here imports from either app. What differs
   between a Mac and a phone arrives as an argument or an interface it implements
   (`SqlDatabase`, `StoreBackend`, `SessionStore`), never as a branch on the platform.
 - **Third-party imports have to work in all three.** The two apps install separately and the
@@ -25,5 +25,5 @@ That's what the rules here are for:
   run on Deno.
 - **No DOM, no React Native, no Node built-ins.** `node:sqlite` is the Mac app's; this folder
   takes a `SqlDatabase`.
-- **The unit tests live with the Mac app** (`tests/unit`), and they're the tests for this
+- **The unit tests live with the Mac app** (`apps/desktop/tests/unit`), and they're the tests for this
   folder: both apps rely on them.

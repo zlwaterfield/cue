@@ -136,11 +136,11 @@ port the local Site URL expects:
 python3 -m http.server 4173 -d site
 ```
 
-- **`tests/unit/mcp.test.ts`** covers the protocol and every tool over an in-memory server:
+- **`apps/desktop/tests/unit/mcp.test.ts`** covers the protocol and every tool over an in-memory server:
   the Markdown with ids, nesting, adding after a line, checking off, rewriting, moving with
   children, beating a device whose clock runs ahead, sending nothing when nothing changes, and
   reading a day longer than one page.
-- **`tests/integration/mcp.test.ts`** runs the whole thing against the local stack: the `401`
+- **`apps/desktop/tests/integration/mcp.test.ts`** runs the whole thing against the local stack: the `401`
   and the discovery documents, dynamic registration, consent, the token exchange with PKCE,
   then an added to-do reaching a signed-in Mac and being checked off. It also covers the
   assistant's token failing to delete the account or a line when calling the database

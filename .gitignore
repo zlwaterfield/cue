@@ -10,3 +10,6 @@ playwright-report/
 .env*.local
 .claude/worktrees/
 .video/
+# Nothing installs at the repository root: each app has its own lockfile, and one here would
+# be an empty artifact of running `pnpm install` in the wrong folder.
+/pnpm-lock.yaml

@@ -53,7 +53,7 @@ enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
 enable_signup = true
 # Sign in with Apple on the Mac comes back from the browser to a one-shot server on a
-# loopback port (src/main/sync/browserReturn.ts).
+# loopback port (apps/desktop/src/main/sync/browserReturn.ts).
 additional_redirect_urls = ["http://127.0.0.1:*/auth/callback"]
 
 [auth.email]
