@@ -107,9 +107,16 @@ describe('request timeouts', () => {
     const client = new SupabaseSync({ url: 'http://sync.test', key: 'key', fetch: silent }, memoryStore())
     const push = client.push([]).catch((error: Error) => error)
     const send = client.sendCode('me@example.com').catch((error: Error) => error)
-    // The push's small body adds a few milliseconds to its deadline.
-    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT + 1_000)
-    const [pushed, sent] = await Promise.all([push, send])
+    // Step the clock until both calls have given up, rather than once past the deadline: a
+    // retry can arm a fresh one beyond it (and the push's small body adds a few milliseconds
+    // to its own), which would leave the timer that ends the call still waiting.
+    const settled = Promise.all([push, send])
+    let given = false
+    void settled.then(() => { given = true })
+    for (let step = 0; step < 10 && !given; step++) {
+      await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT + 1_000)
+    }
+    const [pushed, sent] = await settled
     expect(pushed).toBeInstanceOf(OfflineError)
     expect(sent).toBeInstanceOf(OfflineError)
     expect((sent as Error).message).toBe('Can’t reach the sync server. Check your connection.')
