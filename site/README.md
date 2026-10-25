@@ -38,7 +38,7 @@ Four files at the root are for crawlers and assistants:
 
 | File | What it's for |
 | --- | --- |
-| `robots.txt` | Allows everything, grants all three [content signals](https://contentsignals.org) (`search`, `ai-input`, `ai-train`), keeps `/oauth/` out of indexes, and points at the sitemap |
+| `robots.txt` | Allows everything, grants all three [content signals](https://contentsignals.org) (`search`, `ai-input`, `ai-train`), and points at the sitemap. The consent page stays out of indexes with its own `noindex`, so there is nothing to disallow |
 | `sitemap.xml` | The four public pages, with `lastmod` dates to keep current |
 | `llms.txt` | Cue in one page, in the [llms.txt](https://llmstxt.org) format: what it is, what it deliberately isn't, and where the pages are |
 | `llms-full.txt` | The site's own copy as plain text, plus the questions people ask. It summarises Terms and Privacy and links to them rather than repeating them, so the legal text has one home |
