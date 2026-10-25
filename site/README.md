@@ -45,8 +45,10 @@ the iPhone button goes to the TestFlight invitation.
 
 Everything comes from the brand kit in [`docs/brand`](../docs/brand): the color tokens, the
 outlined wordmark, the favicons and `site.webmanifest` (`docs/brand/web`), and the social image
-(`docs/brand/social`). Newsreader, for headlines only, is served from `fonts/` (its Latin subset,
-SIL OFL), so the site makes no requests to anyone else; body text uses the system font. The screenshots are `docs/images/week-*.png` as WebP:
+(`docs/brand/social`). `images/og.mp4` is that same card writing itself; regenerate it with
+`pnpm og-video`, which needs ffmpeg. Newsreader, for headlines only, is served from `fonts/`
+(its Latin subset, SIL OFL), so the site makes no requests to anyone else; body text uses the
+system font. The screenshots are `docs/images/week-*.png` as WebP:
 
 ```sh
 cwebp -q 86 docs/images/week-light.png -o site/images/week-light.webp
@@ -69,6 +71,12 @@ Four files at the root are for crawlers and assistants:
 | `sitemap.xml` | The four public pages, with `lastmod` dates to keep current |
 | `llms.txt` | Cue in one page, in the [llms.txt](https://llmstxt.org) format: what it is, what it deliberately isn't, and where the pages are |
 | `llms-full.txt` | The site's own copy as plain text, plus the questions people ask. It summarises Terms and Privacy and links to them rather than repeating them, so the legal text has one home |
+
+The home, downloads and assistants pages also carry `og:video` (`images/og.mp4`, 1280 × 640,
+H.264, 64 KB). Messages plays it in the link preview, muted and looping, and so do Slack,
+Discord and Telegram; X has no `og:video` support and keeps showing `og:image`, which is
+also the fallback everywhere else. Messages caches a preview hard, so test a change with a
+fresh URL (`?v=2`) rather than the same link twice.
 
 `llms.txt`, `llms-full.txt` and `sitemap.xml` are written by hand, like the rest of the site.
 When page copy changes in substance, change them too, and move the sitemap's `lastmod`.
