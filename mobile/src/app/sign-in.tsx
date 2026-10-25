@@ -33,6 +33,9 @@ export default function SignIn() {
     if (error) AccessibilityInfo.announceForAccessibility(error)
   }, [error])
 
+  // Closed (Cancel, or swiped down) with the server still answering: that answer mustn't turn sync on.
+  useEffect(() => () => sync.cancelSignIn(), [])
+
   const sendCode = async (): Promise<void> => {
     if (busy) return
     setBusy(true)
@@ -88,6 +91,8 @@ export default function SignIn() {
       router.dismissAll()
       return
     }
+    // Cancelled: this screen is already gone.
+    if (!result.error) return
     setError(result.error)
     setCode('')
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)

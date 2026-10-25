@@ -109,6 +109,8 @@ export class MobileSync {
   private recent = false
   private checkedAt = 0
   private verifiedAt = 0
+  /** Counts sign-in attempts; `cancelSignIn` moves it on, so a late answer is ignored. */
+  private signInAttempt = 0
   private appState = (AppState.currentState ?? 'active') as AppStateStatus
 
   constructor(
@@ -211,8 +213,9 @@ export class MobileSync {
   }
 
   async verifyCode(email: string, code: string): Promise<SyncResult> {
+    const current = this.signInAttempt
     return attempt(async () => {
-      this.signedIn(await this.connect().verifyCode(email.trim(), code.replace(/\s+/g, '')))
+      await this.finishSignIn(current, await this.connect().verifyCode(email.trim(), code.replace(/\s+/g, '')))
     }, SIGN_IN_FAILED)
   }
 
@@ -223,6 +226,7 @@ export class MobileSync {
    */
   async signInWithApple(): Promise<SyncResult> {
     if (!this.config) return { ok: false, error: NO_SERVER }
+    const current = this.signInAttempt
     const nonce = Crypto.randomUUID()
     let token: string | null
     try {
@@ -241,8 +245,13 @@ export class MobileSync {
     }
     return attempt(async () => {
       if (!token) throw new SyncError(SIGN_IN_FAILED)
-      this.signedIn(await this.connect().signInWithApple(token, nonce))
+      await this.finishSignIn(current, await this.connect().signInWithApple(token, nonce))
     }, SIGN_IN_FAILED)
+  }
+
+  /** Sign-in was closed: an answer still on its way mustn't turn sync on. */
+  cancelSignIn(): void {
+    this.signInAttempt += 1
   }
 
   /** Stop syncing on this phone. Every note stays here and keeps working. */
@@ -269,6 +278,16 @@ export class MobileSync {
   }
 
   /* ------------------------------------------------------------ Internals */
+
+  /** Turn sync on with the account the server just signed in, unless sign-in was cancelled meanwhile. */
+  private async finishSignIn(current: number, account: Account): Promise<void> {
+    if (current !== this.signInAttempt) {
+      // Forget the session the server just made; nothing was queued or uploaded.
+      await this.client?.signOut().catch((error) => console.warn('Sign out failed', error))
+      throw new SignInCancelled()
+    }
+    this.signedIn(account)
+  }
 
   private signedIn(account: Account): void {
     if (this.repo.getMeta(SYNCED_WITH) !== account.id) {
@@ -417,12 +436,16 @@ export class MobileSync {
   }
 }
 
-/** Run an account action. Failures come back in words, never as raw server text. */
+/** Sign-in was closed before the server answered. */
+class SignInCancelled extends Error {}
+
+/** Run an account action. Failures come back in words, never as raw server text; a cancelled sign-in, with none. */
 async function attempt(fn: () => Promise<void>, fallback?: string): Promise<SyncResult> {
   try {
     await fn()
     return { ok: true }
   } catch (error) {
+    if (error instanceof SignInCancelled) return { ok: false, error: '' }
     return { ok: false, error: errorMessage(error, fallback) }
   }
 }
