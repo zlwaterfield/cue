@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download Cue</title>
+<meta name="description" content="Download Cue for Mac, free with no account, and join the iPhone beta on TestFlight. No tracking.">
+<meta property="og:title" content="Download Cue">
+<meta property="og:description" content="Cue for Mac, free with no account, and the iPhone beta on TestFlight. No tracking.">
+<meta property="og:image" content="/images/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#FAFAFB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#18181A" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400&display=swap" rel="stylesheet">
+<style>
+/* Tokens from docs/brand/tokens/tokens.css, as on the home page. */
+:root {
+  color-scheme: light;
+  --bg: #FAFAFB; --bg-subtle: #F0F0F2; --bg-hover: #0000000B; --text: #1C1C1E; --text-2: #6C6C72;
+  --text-3: #8E8E94; --line: #00000012; --line-strong: #0000003D; --accent: #2C2C31; --on-accent: #FFFFFF;
+  --text-selection: #2C2C3129;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #18181A; --bg-subtle: #2C2C30; --bg-hover: #FFFFFF0F; --text: #ECECEF; --text-2: #9D9DA4;
+    --text-3: #76767D; --line: #FFFFFF13; --line-strong: #FFFFFF42; --accent: #E6E6EA; --on-accent: #18181A;
+    --text-selection: #E6E6EA38;
+  }
+}
+
+* { box-sizing: border-box; }
+::selection { background: var(--text-selection); }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 17px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+p { margin: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+.narrow { max-width: 680px; margin: 0 auto; }
+
+nav { display: flex; align-items: center; justify-content: space-between; height: 76px; }
+nav .lockup { display: block; height: 26px; width: auto; color: var(--text); }
+nav .links { display: flex; gap: 24px; }
+nav .links a { font-size: 15px; color: var(--text-2); text-decoration: none; }
+nav .links a:hover, nav .links a[aria-current] { color: var(--text); }
+
+.serif { font-family: "Newsreader", "New York", ui-serif, Georgia, serif; font-weight: 400;
+  letter-spacing: -0.02em; font-optical-sizing: auto; }
+
+header { text-align: center; padding: 64px 0 48px; }
+.status { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px;
+  border: 1px solid var(--line-strong); border-radius: 999px; font-size: 13px; color: var(--text-2); }
+.status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--text-2); }
+h1 { font-size: clamp(46px, 7.4vw, 72px); line-height: 1.02; margin: 26px 0 22px; text-wrap: balance; }
+.lede { max-width: 560px; margin: 0 auto; font-size: 20px; color: var(--text-2); text-wrap: balance; }
+
+.apps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 760px; margin: 0 auto 72px; }
+.app { display: flex; flex-direction: column; align-items: flex-start; padding: 28px;
+  border: 1px solid var(--line); border-radius: 18px; background: var(--bg-subtle); }
+.app .glyph { width: 36px; height: 36px; color: var(--text); margin-bottom: 20px; }
+.app h2 { font-size: 30px; line-height: 1.1; margin: 0 0 8px; }
+.app p { color: var(--text-2); font-size: 16px; }
+.app .meta { margin-top: 4px; font-size: 14px; color: var(--text-3); }
+.app .btn { margin-top: auto; }
+.app .spacer { flex: 1; min-height: 24px; }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 12px;
+  font-size: 16px; font-weight: 500; text-decoration: none; }
+.btn svg { width: 17px; height: 17px; flex: none; }
+.btn.primary { background: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { opacity: .9; }
+.btn:focus-visible, nav a:focus-visible, footer a:focus-visible, .prose a:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; }
+
+section { padding: 72px 0; border-top: 1px solid var(--line); }
+h2.section { font-size: clamp(32px, 4.4vw, 44px); line-height: 1.1; margin: 0 0 24px; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px 56px; margin-top: 8px; }
+.grid h3 { font-size: 17px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.005em; }
+.grid p { color: var(--text-2); font-size: 16px; }
+.not { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--text-2); font-size: 16px; }
+.not a { color: var(--text); }
+
+footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 32px 0 48px; border-top: 1px solid var(--line); font-size: 14px; color: var(--text-2); }
+footer .symbol { display: block; width: 20px; height: 20px; color: var(--text); }
+footer .left { display: flex; align-items: center; gap: 12px; }
+footer a { text-decoration: none; }
+footer a:hover { color: var(--text); }
+
+@media (max-width: 720px) {
+  header { padding: 40px 0 32px; }
+  .lede { font-size: 18px; }
+  .apps { grid-template-columns: 1fr; margin-bottom: 56px; }
+  section { padding: 56px 0; }
+  .grid { grid-template-columns: 1fr; gap: 28px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a href="/" aria-label="Cue home"><svg class="lockup" xmlns="http://www.w3.org/2000/svg" width="197" height="98.4" viewBox="4.14 -79.2 197 98.4" role="img" aria-label="Cue"><path d="M36.54 -62.76Q42.9 -62.76 46.86 -61.41Q50.82 -60.059999999999995 52.65 -57.92999999999999Q54.48 -55.8 54.48 -53.4Q54.48 -51.419999999999995 53.61 -49.949999999999996Q52.739999999999995 -48.48 51.269999999999996 -47.67Q49.8 -46.86 47.879999999999995 -46.86Q47.339999999999996 -46.86 46.23 -48.12Q45.12 -49.379999999999995 43.53 -51.239999999999995Q41.94 -53.1 39.989999999999995 -54.96Q38.04 -56.82 35.879999999999995 -58.08Q33.72 -59.339999999999996 31.439999999999998 -59.339999999999996Q27.54 -59.339999999999996 24.509999999999998 -57.03Q21.48 -54.72 19.8 -49.769999999999996Q18.12 -44.82 18.12 -36.9Q18.12 -26.88 20.43 -20.669999999999998Q22.74 -14.459999999999999 27.269999999999996 -11.64Q31.799999999999997 -8.82 38.4 -8.82Q43.26 -8.82 47.519999999999996 -10.71Q51.78 -12.6 55.08 -16.68L56.16 -15.84Q52.44 -9.48 48.66 -5.7Q44.879999999999995 -1.92 40.739999999999995 -0.30000000000000004Q36.6 1.3199999999999998 31.68 1.3199999999999998Q23.759999999999998 1.3199999999999998 17.52 -2.25Q11.28 -5.819999999999999 7.709999999999999 -12.72Q4.14 -19.62 4.14 -29.64Q4.14 -36.839999999999996 6.57 -42.87Q9.0 -48.9 13.41 -53.37Q17.82 -57.839999999999996 23.73 -60.3Q29.64 -62.76 36.54 -62.76ZM79.32 -19.32Q79.32 -15.6 80.58 -13.17Q81.84 -10.74 84.39 -9.54Q86.94 -8.34 91.02 -8.34Q95.16 -8.34 98.91 -9.6Q102.66 -10.86 105.36 -12.48L106.14 -11.1Q101.46000000000001 -7.199999999999999 98.13 -4.77Q94.8 -2.34 92.13 -1.02Q89.46000000000001 0.3 87.0 0.75Q84.53999999999999 1.2 81.66 1.2Q73.2 1.2 69.21000000000001 -3.4499999999999997Q65.22 -8.1 65.22 -17.82V-56.1L55.44 -58.5V-60.78L79.86 -61.98L79.32 -56.339999999999996ZM102.96000000000001 1.74 102.6 -9.66V-56.1L92.88 -58.5V-60.78L117.36 -61.98L116.69999999999999 -56.339999999999996V-7.08Q117.24 -6.779999999999999 118.38 -6.27Q119.52 -5.76 120.93 -5.13Q122.34 -4.5 123.69 -3.9Q125.03999999999999 -3.3 126.0 -2.88V-1.44L103.5 1.74ZM158.22 -62.76Q164.94 -62.76 169.82999999999998 -60.03Q174.72 -57.3 177.54 -52.05Q180.35999999999999 -46.8 180.95999999999998 -39.24H140.94V-43.08H173.57999999999998L167.4 -40.5Q166.86 -47.28 165.51 -51.42Q164.16 -55.559999999999995 161.91 -57.51Q159.66 -59.46 156.35999999999999 -59.46Q152.04 -59.46 148.95 -56.91Q145.85999999999999 -54.36 144.20999999999998 -49.230000000000004Q142.56 -44.1 142.56 -36.36Q142.56 -26.58 145.05 -20.49Q147.54 -14.399999999999999 152.31 -11.61Q157.07999999999998 -8.82 163.98 -8.82Q167.28 -8.82 170.34 -9.69Q173.4 -10.559999999999999 176.16 -12.329999999999998Q178.92 -14.1 181.14 -16.8L182.28 -15.959999999999999Q178.38 -9.54 174.48 -5.76Q170.57999999999998 -1.98 166.29 -0.33000000000000007Q162.0 1.3199999999999998 156.95999999999998 1.3199999999999998Q148.8 1.3199999999999998 142.38 -2.25Q135.96 -5.819999999999999 132.26999999999998 -12.72Q128.57999999999998 -19.62 128.57999999999998 -29.58Q128.57999999999998 -38.519999999999996 132.06 -46.08Q135.54 -53.64 142.17000000000002 -58.2Q148.8 -62.76 158.22 -62.76Z" fill="currentColor"/><rect x="192" y="-79.2" width="8.64" height="98.4" rx="4.32" fill="currentColor"/></svg></a>
+    <div class="links"><a href="/download" aria-current="page">Download</a><a href="https://github.com/zlwaterfield/cue">GitHub</a></div>
+  </nav>
+
+  <header>
+    <span class="status">Beta · free</span>
+    <h1 class="serif">Download Cue</h1>
+    <p class="lede">Free on your Mac and iPhone, with no account.<br>
+      Turn on sync whenever you like.</p>
+  </header>
+
+  <main>
+    <div class="apps">
+      <div class="app">
+        <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+        <h2 class="serif">Cue for Mac</h2>
+        <p>Works offline, totally free. No account, no sign-up: open it and start typing.</p>
+        <p class="meta">Apple silicon Mac · signed and notarized</p>
+        <span class="spacer"></span>
+        <a class="btn primary" href="MAC_DOWNLOAD_URL"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>Download for Mac</a>
+      </div>
+      <div class="app">
+        <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.25" fill="none" stroke="currentColor" stroke-width="1.5"/><g fill="currentColor"><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z"/><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z" transform="rotate(120 12 12)"/><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z" transform="rotate(240 12 12)"/><circle cx="12" cy="12" r="1.6"/></g></svg>
+        <h2 class="serif">Cue for iPhone</h2>
+        <p>Today's page in your pocket, on its own or synced with your Mac. In beta on TestFlight.</p>
+        <p class="meta">No account needed · install TestFlight first</p>
+        <span class="spacer"></span>
+        <a class="btn primary" href="TESTFLIGHT_URL"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.25" fill="none" stroke="currentColor" stroke-width="1.5"/><g fill="currentColor"><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z"/><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z" transform="rotate(120 12 12)"/><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z" transform="rotate(240 12 12)"/><circle cx="12" cy="12" r="1.6"/></g></svg>Join on TestFlight</a>
+      </div>
+    </div>
+
+    <section class="narrow">
+      <h2 class="serif section">Accounts and privacy</h2>
+      <div class="grid">
+        <div>
+          <h3>No account needed</h3>
+          <p>Each app is complete on its own. Your notes live on your Mac or iPhone, and
+            without an account nothing you write ever leaves it.</p>
+        </div>
+        <div>
+          <h3>An account for sync</h3>
+          <p>To have the same notes on your Mac and iPhone, turn on sync on both and sign in
+            with Apple or your email. The notes already on each one come along.</p>
+        </div>
+        <div>
+          <h3>No tracking</h3>
+          <p>No analytics, no telemetry, no ads and nothing sold. Cue doesn't know how you use it,
+            and your notes are only ever used to sync them back to you.</p>
+        </div>
+        <div>
+          <h3>Yours to take, or delete</h3>
+          <p>Export everything as Markdown any time. Turning sync off keeps every note on your
+            Mac or iPhone, and deleting your account in Settings deletes it from the server.</p>
+        </div>
+      </div>
+      <p class="not">Cue is open source, so you can read exactly what it does, build it yourself
+        or run your own sync server. It's all on <a href="https://github.com/zlwaterfield/cue">GitHub</a>.</p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="left">
+      <svg class="symbol" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="13.5" width="9" height="3" rx="1.5" fill="currentColor"/><rect x="16.5" y="3" width="3" height="18" rx="1.5" fill="currentColor"/></svg>
+      <span>Made by <a href="https://github.com/zlwaterfield">Zach Waterfield</a></span>
+    </div>
+    <span>Open source, MIT · <a href="https://github.com/zlwaterfield/cue">GitHub</a></span>
+  </footer>
+</div>
+</body>
+</html>

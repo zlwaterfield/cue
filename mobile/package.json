@@ -38,6 +38,7 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "prebuild": "expo prebuild --platform ios",
+    "testflight": "node scripts/testflight.mjs",
     "e2e": "maestro test e2e"
   },
   "private": true

@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { TERMS_VERSION } from '../terms'
 import { NOT_AN_EMAIL } from '../text'
 import type { ISODate, Item, SignInMethod } from '../types'
 import { OfflineError, SessionError, SyncError, type PullResult, type PushResult, type SessionEnd, type SyncTransport } from './engine'
@@ -129,6 +130,7 @@ export class SupabaseSync implements SyncTransport {
   async verifyCode(email: string, code: string): Promise<Account> {
     const { data, error } = await this.client.auth.verifyOtp({ email, token: code, type: 'email' })
     if (error) throw friendlyAuthError(error)
+    await this.acceptTerms()
     return account(data.user, 'email', email)
   }
 
@@ -140,6 +142,7 @@ export class SupabaseSync implements SyncTransport {
   async signInWithApple(identityToken: string, nonce: string): Promise<Account> {
     const { data, error } = await this.client.auth.signInWithIdToken({ provider: 'apple', token: identityToken, nonce })
     if (error) throw friendlyAuthError(error, 'apple')
+    await this.acceptTerms()
     return account(data.user, 'apple')
   }
 
@@ -168,7 +171,19 @@ export class SupabaseSync implements SyncTransport {
   async exchangeCode(code: string): Promise<Account> {
     const { data, error } = await this.client.auth.exchangeCodeForSession(code)
     if (error) throw friendlyAuthError(error, 'apple')
+    await this.acceptTerms()
     return account(data.user, 'apple')
+  }
+
+  /**
+   * Every sign-in says that continuing agrees to the Terms and Privacy Policy, so record
+   * it once signed in (`accept_terms`, which keeps the first time per version). It never
+   * stops a sign-in: a server without the record, such as a self-hosted one from before
+   * it, or a request that fails, is only logged.
+   */
+  private async acceptTerms(): Promise<void> {
+    const { error } = await this.client.rpc('accept_terms', { version: TERMS_VERSION })
+    if (error) console.warn('Couldn’t record accepting the terms', error)
   }
 
   /**

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { AccessibilityInfo, ActivityIndicator, Keyboard, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, useColorScheme, View, type TextInputInstance } from 'react-native'
+import { AccessibilityInfo, ActivityIndicator, Keyboard, KeyboardAvoidingView, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, useColorScheme, View, type TextInputInstance } from 'react-native'
 import * as AppleAuthentication from 'expo-apple-authentication'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { SvgXml } from 'react-native-svg'
+import { PRIVACY_URL, TERMS_URL } from '@shared/terms'
 import { isEmailAddress, NOT_AN_EMAIL } from '@shared/text'
 import { appleSignIn, sync } from '../core/app'
 import { useStore } from '../core/store'
@@ -164,6 +165,18 @@ export default function SignIn() {
                 testID="email"
               />
               <Button label="Send Code" busy={busy} disabled={!email.trim() || appleBusy} onPress={submitEmail} />
+              {/* Under both ways to sign in. Signing in records it (`SupabaseSync.acceptTerms`). */}
+              <Text style={[styles.legal, { color: c.text3 }]}>
+                By continuing, you agree to Cue’s{' '}
+                <Text style={[styles.legalLink, { color: c.text2 }]} onPress={() => void Linking.openURL(TERMS_URL)} accessibilityRole="link">
+                  Terms
+                </Text>{' '}
+                and{' '}
+                <Text style={[styles.legalLink, { color: c.text2 }]} onPress={() => void Linking.openURL(PRIVACY_URL)} accessibilityRole="link">
+                  Privacy Policy
+                </Text>
+                .
+              </Text>
             </>
           ) : (
             <>
@@ -325,6 +338,14 @@ const styles = StyleSheet.create({
   },
   link: {
     fontSize: 15
+  },
+  legal: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4
+  },
+  legalLink: {
+    textDecorationLine: 'underline'
   },
   error: {
     fontSize: 15,
