@@ -109,8 +109,12 @@ export class MobileSync {
   private recent = false
   private checkedAt = 0
   private verifiedAt = 0
-  /** Counts sign-in attempts; `cancelSignIn` moves it on, so a late answer is ignored. */
-  private signInAttempt = 0
+  /** Sign-ins that can make a session (a code, or Apple), numbered as they start. */
+  private signInsStarted = 0
+  /** Every sign-in numbered up to this was cancelled (`cancelSignIn`): its late answer is ignored. */
+  private cancelledThrough = 0
+  /** A cancelled sign-in forgetting its session. The next sign-in waits for it, so it can't forget that one's. */
+  private forgetting: Promise<void> = Promise.resolve()
   private appState = (AppState.currentState ?? 'active') as AppStateStatus
 
   constructor(
@@ -213,8 +217,9 @@ export class MobileSync {
   }
 
   async verifyCode(email: string, code: string): Promise<SyncResult> {
-    const current = this.signInAttempt
+    const current = ++this.signInsStarted
     return attempt(async () => {
+      await this.forgetting
       await this.finishSignIn(current, await this.connect().verifyCode(email.trim(), code.replace(/\s+/g, '')))
     }, SIGN_IN_FAILED)
   }
@@ -226,7 +231,7 @@ export class MobileSync {
    */
   async signInWithApple(): Promise<SyncResult> {
     if (!this.config) return { ok: false, error: NO_SERVER }
-    const current = this.signInAttempt
+    const current = ++this.signInsStarted
     const nonce = Crypto.randomUUID()
     let token: string | null
     try {
@@ -245,13 +250,14 @@ export class MobileSync {
     }
     return attempt(async () => {
       if (!token) throw new SyncError(SIGN_IN_FAILED)
+      await this.forgetting
       await this.finishSignIn(current, await this.connect().signInWithApple(token, nonce))
     }, SIGN_IN_FAILED)
   }
 
   /** Sign-in was closed: an answer still on its way mustn't turn sync on. */
   cancelSignIn(): void {
-    this.signInAttempt += 1
+    this.cancelledThrough = this.signInsStarted
   }
 
   /** Stop syncing on this phone. Every note stays here and keeps working. */
@@ -281,9 +287,16 @@ export class MobileSync {
 
   /** Turn sync on with the account the server just signed in, unless sign-in was cancelled meanwhile. */
   private async finishSignIn(current: number, account: Account): Promise<void> {
-    if (current !== this.signInAttempt) {
-      // Forget the session the server just made; nothing was queued or uploaded.
-      await this.client?.signOut().catch((error) => console.warn('Sign out failed', error))
+    if (current <= this.cancelledThrough) {
+      // Forget the session the server just made; nothing was queued or uploaded. Unless a
+      // newer sign-in has started since, or finished: the client's session is that one's now.
+      if (current === this.signInsStarted && !this.account) {
+        const client = this.client
+        this.forgetting = (async () => {
+          await client?.signOut().catch((error) => console.warn('Sign out failed', error))
+        })()
+        await this.forgetting
+      }
       throw new SignInCancelled()
     }
     this.signedIn(account)
