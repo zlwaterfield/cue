@@ -208,6 +208,8 @@ footer a:hover { color: var(--text); }
 
 @media (prefers-reduced-motion: reduce) {
   .status:hover::before, .status:focus-visible::before, footer .symbol:hover .line { animation: none; }
+  .card, .tip, kbd.pressed { transform: none; }
+  .toast, .toast.show { transform: translateX(-50%); }
 }
 
 /* Printing the site prints a blank page for today. */
@@ -346,8 +348,9 @@ footer a:hover { color: var(--text); }
 <div class="tip" aria-hidden="true"></div>
 <div class="toast" role="status" aria-live="polite"></div>
 <dialog class="palette" aria-label="Command palette">
-  <input type="text" placeholder="Type a command, or “move to fri”" aria-label="Command" autocomplete="off" spellcheck="false">
-  <ul role="listbox"></ul>
+  <input type="text" placeholder="Type a command, or “move to fri”" aria-label="Command" autocomplete="off" spellcheck="false"
+    role="combobox" aria-expanded="true" aria-controls="palette-list" aria-autocomplete="list">
+  <ul role="listbox" id="palette-list" aria-label="Commands"></ul>
 </dialog>
 <script>
 // Small things for people who take their time. None of this is needed to read the page.
@@ -374,7 +377,7 @@ footer a:hover { color: var(--text); }
     const base = today()
     if (t === 'next week') return addDays(base, 7)
     const aliases = { now: 0, tmr: 1, tmrw: 1, tom: 1, tomo: 1, yday: -1, yest: -1 }
-    if (t in aliases) return addDays(base, aliases[t])
+    if (Object.hasOwn(aliases, t)) return addDays(base, aliases[t])
     if (t.length >= 3) {
       for (const [word, n] of [['today', 0], ['tomorrow', 1], ['yesterday', -1]]) {
         if (word.startsWith(t)) return addDays(base, n)
@@ -478,7 +481,8 @@ footer a:hover { color: var(--text); }
       if (!typing) return false
       typed.textContent = typed.textContent.slice(0, -1)
     } else {
-      if (e.key.length !== 1 || (e.key === ' ' && !typed.textContent)) return false
+      if (e.key.length !== 1) return false
+      if (e.key === ' ' && (!typed.textContent || e.target.closest('button, a[href]'))) return false
       if (!typing) {
         typing = true
         nextLine.hidden = false
@@ -552,6 +556,7 @@ footer a:hover { color: var(--text); }
     active = Math.min(active, Math.max(items.length - 1, 0))
     paletteList.replaceChildren(...items.map((c, i) => {
       const li = document.createElement('li')
+      li.id = `palette-option-${i}`
       li.setAttribute('role', 'option')
       li.setAttribute('aria-selected', String(i === active))
       li.textContent = c.label
@@ -563,9 +568,13 @@ footer a:hover { color: var(--text); }
     if (!items.length) {
       const li = document.createElement('li')
       li.className = 'none'
+      li.setAttribute('role', 'option')
+      li.setAttribute('aria-disabled', 'true')
       li.textContent = 'Nothing matches. Cue stays small on purpose.'
       paletteList.append(li)
     }
+    if (items.length) paletteInput.setAttribute('aria-activedescendant', `palette-option-${active}`)
+    else paletteInput.removeAttribute('aria-activedescendant')
   }
   function run(i) {
     const command = items[i]
@@ -586,7 +595,7 @@ footer a:hover { color: var(--text); }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
       if (items.length) { active = (active + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length; render() }
-    } else if (e.key === 'Enter') { e.preventDefault(); run(active) }
+    } else if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); run(active) }
     else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); palette.close() }
   })
   palette.addEventListener('click', (e) => { if (e.target === palette) palette.close() })
