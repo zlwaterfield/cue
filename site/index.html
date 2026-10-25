@@ -130,8 +130,23 @@ kbd { font: 500 0.8em ui-monospace, "SF Mono", Menlo, monospace; padding: 2px 6p
   display: inline-block; transition: background .2s, color .2s, transform .2s; }
 kbd.pressed { background: var(--text); color: var(--bg); transform: translateY(1px); transition-duration: 0s; }
 
-.shot { margin: 8px auto 0; max-width: 980px; }
+.shot { position: relative; container-type: inline-size; margin: 8px auto 0; max-width: 980px; }
 .shot img { display: block; width: 100%; height: auto; }
+/* The iPhone stands in front of the Mac window with the same notes and to-dos on it. Its
+   frame is the iPhone 17 Pro Max's, as the App Store images draw it (docs/app-store/creative/make.py):
+   a 2.5% bezel, a 62/440 display corner and a 125 × 36 pt Dynamic Island. */
+.phone { --sw: 21cqw; --bz: calc(var(--sw) * 0.025); position: absolute; right: 8cqw; bottom: -1cqw;
+  width: calc(var(--sw) + 2 * var(--bz)); padding: var(--bz); background: #1C1C1E;
+  border-radius: calc(var(--sw) * 0.166);
+  /* The hairline is what keeps a black phone off a dark window after dark. */
+  box-shadow: 0 0 0 1px var(--line-strong), 0 3cqw 5cqw #00000026; }
+.phone picture { display: block; overflow: hidden; border-radius: calc(var(--sw) * 0.141); }
+.phone .island { position: absolute; left: 50%; transform: translateX(-50%);
+  top: calc(var(--bz) + var(--sw) * 0.027); width: calc(var(--sw) * 0.284);
+  height: calc(var(--sw) * 0.082); border-radius: 999px; background: #000; }
+/* Every size above is a share of the Mac window's width, so without container
+   units there is no phone — leave the page the way it was before it. */
+@supports not (width: 1cqw) { .phone { display: none; } }
 
 section { padding: 72px 0; border-top: 1px solid var(--line); }
 section:first-of-type { border-top: 0; }
@@ -413,11 +428,21 @@ footer a:hover { color: var(--text); }
     <a class="btn primary" href="/download">Download</a>
   </header>
 
-  <picture class="shot">
-    <source media="(prefers-color-scheme: dark)" srcset="images/week-dark.webp">
-    <img src="images/week-light.webp" width="2192" height="1592"
-      alt="Cue's week view: today's notes, to-dos and nested bullets, with tomorrow below">
-  </picture>
+  <div class="shot">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="images/week-dark.webp">
+      <img src="images/week-light.webp" width="2192" height="1592"
+        alt="Cue's week view on the Mac: today's notes, to-dos and nested bullets, with tomorrow below">
+    </picture>
+    <div class="phone">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="images/phone-dark.webp">
+        <img src="images/phone-light.webp" width="660" height="1434"
+          alt="The same notes and to-dos on the iPhone, with the week along the top">
+      </picture>
+      <span class="island" aria-hidden="true"></span>
+    </div>
+  </div>
 
   <main>
     <section class="narrow prose" id="why">
@@ -752,12 +777,12 @@ footer a:hover { color: var(--text); }
 
   // Theme, for the palette.
   const root = document.documentElement
-  const shotSource = $('.shot source')
+  const shotSources = $$('.shot source')
   const themeMetas = $$('meta[name="theme-color"]')
   function toggleTheme() {
     const isDark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
     root.dataset.theme = isDark ? 'light' : 'dark'
-    shotSource.media = isDark ? 'not all' : 'all'
+    for (const source of shotSources) source.media = isDark ? 'not all' : 'all'
     for (const meta of themeMetas) meta.content = isDark ? '#FAFAFB' : '#18181A'
     toast(isDark ? 'Lights on.' : 'Lights off.')
   }
