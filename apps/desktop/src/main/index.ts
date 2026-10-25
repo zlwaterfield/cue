@@ -11,6 +11,7 @@ import { buildMenu } from './menu'
 import { backupJSON, exportMarkdown, importJSON, readText, runDailyBackup } from './portability'
 import { isTextOnlyChange, Repository } from '@shared/repository'
 import { SyncService } from './sync/service'
+import { UpdateService } from './updates'
 import type { SyncConfig } from '@shared/sync/supabase'
 
 // Tests and power users can point Cue at a different data directory. Unpackaged
@@ -30,6 +31,7 @@ let db: DatabaseSync
 let repo: Repository
 let sync: SyncService
 let links: LinkPreviews
+let updates: UpdateService
 let mainWindow: BrowserWindow | null = null
 let quitting = false
 
@@ -65,8 +67,19 @@ function start(): void {
     broadcast('links:preview', { url, preview })
   )
 
+  updates = new UpdateService({
+    // Only `pnpm release` builds update themselves: a Cue built from source stays the one
+    // you built, and tests and the bench never reach for the network.
+    enabled: __CUE_UPDATES__ && app.isPackaged && !isTest && !isBench,
+    load: async () => {
+      const { MacUpdater } = await import('electron-updater')
+      return new MacUpdater({ provider: 'github', owner: 'zlwaterfield', repo: 'cue' })
+    },
+    onState: (state) => broadcast('updates:state', state)
+  })
+
   registerIpc()
-  Menu.setApplicationMenu(buildMenu({ isDev, syncAvailable: sync.state().available }))
+  Menu.setApplicationMenu(buildMenu({ isDev, syncAvailable: sync.state().available, updatesAvailable: updates.state().available }))
   createWindow()
 
   // A consistent snapshot per day, kept for two weeks, off the startup path. SQLite copies
@@ -387,6 +400,10 @@ function registerIpc(): void {
     return response === 0 ? sync.deleteAccount() : null
   })
 
+  ipcMain.handle('updates:state', () => updates.state())
+  ipcMain.handle('updates:check', () => updates.check())
+  ipcMain.handle('updates:install', () => updates.install())
+
   ipcMain.handle('app:revealData', () => {
     shell.showItemInFolder(join(app.getPath('userData'), 'cue.sqlite'))
   })
@@ -397,8 +414,10 @@ function registerIpc(): void {
     if (/^(https?|mailto):/i.test(url)) return shell.openExternal(url)
   })
   ipcMain.on('app:interactive', () => {
-    // Sync starts once the first screen is up, so it never competes with launch.
+    // Sync and update checks start once the first screen is up, so they never compete
+    // with launch.
     void sync.start()
+    updates.start()
     // `pnpm bench` measures launch → first editable screen from this signal.
     if (!isBench) return
     process.stdout.write(`CUE_INTERACTIVE ${Date.now()}\n`)

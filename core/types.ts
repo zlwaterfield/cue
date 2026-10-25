@@ -151,6 +151,31 @@ export interface SyncBridge {
   deleteAccount(): Promise<SyncResult | null>
 }
 
+/**
+ * The Mac app updating itself (`apps/desktop/src/main/updates.ts`). Only builds from
+ * `pnpm release` do; everything else reports `available: false` and never checks.
+ */
+export interface UpdateState {
+  /** False when this build doesn't update itself (development, tests, built from source). */
+  available: boolean
+  /** `downloading` and `ready` are about `version`, a newer Cue than this one. */
+  status: 'idle' | 'checking' | 'downloading' | 'ready' | 'error'
+  version: string | null
+  /** Why the last check you asked for failed, in words a person can act on. */
+  message: string | null
+}
+
+export const UPDATES_OFF: UpdateState = { available: false, status: 'idle', version: null, message: null }
+
+export interface UpdateBridge {
+  getState(): Promise<UpdateState>
+  onState(callback: (state: UpdateState) => void): () => void
+  /** Checks now, resolving once the check is done (a download carries on afterwards). */
+  check(): Promise<UpdateState>
+  /** Quits, installs the update that's ready, and opens Cue again. */
+  install(): void
+}
+
 /** The API the preload script exposes to the renderer as `window.cue`. */
 export interface CueBridge {
   platform: string
@@ -183,4 +208,5 @@ export interface CueBridge {
   /** Items changed outside the renderer (import, sync). */
   onItemsChanged(callback: (items: Item[]) => void): () => void
   sync: SyncBridge
+  updates: UpdateBridge
 }

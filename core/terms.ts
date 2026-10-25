@@ -9,4 +9,4 @@ export const PRIVACY_URL = 'https://www.usecue.today/privacy'
  * The "Last updated" date on both pages. Change it with them, and in
  * `site/oauth/consent/index.html`; each account's next sign-in records the new version.
  */
-export const TERMS_VERSION = '2026-10-24'
+export const TERMS_VERSION = '2026-10-25'

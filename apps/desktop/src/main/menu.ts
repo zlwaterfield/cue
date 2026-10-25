@@ -25,12 +25,13 @@ function command(id: string, label?: string): MenuItemConstructorOptions {
 
 const separator: MenuItemConstructorOptions = { type: 'separator' }
 
-export function buildMenu(options: { isDev: boolean; syncAvailable: boolean }): Menu {
+export function buildMenu(options: { isDev: boolean; syncAvailable: boolean; updatesAvailable: boolean }): Menu {
   const template: MenuItemConstructorOptions[] = [
     {
       label: app.name,
       submenu: [
         command('app.about', 'About Cue'),
+        ...(options.updatesAvailable ? [command('app.checkForUpdates', 'Check for Updates…')] : []),
         separator,
         command('app.settings', 'Settings…'),
         separator,

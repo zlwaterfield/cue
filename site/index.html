@@ -261,7 +261,7 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
           "name": "Does it work offline?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Completely. Both apps keep your notes on the device and need no network at all. With sync off, Cue never talks to a server."
+            "text": "Completely. Both apps keep your notes on the device and need no network at all. With sync off, the only thing the Mac app does online is ask GitHub, every few hours, whether there’s a newer version of Cue."
           }
         },
         {
@@ -301,7 +301,7 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
           "name": "What servers are involved?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "With sync off, none at all. With it on, two: a Postgres database at Supabase that holds your notes, where row-level security means an account can only ever read its own rows, and the MCP endpoint your assistant talks to. There is nothing else, and no third service watching."
+            "text": "With sync off, none of Cue’s: the Mac app only asks GitHub, every few hours, whether there’s a newer version. With it on, two: a Postgres database at Supabase that holds your notes, where row-level security means an account can only ever read its own rows, and the MCP endpoint your assistant talks to. There is nothing else, and no third service watching."
           }
         },
         {
@@ -439,7 +439,8 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
         <div>
           <h3>Does it work offline?</h3>
           <p>Completely. Both apps keep your notes on the device and need no network at all.
-            With sync off, Cue never talks to a server.</p>
+            With sync off, the only thing the Mac app does online is ask GitHub, every few
+            hours, whether there’s a newer version of Cue.</p>
         </div>
         <div>
           <h3>Do I need an account?</h3>
@@ -469,7 +470,8 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
         </div>
         <div>
           <h3>What servers are involved?</h3>
-          <p>With sync off, none at all. With it on, two: a Postgres database at Supabase that
+          <p>With sync off, none of Cue’s: the Mac app only asks GitHub, every few hours,
+            whether there’s a newer version. With it on, two: a Postgres database at Supabase that
             holds your notes, where row-level security means an account can only ever read its
             own rows, and the MCP endpoint your assistant talks to. There is nothing else, and
             no third service watching.</p>

@@ -131,6 +131,10 @@ Apple silicon, signed and notarized, and the iPhone beta on TestFlight. Both are
 offline with no account. Syncing them together needs an account (Sign in with Apple, or an
 emailed code), and that’s free as well.
 
+The Mac app keeps itself up to date: it downloads a new version in the background and
+installs it the next time you quit, or straight away from Settings ▸ About. Check for
+Updates… is in the Cue menu and in ⌘K.
+
 ### Build it yourself
 
 Build Cue from source on an Apple silicon Mac with Node 24+ and pnpm:
@@ -153,7 +157,9 @@ server: your own Supabase project, set up as in [docs/SYNC.md](docs/SYNC.md).
 
 - On the Mac, everything lives in one SQLite file at
   `~/Library/Application Support/Cue/cue.sqlite`, with daily snapshots in `Backups/`.
-- No telemetry, analytics or tracking. Without sync, Cue never talks to a server.
+- No telemetry, analytics or tracking. Without sync, the only server Cue talks to is GitHub,
+  when the Mac app asks every few hours whether there's a newer version. That request carries
+  nothing about you or your notes, and builds from source never make it.
 - With sync on, your notes are also stored on the sync server (Cue's, or your own if you
   build it yourself). Turning sync off keeps every note on your Mac, and you can delete the
   account from Settings.
@@ -185,8 +191,7 @@ in [brand](brand).
 There isn't a big one, on purpose. Cue is meant to stay small, so most of the work goes into
 making what's already here faster and more dependable. Nothing below is promised to a date.
 
-**Before the stable 1.0:** a stable storage format with tested migrations, and automatic
-updates on the Mac.
+**Before the stable 1.0:** a stable storage format with tested migrations.
 
 **Not planned:** projects, tags, priorities, reminders, recurring tasks, attachments,
 collaboration, AI built into the app and dashboards.

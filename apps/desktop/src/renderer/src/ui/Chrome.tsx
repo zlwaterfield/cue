@@ -4,7 +4,7 @@ import { indicator, INDICATOR_DELAY, statusLine } from '@shared/sync/status'
 import { controller } from '../editor/controller'
 import { itemStore } from '../store/items'
 import { syncState } from '../store/sync'
-import { ui, useStore } from '../store/ui'
+import { dismissToast, ui, useStore } from '../store/ui'
 import { Chevron } from './Calendar'
 
 /** Quiet top bar: day navigation on the left, view switch and search on the right. */
@@ -117,6 +117,18 @@ export function ToastView() {
           onClick={() => controller.undoToast()}
         >
           Undo <kbd>⌘Z</kbd>
+        </button>
+      )}
+      {toast.action && (
+        <button
+          className="toast-action"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            dismissToast()
+            toast.action!.run()
+          }}
+        >
+          {toast.action.label}
         </button>
       )}
     </div>
