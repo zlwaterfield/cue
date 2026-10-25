@@ -19,7 +19,9 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#FFFFFF",
-  "background_color": "#FFFFFF",
-  "display": "standalone"
+  "theme_color": "#FAFAFB",
+  "background_color": "#FAFAFB",
+  "display": "standalone",
+  "description": "Daily notes and to-dos for Mac and iPhone. Free, open source, works offline, no tracking.",
+  "start_url": "/"
 }

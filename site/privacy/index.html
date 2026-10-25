@@ -57,7 +57,7 @@
       <li>Your notes are yours. They’re used only to sync them to your devices.</li>
       <li>No ads, analytics, tracking pixels or third-party trackers, in the apps or on this site.</li>
       <li>No AI. Cue never sends your notes to an AI model or uses them to train one.</li>
-      <li>On a Mac without sync, nothing you write leaves your computer.</li>
+      <li>On a Mac or iPhone without sync, nothing you write leaves your device.</li>
     </ul>
   </aside>
 
@@ -96,7 +96,10 @@
         use it to build a profile of you. I don’t read your notes, unless you ask me to help with
         a problem in your account or the law requires it.</p>
       <p>Notes are encrypted in transit and at rest, but they aren’t end-to-end encrypted: the
-        server can read them so that it can sync them and serve the assistants you connect.</p>
+        server can read them so that it can sync them and serve the assistants you connect.
+        Inside the database, row-level security means an account can only ever read its own
+        rows, and that rule is checked on every read and write, including the ones an assistant
+        makes.</p>
     </section>
 
     <section>
@@ -107,11 +110,13 @@
           and notes.</li>
         <li><strong>An email delivery service</strong> sends your sign-in codes.</li>
         <li><strong>Apple</strong> handles Sign in with Apple, and distributes the iPhone app
-          through the App Store.</li>
+          through TestFlight.</li>
         <li><strong>Vercel</strong> hosts this website and passes assistant requests on to
           Supabase.</li>
       </ul>
-      <p>They may store and process data in the United States and other countries.</p>
+      <p>That is the whole list. The only servers Cue has are the Postgres database at
+        Supabase, with the sign-in and the assistant endpoint that sit on it, and this website.
+        They may store and process data in the United States and other countries.</p>
     </section>
 
     <section>

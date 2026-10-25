@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Download Cue</title>
-<meta name="description" content="Download Cue for Mac, free with no account, and join the iPhone beta on TestFlight. No tracking.">
+<title>Download Cue — free daily notes for Mac and iPhone</title>
+<meta name="description" content="Download Cue for Mac and join the iPhone beta on TestFlight. Free, open source, works offline with no account, and no tracking.">
 <meta property="og:title" content="Download Cue">
-<meta property="og:description" content="Cue for Mac, free with no account, and the iPhone beta on TestFlight. No tracking.">
+<meta property="og:description" content="Cue for Mac and the iPhone beta on TestFlight. Free, open source, works offline with no account, and no tracking.">
 <link rel="canonical" href="https://www.usecue.today/download">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
 <meta property="og:type" content="website">
@@ -22,10 +22,10 @@
 <link rel="manifest" href="/site.webmanifest">
 <meta name="theme-color" content="#FAFAFB" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#18181A" media="(prefers-color-scheme: dark)">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400&display=swap" rel="stylesheet">
+<link rel="preload" href="/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+@font-face { font-family: "Newsreader"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("/fonts/newsreader-latin.woff2") format("woff2"); }
 /* Tokens from docs/brand/tokens/tokens.css, as on the home page. */
 :root {
   color-scheme: light;
@@ -137,7 +137,9 @@ footer a:hover { color: var(--text); }
         "name": "Zach Waterfield",
         "url": "https://zlwaterfield.com"
       },
-      "codeRepository": "https://github.com/zlwaterfield/cue"
+      "codeRepository": "https://github.com/zlwaterfield/cue",
+      "downloadUrl": "https://github.com/zlwaterfield/cue/releases/tag/v1.0.0-beta.1",
+      "installUrl": "https://github.com/zlwaterfield/cue/releases/tag/v1.0.0-beta.1"
     },
     {
       "@type": "MobileApplication",
@@ -145,18 +147,20 @@ footer a:hover { color: var(--text); }
       "applicationCategory": "ProductivityApplication",
       "operatingSystem": "iOS",
       "url": "https://www.usecue.today/download",
-      "description": "Today's page in your pocket, on its own or synced with your Mac. Free and open source, and it needs no account.",
+      "description": "Today's page in your pocket, on its own or synced with your Mac. Free and open source, and it needs no account. In beta on TestFlight.",
       "isAccessibleForFree": true,
       "offers": {
         "@type": "Offer",
         "price": "0",
-        "priceCurrency": "USD"
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
       },
       "author": {
         "@type": "Person",
         "name": "Zach Waterfield",
         "url": "https://zlwaterfield.com"
-      }
+      },
+      "installUrl": "https://testflight.apple.com/join/KyVXdDgz"
     },
     {
       "@type": "BreadcrumbList",
@@ -183,7 +187,7 @@ footer a:hover { color: var(--text); }
 <div class="wrap">
   <nav>
     <a href="/" aria-label="Cue home"><svg class="lockup" xmlns="http://www.w3.org/2000/svg" width="197" height="98.4" viewBox="4.14 -79.2 197 98.4" role="img" aria-label="Cue"><path d="M36.54 -62.76Q42.9 -62.76 46.86 -61.41Q50.82 -60.059999999999995 52.65 -57.92999999999999Q54.48 -55.8 54.48 -53.4Q54.48 -51.419999999999995 53.61 -49.949999999999996Q52.739999999999995 -48.48 51.269999999999996 -47.67Q49.8 -46.86 47.879999999999995 -46.86Q47.339999999999996 -46.86 46.23 -48.12Q45.12 -49.379999999999995 43.53 -51.239999999999995Q41.94 -53.1 39.989999999999995 -54.96Q38.04 -56.82 35.879999999999995 -58.08Q33.72 -59.339999999999996 31.439999999999998 -59.339999999999996Q27.54 -59.339999999999996 24.509999999999998 -57.03Q21.48 -54.72 19.8 -49.769999999999996Q18.12 -44.82 18.12 -36.9Q18.12 -26.88 20.43 -20.669999999999998Q22.74 -14.459999999999999 27.269999999999996 -11.64Q31.799999999999997 -8.82 38.4 -8.82Q43.26 -8.82 47.519999999999996 -10.71Q51.78 -12.6 55.08 -16.68L56.16 -15.84Q52.44 -9.48 48.66 -5.7Q44.879999999999995 -1.92 40.739999999999995 -0.30000000000000004Q36.6 1.3199999999999998 31.68 1.3199999999999998Q23.759999999999998 1.3199999999999998 17.52 -2.25Q11.28 -5.819999999999999 7.709999999999999 -12.72Q4.14 -19.62 4.14 -29.64Q4.14 -36.839999999999996 6.57 -42.87Q9.0 -48.9 13.41 -53.37Q17.82 -57.839999999999996 23.73 -60.3Q29.64 -62.76 36.54 -62.76ZM79.32 -19.32Q79.32 -15.6 80.58 -13.17Q81.84 -10.74 84.39 -9.54Q86.94 -8.34 91.02 -8.34Q95.16 -8.34 98.91 -9.6Q102.66 -10.86 105.36 -12.48L106.14 -11.1Q101.46000000000001 -7.199999999999999 98.13 -4.77Q94.8 -2.34 92.13 -1.02Q89.46000000000001 0.3 87.0 0.75Q84.53999999999999 1.2 81.66 1.2Q73.2 1.2 69.21000000000001 -3.4499999999999997Q65.22 -8.1 65.22 -17.82V-56.1L55.44 -58.5V-60.78L79.86 -61.98L79.32 -56.339999999999996ZM102.96000000000001 1.74 102.6 -9.66V-56.1L92.88 -58.5V-60.78L117.36 -61.98L116.69999999999999 -56.339999999999996V-7.08Q117.24 -6.779999999999999 118.38 -6.27Q119.52 -5.76 120.93 -5.13Q122.34 -4.5 123.69 -3.9Q125.03999999999999 -3.3 126.0 -2.88V-1.44L103.5 1.74ZM158.22 -62.76Q164.94 -62.76 169.82999999999998 -60.03Q174.72 -57.3 177.54 -52.05Q180.35999999999999 -46.8 180.95999999999998 -39.24H140.94V-43.08H173.57999999999998L167.4 -40.5Q166.86 -47.28 165.51 -51.42Q164.16 -55.559999999999995 161.91 -57.51Q159.66 -59.46 156.35999999999999 -59.46Q152.04 -59.46 148.95 -56.91Q145.85999999999999 -54.36 144.20999999999998 -49.230000000000004Q142.56 -44.1 142.56 -36.36Q142.56 -26.58 145.05 -20.49Q147.54 -14.399999999999999 152.31 -11.61Q157.07999999999998 -8.82 163.98 -8.82Q167.28 -8.82 170.34 -9.69Q173.4 -10.559999999999999 176.16 -12.329999999999998Q178.92 -14.1 181.14 -16.8L182.28 -15.959999999999999Q178.38 -9.54 174.48 -5.76Q170.57999999999998 -1.98 166.29 -0.33000000000000007Q162.0 1.3199999999999998 156.95999999999998 1.3199999999999998Q148.8 1.3199999999999998 142.38 -2.25Q135.96 -5.819999999999999 132.26999999999998 -12.72Q128.57999999999998 -19.62 128.57999999999998 -29.58Q128.57999999999998 -38.519999999999996 132.06 -46.08Q135.54 -53.64 142.17000000000002 -58.2Q148.8 -62.76 158.22 -62.76Z" fill="currentColor"/><rect x="192" y="-79.2" width="8.64" height="98.4" rx="4.32" fill="currentColor"/></svg></a>
-    <div class="links"><a href="/download" aria-current="page">Download</a><a href="https://github.com/zlwaterfield/cue">GitHub</a></div>
+    <div class="links"><a href="/download" aria-current="page">Download</a><a href="/assistants">Assistants</a><a href="https://github.com/zlwaterfield/cue">GitHub</a></div>
   </nav>
 
   <header>
@@ -199,17 +203,19 @@ footer a:hover { color: var(--text); }
         <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
         <h2 class="serif">Cue for Mac</h2>
         <p>Works offline, totally free. No account, no sign-up: open it and start typing.</p>
-        <p class="meta">Apple silicon Mac · signed and notarized</p>
+        <p class="meta">Apple silicon Mac · signed and notarized · 1.0.0-beta.1, 122 MB</p>
         <span class="spacer"></span>
-        <a class="btn primary" href="MAC_DOWNLOAD_URL"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>Download for Mac</a>
+        <!-- Releases carry their version in the file name, so this link moves with each one. -->
+        <a class="btn primary" href="https://github.com/zlwaterfield/cue/releases/tag/v1.0.0-beta.1"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>Download for Mac</a>
       </div>
       <div class="app">
         <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.25" fill="none" stroke="currentColor" stroke-width="1.5"/><g fill="currentColor"><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z"/><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z" transform="rotate(120 12 12)"/><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z" transform="rotate(240 12 12)"/><circle cx="12" cy="12" r="1.6"/></g></svg>
         <h2 class="serif">Cue for iPhone</h2>
-        <p>Today's page in your pocket, on its own or synced with your Mac. In beta on TestFlight.</p>
-        <p class="meta">No account needed · install TestFlight first</p>
+        <p>Today’s page in your pocket, on its own or synced with your Mac. Free, and it
+          needs no account either.</p>
+        <p class="meta">In beta · install TestFlight first</p>
         <span class="spacer"></span>
-        <a class="btn primary" href="TESTFLIGHT_URL"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.25" fill="none" stroke="currentColor" stroke-width="1.5"/><g fill="currentColor"><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z"/><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z" transform="rotate(120 12 12)"/><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z" transform="rotate(240 12 12)"/><circle cx="12" cy="12" r="1.6"/></g></svg>Join on TestFlight</a>
+        <a class="btn primary" href="https://testflight.apple.com/join/KyVXdDgz"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.25" fill="none" stroke="currentColor" stroke-width="1.5"/><g fill="currentColor"><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z"/><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z" transform="rotate(120 12 12)"/><path d="M12 12C9.5 10.6 9.4 6 12.4 3.9 14.2 6.1 14.5 10.3 12 12Z" transform="rotate(240 12 12)"/><circle cx="12" cy="12" r="1.6"/></g></svg>Join on TestFlight</a>
       </div>
     </div>
 
@@ -232,6 +238,17 @@ footer a:hover { color: var(--text); }
             and your notes are only ever used to sync them back to you.</p>
         </div>
         <div>
+          <h3>Free, and staying that way</h3>
+          <p>No paid plan, no trial, no credit card, nothing to unlock. Sync is free too. Cue is
+            a personal project rather than a business, and I don’t plan to charge for it.</p>
+        </div>
+        <div>
+          <h3>Assistants, if you want one</h3>
+          <p>With sync on, Claude or ChatGPT can read and edit your days over
+            <a href="/assistants">MCP</a>. Nothing it does can delete a thing, and there’s no AI inside
+            the app itself.</p>
+        </div>
+        <div>
           <h3>Yours to take, or delete</h3>
           <p>Export everything as Markdown any time. Turning sync off keeps every note on your
             Mac or iPhone, and deleting your account in Settings deletes it from the server.</p>
@@ -247,7 +264,7 @@ footer a:hover { color: var(--text); }
       <svg class="symbol" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="13.5" width="9" height="3" rx="1.5" fill="currentColor"/><rect x="16.5" y="3" width="3" height="18" rx="1.5" fill="currentColor"/></svg>
       <span>Made by <a href="https://github.com/zlwaterfield">Zach Waterfield</a></span>
     </div>
-    <span>Open source, MIT · <a href="https://github.com/zlwaterfield/cue">GitHub</a></span>
+    <span>Open source, MIT · <a href="https://github.com/zlwaterfield/cue">GitHub</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></span>
   </footer>
 </div>
 </body>

@@ -301,6 +301,7 @@ footer a:hover { color: var(--text); }
         "Move what's unfinished to tomorrow with one shortcut",
         "Search every day you've written",
         "Works offline with no account; sync between devices is optional and free",
+        "An MCP server, so Claude or ChatGPT can read and edit your days",
         "Export to Markdown or JSON at any time",
         "No analytics, telemetry or tracking of any kind",
         "Open source, MIT licensed"
@@ -315,20 +316,20 @@ footer a:hover { color: var(--text); }
           "name": "Is Cue really free?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. There's no paid plan, no trial, no credit card and no upsell. Sync is free too. It's a personal project, not a business."
+            "text": "Yes. There’s no paid plan, no trial, no credit card and no upsell. Sync is free too. It’s a personal project, not a business, and I don’t plan to charge for it."
           }
         },
         {
           "@type": "Question",
-          "name": "Is Cue open source?",
+          "name": "Is it open source?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "All of it, under the MIT license: the Mac app, the iPhone app, the sync server and the website. github.com/zlwaterfield/cue"
+            "text": "All of it, under the MIT license: the Mac app, the iPhone app, the sync server and this website. Read it, build it, or run your own copy — it’s on GitHub."
           }
         },
         {
           "@type": "Question",
-          "name": "Does Cue work offline?",
+          "name": "Does it work offline?",
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "Completely. Both apps keep your notes on the device and need no network at all. With sync off, Cue never talks to a server."
@@ -336,10 +337,18 @@ footer a:hover { color: var(--text); }
         },
         {
           "@type": "Question",
-          "name": "Do I need an account to use Cue?",
+          "name": "Do I need an account?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Only if you want the same notes on more than one device. Each app is complete on its own."
+            "text": "Only if you want the same notes on more than one device. Each app is complete on its own: open it and type."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can my assistant use Cue?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, over MCP. Claude, ChatGPT or another assistant can read your days, add to-dos, check them off and move them, and what it does syncs to your devices like any other edit. It can’t delete anything. There’s no AI inside the app itself."
           }
         },
         {
@@ -347,7 +356,7 @@ footer a:hover { color: var(--text); }
           "name": "Where are my notes kept?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "On the Mac, in one SQLite file at ~/Library/Application Support/Cue/cue.sqlite, with a daily snapshot kept for 14 days. On the iPhone, in the app's own database. You can export everything as Markdown or JSON at any time."
+            "text": "On the Mac, in one SQLite file at ~/Library/Application Support/Cue/cue.sqlite, with a daily snapshot kept for 14 days. On the iPhone, in the app’s own database. Export everything as Markdown or JSON whenever you like."
           }
         },
         {
@@ -355,23 +364,31 @@ footer a:hover { color: var(--text); }
           "name": "Does Cue track me?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No analytics, no telemetry, no crash reporting, no ads, and no cookies on the website. Your notes are never training data for an AI model, and nothing is sold or shared."
+            "text": "No analytics, no telemetry, no crash reporting, no ads, and no cookies on this website. Your notes are never training data for an AI model, and nothing is sold or shared. The privacy policy is short, because there isn’t much to say."
           }
         },
         {
           "@type": "Question",
-          "name": "How fast is Cue?",
+          "name": "What servers are involved?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Ready to type 240 ms after launch with five years of notes, 1.5 ms from a keystroke to the frame, and 0.5 ms to search 36,543 items. Every number has a budget that a test fails if it misses."
+            "text": "With sync off, none at all. With it on, two: a Postgres database at Supabase that holds your notes, where row-level security means an account can only ever read its own rows, and the MCP endpoint your assistant talks to. There is nothing else, and no third service watching."
           }
         },
         {
           "@type": "Question",
-          "name": "What doesn't Cue do?",
+          "name": "How fast is it?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No projects, tags, priorities, folders, reminders, recurring tasks, attachments, collaboration or dashboards. Days are the only structure, on purpose."
+            "text": "Ready to type 240 ms after launch with five years of notes, 1.5 ms from a keystroke to the frame, and 0.5 ms to search 36,543 items. Every number has a budget that a test fails if it misses, measured on the real packaged app."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What doesn’t it do?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No projects, tags, priorities, folders, reminders, recurring tasks, attachments, collaboration or dashboards. If you want a project manager or a second brain, Cue is the wrong tool, and would rather say so than grow into one."
           }
         }
       ]
@@ -384,7 +401,7 @@ footer a:hover { color: var(--text); }
 <div class="wrap">
   <nav>
     <a href="./" aria-label="Cue home"><svg class="lockup" xmlns="http://www.w3.org/2000/svg" width="197" height="98.4" viewBox="4.14 -79.2 197 98.4" role="img" aria-label="Cue"><path d="M36.54 -62.76Q42.9 -62.76 46.86 -61.41Q50.82 -60.059999999999995 52.65 -57.92999999999999Q54.48 -55.8 54.48 -53.4Q54.48 -51.419999999999995 53.61 -49.949999999999996Q52.739999999999995 -48.48 51.269999999999996 -47.67Q49.8 -46.86 47.879999999999995 -46.86Q47.339999999999996 -46.86 46.23 -48.12Q45.12 -49.379999999999995 43.53 -51.239999999999995Q41.94 -53.1 39.989999999999995 -54.96Q38.04 -56.82 35.879999999999995 -58.08Q33.72 -59.339999999999996 31.439999999999998 -59.339999999999996Q27.54 -59.339999999999996 24.509999999999998 -57.03Q21.48 -54.72 19.8 -49.769999999999996Q18.12 -44.82 18.12 -36.9Q18.12 -26.88 20.43 -20.669999999999998Q22.74 -14.459999999999999 27.269999999999996 -11.64Q31.799999999999997 -8.82 38.4 -8.82Q43.26 -8.82 47.519999999999996 -10.71Q51.78 -12.6 55.08 -16.68L56.16 -15.84Q52.44 -9.48 48.66 -5.7Q44.879999999999995 -1.92 40.739999999999995 -0.30000000000000004Q36.6 1.3199999999999998 31.68 1.3199999999999998Q23.759999999999998 1.3199999999999998 17.52 -2.25Q11.28 -5.819999999999999 7.709999999999999 -12.72Q4.14 -19.62 4.14 -29.64Q4.14 -36.839999999999996 6.57 -42.87Q9.0 -48.9 13.41 -53.37Q17.82 -57.839999999999996 23.73 -60.3Q29.64 -62.76 36.54 -62.76ZM79.32 -19.32Q79.32 -15.6 80.58 -13.17Q81.84 -10.74 84.39 -9.54Q86.94 -8.34 91.02 -8.34Q95.16 -8.34 98.91 -9.6Q102.66 -10.86 105.36 -12.48L106.14 -11.1Q101.46000000000001 -7.199999999999999 98.13 -4.77Q94.8 -2.34 92.13 -1.02Q89.46000000000001 0.3 87.0 0.75Q84.53999999999999 1.2 81.66 1.2Q73.2 1.2 69.21000000000001 -3.4499999999999997Q65.22 -8.1 65.22 -17.82V-56.1L55.44 -58.5V-60.78L79.86 -61.98L79.32 -56.339999999999996ZM102.96000000000001 1.74 102.6 -9.66V-56.1L92.88 -58.5V-60.78L117.36 -61.98L116.69999999999999 -56.339999999999996V-7.08Q117.24 -6.779999999999999 118.38 -6.27Q119.52 -5.76 120.93 -5.13Q122.34 -4.5 123.69 -3.9Q125.03999999999999 -3.3 126.0 -2.88V-1.44L103.5 1.74ZM158.22 -62.76Q164.94 -62.76 169.82999999999998 -60.03Q174.72 -57.3 177.54 -52.05Q180.35999999999999 -46.8 180.95999999999998 -39.24H140.94V-43.08H173.57999999999998L167.4 -40.5Q166.86 -47.28 165.51 -51.42Q164.16 -55.559999999999995 161.91 -57.51Q159.66 -59.46 156.35999999999999 -59.46Q152.04 -59.46 148.95 -56.91Q145.85999999999999 -54.36 144.20999999999998 -49.230000000000004Q142.56 -44.1 142.56 -36.36Q142.56 -26.58 145.05 -20.49Q147.54 -14.399999999999999 152.31 -11.61Q157.07999999999998 -8.82 163.98 -8.82Q167.28 -8.82 170.34 -9.69Q173.4 -10.559999999999999 176.16 -12.329999999999998Q178.92 -14.1 181.14 -16.8L182.28 -15.959999999999999Q178.38 -9.54 174.48 -5.76Q170.57999999999998 -1.98 166.29 -0.33000000000000007Q162.0 1.3199999999999998 156.95999999999998 1.3199999999999998Q148.8 1.3199999999999998 142.38 -2.25Q135.96 -5.819999999999999 132.26999999999998 -12.72Q128.57999999999998 -19.62 128.57999999999998 -29.58Q128.57999999999998 -38.519999999999996 132.06 -46.08Q135.54 -53.64 142.17000000000002 -58.2Q148.8 -62.76 158.22 -62.76Z" fill="currentColor"/><rect x="192" y="-79.2" width="8.64" height="98.4" rx="4.32" fill="currentColor"/></svg></a>
-    <div class="links"><a href="download/">Download</a><a href="https://github.com/zlwaterfield/cue">GitHub</a></div>
+    <div class="links"><a href="/download">Download</a><a href="/assistants">Assistants</a><a href="https://github.com/zlwaterfield/cue">GitHub</a></div>
   </nav>
 
   <header>
@@ -393,7 +410,7 @@ footer a:hover { color: var(--text); }
     <p class="next-line serif" aria-hidden="true" hidden><span class="typed"></span></p>
     <p class="lede">Daily notes and to-dos for Mac and iOS.<br>
       Fast, quiet and keyboard-first.</p>
-    <a class="btn primary" href="download/">Download</a>
+    <a class="btn primary" href="/download">Download</a>
   </header>
 
   <picture class="shot">
@@ -434,22 +451,36 @@ footer a:hover { color: var(--text); }
           <div>
             <h3>On your Mac and your iPhone</h3>
             <p>Saved as you type, with no telemetry and Markdown export any time. Neither
-              app needs an account; turn on sync and the same notes are on both.</p>
+              app needs an account; turn on sync and the same notes are on both. Free, both
+              ways.</p>
           </div>
         </div>
         <p class="not">Cue stays small on purpose: no <span class="item" data-egg="reminders">reminders</span>,
           <span class="item">recurring tasks</span>, <span class="item">collaboration</span>
-          or <span class="item">AI features</span>.</p>
+          or <span class="item" data-egg="ai">AI in the app</span>.</p>
+    </section>
+
+    <section class="narrow prose" id="assistants">
+      <h2 class="serif">Your assistant can use it too</h2>
+      <p>There’s no AI inside Cue, and there won’t be. There’s a door instead: Cue runs an
+        <strong>MCP server</strong>, so Claude, ChatGPT or whatever you already talk to can read
+        your days, add to-dos, check them off and move them. What it does lands on your Mac and
+        your iPhone about a second later, exactly as if you’d typed it.</p>
+      <p>Five tools, none of which can delete anything. It needs sync on, you connect it once at
+        <kbd>www.usecue.today/mcp</kbd>, and you can disconnect it whenever you like.</p>
+      <a class="btn primary" href="/assistants">How assistants connect</a>
     </section>
 
     <section class="narrow prose">
-      <h2 class="serif">Where it's at</h2>
-      <p><strong>It's in beta.</strong> Cue is my daily driver on my Mac and my iPhone, and it
-        runs without any issues. The Mac app is a free download that works offline with no
-        account, and the iPhone app is on TestFlight.</p>
-      <p>Want the same notes on both? Sign in with Apple or your email and they sync. There's
-        no tracking either way, and the code is open if you'd rather build it yourself.</p>
-      <a class="btn primary" href="download/">Download Cue</a>
+      <h2 class="serif">Where it’s at</h2>
+      <p><strong>It’s in beta, and it’s free.</strong> Cue is my daily driver on my Mac and
+        my iPhone, and it runs without any issues. The Mac app is a free download that works
+        offline with no account, and the iPhone app is in beta on TestFlight.</p>
+      <p>Want the same notes on both? Sign in with Apple or your email and they sync, free as
+        well. That’s the only part with a server in it — a Postgres database at Supabase, and
+        the MCP endpoint, and nothing else. No tracking either way, and the code is open if
+        you’d rather build it yourself.</p>
+      <a class="btn primary" href="/download">Download Cue</a>
     </section>
 
     <section class="narrow" id="questions">
@@ -477,6 +508,13 @@ footer a:hover { color: var(--text); }
             its own: open it and type.</p>
         </div>
         <div>
+          <h3>Can my assistant use Cue?</h3>
+          <p>Yes, over <a href="/assistants">MCP</a>. Claude, ChatGPT or another assistant can read your
+            days, add to-dos, check them off and move them, and what it does syncs to your
+            devices like any other edit. It can’t delete anything. There’s no AI inside the app
+            itself.</p>
+        </div>
+        <div>
           <h3>Where are my notes kept?</h3>
           <p>On the Mac, in one SQLite file at
             <code>~/Library/Application Support/Cue/cue.sqlite</code>, with a daily snapshot kept
@@ -487,8 +525,15 @@ footer a:hover { color: var(--text); }
           <h3>Does Cue track me?</h3>
           <p>No analytics, no telemetry, no crash reporting, no ads, and no cookies on this
             website. Your notes are never training data for an AI model, and nothing is sold or
-            shared. The <a href="privacy/">privacy policy</a> is short, because there isn’t much
+            shared. The <a href="/privacy">privacy policy</a> is short, because there isn’t much
             to say.</p>
+        </div>
+        <div>
+          <h3>What servers are involved?</h3>
+          <p>With sync off, none at all. With it on, two: a Postgres database at Supabase that
+            holds your notes, where row-level security means an account can only ever read its
+            own rows, and the MCP endpoint your assistant talks to. There is nothing else, and
+            no third service watching.</p>
         </div>
         <div>
           <h3>How fast is it?</h3>
@@ -512,7 +557,7 @@ footer a:hover { color: var(--text); }
       <span class="maker">Made by <a class="maker-link" href="https://github.com/zlwaterfield">Zach Waterfield</a>
         <span class="card">
           <span class="who">
-            <img src="https://github.com/zlwaterfield.png?size=96" width="40" height="40" alt="" loading="lazy">
+            <img src="images/zach.webp" width="40" height="40" alt="" loading="lazy">
             <span><span class="name">Zach Waterfield</span><span class="where">Toronto, Canada</span></span>
           </span>
           Hey, I'm Zach! Engineer, investor and coffee enthusiast. I lead the engineering team at
@@ -605,7 +650,8 @@ footer a:hover { color: var(--text); }
         : `Cue is ready in 240 ms. This page took ${ms} ms. I'm working on it.`
     },
     fri: () => `→ ${short(parseDay('fri'))}`,
-    reminders: () => 'Not even this one.'
+    reminders: () => 'Not even this one.',
+    ai: () => 'Your assistant can still reach your days, over MCP.'
   }
   let tipFor = null
   function showTip(el) {
@@ -725,7 +771,8 @@ footer a:hover { color: var(--text); }
     else toast(`See you ${long(date)}.`)
   }
   const COMMANDS = [
-    { label: 'Download Cue', run: () => { location.href = 'download/' } },
+    { label: 'Download Cue', run: () => { location.href = '/download' } },
+    { label: 'Connect an assistant', run: () => { location.href = '/assistants' } },
     { label: 'Go to GitHub', run: () => { location.href = GITHUB } },
     { label: 'Why I built it', run: () => $('#why').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' }) },
     { label: 'Questions', run: () => $('#questions').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' }) },

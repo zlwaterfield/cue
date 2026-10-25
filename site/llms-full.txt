@@ -41,14 +41,16 @@ like "move to fri". The mouse still works.
 keystroke renders in about 2 ms. Every number has a budget and a test.
 
 **On your Mac and your iPhone.** Saved as you type, with no telemetry and Markdown export
-any time. Neither app needs an account; turn on sync and the same notes are on both.
+any time. Neither app needs an account; turn on sync and the same notes are on both. Free,
+both ways.
 
-Cue stays small on purpose: no reminders, recurring tasks, collaboration or AI features.
+Cue stays small on purpose: no reminders, recurring tasks, collaboration or AI in the app.
 
 ## Where it's at
 
 It's in beta. Cue is my daily driver on my Mac and my iPhone, and it runs without any
-issues. The Mac app is a free download that works offline with no account.
+issues. The Mac app is a free download that works offline with no account, and the iPhone
+app is in beta on TestFlight.
 
 Want the same notes on both? Sign in with Apple or your email and they sync. There's no
 tracking either way, and the code is open if you'd rather build it yourself.
@@ -62,12 +64,14 @@ Free on your Mac and iPhone, with no account. Turn on sync whenever you like.
 ## Cue for Mac
 
 Works offline, totally free. No account, no sign-up: open it and start typing. Apple silicon
-Mac, signed and notarized. The download is a 122 MB .dmg.
+Mac, signed and notarized. The download is a 122 MB .dmg, from
+https://github.com/zlwaterfield/cue/releases
 
 ## Cue for iPhone
 
 Today's page in your pocket, on its own or synced with your Mac. The same core as the Mac
-app, built for touch.
+app, built for touch. Free, no account needed, and in beta on TestFlight:
+https://testflight.apple.com/join/KyVXdDgz
 
 ## Accounts and privacy
 
@@ -86,6 +90,44 @@ server.
 
 Cue is open source, so you can read exactly what it does, build it yourself or run your own
 sync server. It's all on GitHub: https://github.com/zlwaterfield/cue
+
+---
+
+# Assistants — https://www.usecue.today/assistants
+
+**There’s no AI in Cue. There’s a door.** Cue will never write your notes for you, suggest a
+to-do or summarise your week. Instead it speaks MCP, the protocol assistants use to reach
+tools, so the assistant you already talk to can work on your days the way another device
+would. An edit it makes goes through the same sync everything else does and shows up on your
+Mac and iPhone about a second later. It’s free, like the rest of Cue.
+
+Connecting one:
+
+1. Turn on sync in Cue’s Settings, on the Mac or the iPhone. An assistant works with your
+   account rather than your computer, so this is the one part that needs one.
+2. Add a custom connector in Claude, ChatGPT or whatever you use, with the URL
+   https://www.usecue.today/mcp (keep the www).
+3. Sign in and press Allow. The assistant sends you to Cue’s own consent page, which signs you
+   in with a six-digit code by email and asks whether to connect.
+
+Disconnect any assistant, any time, at https://www.usecue.today/oauth/consent
+
+The five tools: `get_day` returns one day’s page, in order, nested, as Markdown.
+`find_todos` returns to-dos across up to a year of days, the open ones unless it asks for
+more. `search` returns lines containing every word, newest days first. `add_lines` adds
+Markdown lines at the end of a day or after a particular line. `update_lines` checks off or
+reopens, changes a line’s type, rewrites its text, or moves lines — with whatever is nested
+under them — to another day.
+
+**Nothing deletes.** There is no tool for it, and the database refuses it too: a token an
+assistant holds can’t delete a line or the account even if it asks Supabase directly, can’t
+set a password on the account, and can’t change its email address on its own. Every read and
+write runs as you under Postgres row-level security, and the database checks the token’s
+signature on every query.
+
+Technically it is one Supabase Edge Function acting as another sync client: no extra server,
+no new table, no service key. The details are in
+https://github.com/zlwaterfield/cue/blob/main/docs/MCP.md
 
 ---
 
@@ -112,6 +154,15 @@ cookies on this website. Nothing is sold or shared.
 
 **Do you train AI on my notes?** No, never. Your notes are only used to sync them back to
 your own devices.
+
+**Can I use Cue with Claude or ChatGPT?** Yes, over MCP, if sync is on. The assistant can read
+your days, add to-dos, check them off and move them, and what it does syncs to your devices
+like any other edit. It can’t delete anything. There is still no AI inside the app itself.
+
+**What servers does Cue use?** With sync off, none at all. With it on, two: a Postgres database
+at Supabase that holds your notes, where row-level security means an account can only ever read
+its own rows, and the MCP endpoint an assistant talks to. There is nothing else — no analytics
+service, no ad network, no third party.
 
 **How fast is it?** Ready to type 240 ms after launch with five years of notes (36,545
 items). A keystroke to a rendered frame is 1.5 ms, p95 3.7 ms. Searching all 36,543 items

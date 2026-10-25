@@ -32,6 +32,16 @@ Cue has no projects, tags, priorities, folders, reminders, recurring tasks, atta
 collaboration, dashboards or AI writing your notes. Days are the only structure. If you want
 a project manager or a second brain, Cue is the wrong tool and says so.
 
+## Assistants, over MCP
+
+Cue has no AI inside it and isn’t going to. Instead it runs an MCP server, so an assistant you
+already use — Claude, ChatGPT or another — can read your days, add to-dos, check them off and
+move them. An edit an assistant makes syncs to your Mac and iPhone about a second later, like
+any other. It needs sync turned on, it is free, and there are five tools: `get_day`,
+`find_todos`, `search`, `add_lines` and `update_lines`. None of them delete anything, and the
+database refuses deletion from an assistant’s token as well. Connect at
+https://www.usecue.today/mcp and disconnect at https://www.usecue.today/oauth/consent.
+
 ## Sync, and the only servers involved
 
 Sync is optional and off until you turn it on. You only need an account if you want the same
@@ -40,13 +50,17 @@ to you; there are no passwords. Notes are then stored in a Postgres database at 
 where row-level security means an account can only ever read its own rows. Turning sync off
 keeps every note on your device, and deleting your account in Settings deletes it from the
 server. Notes are encrypted in transit and at rest, but not end-to-end, because the server
-has to read them to sync them.
+has to read them to sync them. The only servers Cue has are that Postgres database, the
+sign-in that comes with it, the MCP endpoint and the website — there is no analytics service,
+no ad network and no third party watching.
 
 ## Pages
 
 - [Cue](https://www.usecue.today/): what it is, why it exists, and what makes it different.
 - [Download](https://www.usecue.today/download): the Mac app, the iPhone app, and what an
   account is and isn't for.
+- [Assistants](https://www.usecue.today/assistants): connecting Claude or ChatGPT over MCP,
+  what the five tools do, and what they can’t.
 - [Privacy Policy](https://www.usecue.today/privacy): what Cue stores, who else is involved,
   and how to delete it.
 - [Terms of Service](https://www.usecue.today/terms): free, in beta, your notes are yours.
