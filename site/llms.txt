@@ -1,0 +1,60 @@
+# Cue
+
+> Cue is a free, open-source daily notes and to-do app for Mac and iPhone. Every day is a
+> page: you open it and type, with no project, tag or priority to choose first. It works
+> offline with no account, stores your notes on your own device, and has no tracking of any
+> kind. Sync between your Mac and iPhone is optional and also free.
+
+Cue is made by one person, Zach Waterfield, as a personal project, and it is his daily
+driver. It is in beta and deliberately small.
+
+## What it is
+
+- Free. There is no paid plan, no trial and no credit card. Sync is free too.
+- Open source under the MIT license: https://github.com/zlwaterfield/cue
+- No account needed. Both apps are complete on their own; without an account nothing you
+  write leaves your device.
+- Local-first. On the Mac every note lives in one SQLite file at
+  `~/Library/Application Support/Cue/cue.sqlite`, with a daily snapshot kept for 14 days.
+- No tracking. No analytics, no telemetry, no ads, no cookies on the website, nothing sold.
+  Your notes are never training data for an AI model.
+- Fast, and measured against budgets in tests: ready to type 240 ms after launch with five
+  years of notes, about 2 ms from a keystroke to the frame, 0.5 ms to search 36,543 items.
+- Keyboard-first on the Mac: Tab nests, ⌘↩ completes, ⌘D moves what's unfinished to
+  tomorrow, and ⌘K is a command palette that understands dates like "move to fri".
+- Touch-first on the iPhone: tap a bullet to make it a to-do, swipe to complete or send to
+  tomorrow, long-press to drag.
+- Export to Markdown or JSON at any time. One file per day.
+
+## What it deliberately isn't
+
+Cue has no projects, tags, priorities, folders, reminders, recurring tasks, attachments,
+collaboration, dashboards or AI writing your notes. Days are the only structure. If you want
+a project manager or a second brain, Cue is the wrong tool and says so.
+
+## Sync, and the only servers involved
+
+Sync is optional and off until you turn it on. You only need an account if you want the same
+notes on more than one device. Signing in is Sign in with Apple or a six-digit code emailed
+to you; there are no passwords. Notes are then stored in a Postgres database at Supabase,
+where row-level security means an account can only ever read its own rows. Turning sync off
+keeps every note on your device, and deleting your account in Settings deletes it from the
+server. Notes are encrypted in transit and at rest, but not end-to-end, because the server
+has to read them to sync them.
+
+## Pages
+
+- [Cue](https://www.usecue.today/): what it is, why it exists, and what makes it different.
+- [Download](https://www.usecue.today/download): the Mac app, the iPhone app, and what an
+  account is and isn't for.
+- [Privacy Policy](https://www.usecue.today/privacy): what Cue stores, who else is involved,
+  and how to delete it.
+- [Terms of Service](https://www.usecue.today/terms): free, in beta, your notes are yours.
+
+## Elsewhere
+
+- [Source code](https://github.com/zlwaterfield/cue): the apps, the sync server and this
+  website.
+- [How it's built](https://github.com/zlwaterfield/cue/blob/main/docs/ARCHITECTURE.md)
+- [How sync works](https://github.com/zlwaterfield/cue/blob/main/docs/SYNC.md)
+- [The whole site as plain text](https://www.usecue.today/llms-full.txt)
