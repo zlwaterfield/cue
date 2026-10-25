@@ -1,8 +1,8 @@
 import { useColorScheme } from 'react-native'
 
 /**
- * Brand kit v1.0 (docs/brand/tokens): monochrome graphite, no hue. These must match
- * `docs/brand/tokens/tokens.json`, like the Mac app's `app.css`.
+ * Brand kit v1.0 (brand/tokens): monochrome graphite, no hue. These must match
+ * `brand/tokens/tokens.json`, like the Mac app's `app.css`.
  */
 const light = {
   bg: '#FFFFFF',

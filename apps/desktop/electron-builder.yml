@@ -12,7 +12,7 @@ asar: true
 # dependencies, so nothing from node_modules ships.
 mac:
   category: public.app-category.productivity
-  # Icon Composer source (docs/brand/app-icon/ICON-COMPOSER.md). electron-builder compiles it
+  # Icon Composer source (brand/app-icon/ICON-COMPOSER.md). electron-builder compiles it
   # with Xcode 26's actool into Assets.car for macOS 26 and a generated icon.icns for older macOS.
   icon: build/Cue.icon
   target:
@@ -34,7 +34,7 @@ mac:
     NSSupportsAutomaticGraphicsSwitching: true
 dmg:
   title: Cue
-  # Brand kit DMG (docs/brand/dmg): 540 × 380, 128 px icons, retina TIFF background.
+  # Brand kit DMG (brand/dmg): 540 × 380, 128 px icons, retina TIFF background.
   background: build/dmg-background.tiff
   iconSize: 128
   window:

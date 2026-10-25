@@ -33,7 +33,7 @@ and `screens/07-dark.png` are what the dark version of it is derived from
   Apple requires of an iPhone app. It takes 1179 × 2556 or 1206 × 2622 and nothing else,
   so a 1320 × 2868 image is rejected there with "Supported sizes include 2556 × 1179px,
   1179 × 2556px, 2622 × 1206px and 1206 × 2622px." Rebuild with
-  `python3 docs/app-store/store-6.3/make.py` (Pillow), which scales `store/` down — the
+  `python3 brand/app-store/store-6.3/make.py` (Pillow), which scales `store/` down — the
   two sizes are the same shape to within 0.07%, under a pixel over the height.
 - **`store/`, 1320 × 2868.** The 6.9" slot, which is optional. These were laid out at
   this size, so they are the ones to edit; `store-6.3/` follows from them.
@@ -63,7 +63,7 @@ All three are PNGs without alpha, which App Store Connect requires. The sizes ar
 [Creative asset specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/creative-assets-specifications/);
 check that page before changing them, since Apple moves them.
 
-Rebuild them with `python3 docs/app-store/creative/make.py` (Pillow, Playwright and a
+Rebuild them with `python3 brand/app-store/creative/make.py` (Pillow, Playwright and a
 Chrome or Chromium). It lays the same screens out in landscape with the headline and the
 graphite palette the screenshots use, and flattens the alpha channel.
 

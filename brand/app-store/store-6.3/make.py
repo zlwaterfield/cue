@@ -6,7 +6,7 @@ from ../store is rejected there. The two shapes differ by 0.07%, far under a pix
 of visible distortion over the height, so this scales the finished images rather
 than laying them out again.
 
-    python3 docs/app-store/store-6.3/make.py
+    python3 brand/app-store/store-6.3/make.py
 
 Needs Pillow.
 """

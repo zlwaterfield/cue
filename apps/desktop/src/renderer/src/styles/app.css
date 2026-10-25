@@ -15,7 +15,7 @@
   --text-3: #8e8e94;
   --line: rgba(0, 0, 0, 0.07);
   --line-strong: rgba(0, 0, 0, 0.24);
-  /* Brand kit v1.0 (docs/brand/tokens): graphite, no hue. */
+  /* Brand kit v1.0 (brand/tokens): graphite, no hue. */
   --accent: #2c2c31;
   --on-accent: #ffffff;
   --accent-soft: rgba(44, 44, 49, 0.1);

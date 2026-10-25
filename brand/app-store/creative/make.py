@@ -1,10 +1,10 @@
 """App Store creative assets — the product page header and search results images.
 
 These are not screenshots. App Store Connect's creative asset slots take landscape
-art at fixed sizes (docs/app-store/README.md lists them), so this builds them from
+art at fixed sizes (brand/app-store/README.md lists them), so this builds them from
 the same screens, headline and palette as the portrait screenshots in ../store.
 
-    python3 docs/app-store/creative/make.py
+    python3 brand/app-store/creative/make.py
 
 Needs Pillow and Playwright, and a Chrome or Chromium on the machine. Renders with
 Chrome at a device scale factor, then flattens to RGB — App Store Connect rejects
@@ -21,7 +21,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 SCREENS = os.path.join(ROOT, 'docs', 'app-store', 'screens')
 
-# Brand palette, from docs/brand/README.md.
+# Brand palette, from brand/README.md.
 GRAPHITE = '#1C1C1E'
 TEXT_2 = '#6C6C72'
 PAPER_TOP = '#EFEFF1'

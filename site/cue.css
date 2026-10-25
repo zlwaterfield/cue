@@ -1,5 +1,5 @@
 /* Shared by every page: the brand tokens, the base layer, and the ⌘K palette.
- * Tokens from docs/brand/tokens/tokens.css, with Paper (#FAFAFB) as the marketing ground.
+ * Tokens from brand/tokens/tokens.css, with Paper (#FAFAFB) as the marketing ground.
  * Page-specific CSS stays in the page it belongs to. */
 @font-face {
   font-family: "Newsreader";

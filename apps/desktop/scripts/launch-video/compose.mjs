@@ -77,7 +77,7 @@ export async function compose({ out, timeline, frames = '.video/frames', ffmpeg 
   const total = Math.round(data.duration * FPS)
   mkdirSync(dirname(out), { recursive: true })
 
-  const lockup = readFileSync(join(REPO, 'docs/brand/logo/cue-lockup-ink.svg'), 'utf8')
+  const lockup = readFileSync(join(REPO, 'brand/logo/cue-lockup-ink.svg'), 'utf8')
     .replace(/fill="#[0-9A-Fa-f]{6}"/g, 'fill="currentColor"')
     .replace(/width="[\d.]+" height="[\d.]+"/, 'height="100%" width="auto"')
 

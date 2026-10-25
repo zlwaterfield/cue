@@ -1,6 +1,6 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/readme/readme-header-dark.svg">
-  <img alt="cue — Every day is a page. Start typing." src="docs/brand/readme/readme-header-light.svg" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="brand/readme/readme-header-dark.svg">
+  <img alt="cue — Every day is a page. Start typing." src="brand/readme/readme-header-light.svg" width="100%">
 </picture>
 
 <p align="center">
@@ -178,7 +178,7 @@ server: your own Supabase project, set up as in [docs/SYNC.md](docs/SYNC.md).
 
 More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SYNC.md](docs/SYNC.md),
 [docs/MCP.md](docs/MCP.md) and [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md). The brand kit lives
-in [docs/brand](docs/brand).
+in [brand](brand).
 
 ## Roadmap
 
@@ -217,6 +217,6 @@ A few rules keep Cue the way it is:
 
 The code is [MIT](LICENSE) © 2026 Zach Waterfield.
 
-The Cue name, logo and app icon ([docs/brand](docs/brand)) aren't covered by the MIT license.
+The Cue name, logo and app icon ([brand](brand)) aren't covered by the MIT license.
 You're welcome to use them to refer to Cue, but not for your own app or in a way that suggests
 endorsement. If you distribute a modified version, give it a different name and icon.

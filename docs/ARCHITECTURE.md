@@ -143,7 +143,7 @@ Shortcut deviations from the brief:
 
 ## Accessibility notes
 
-- Body text, secondary text and the accent meet WCAG AA in both modes (`docs/brand/tokens/contrast.md`).
+- Body text, secondary text and the accent meet WCAG AA in both modes (`brand/tokens/contrast.md`).
   Metadata people read (dates, hints, group headers, the sync status) uses `--text-2`.
 - Completed to-dos and placeholders use `--text-3` (3.26:1 light, 3.48–3.93:1 dark). That is
   deliberate, since completed items should recede, but it is a known AA exception. The strict
