@@ -14,7 +14,7 @@ Three files, and no framework:
 | File | What it's for |
 | --- | --- |
 | `cue.css` | The brand tokens (light, dark, and the `[data-theme]` override), the base layer, the nav and footer, and the ⌘K palette. Every page links it first and then adds only its own CSS |
-| `cue.js` | The behaviour that's the same everywhere: the light/dark choice, a toast, and the palette. Loaded `defer` by every page except the consent page |
+| `cue.js` | The behavior that's the same everywhere: the light/dark choice, a toast, and the palette. Loaded `defer` by every page except the consent page |
 | `legal.css` | What Terms and Privacy add on top of `cue.css` |
 
 The home page's own small things live in `home.js`, and the 404's in `404.js`; both load after
@@ -76,9 +76,9 @@ Four files at the root are for crawlers and assistants:
 | File | What it's for |
 | --- | --- |
 | `robots.txt` | Allows everything, grants all three [content signals](https://contentsignals.org) (`search`, `ai-input`, `ai-train`), and points at the sitemap. The consent page stays out of indexes with its own `noindex`, so there is nothing to disallow |
-| `sitemap.xml` | The four public pages, with `lastmod` dates to keep current |
+| `sitemap.xml` | The five public pages, with `lastmod` dates to keep current |
 | `llms.txt` | Cue in one page, in the [llms.txt](https://llmstxt.org) format: what it is, what it deliberately isn't, and where the pages are |
-| `llms-full.txt` | The site's own copy as plain text, plus the questions people ask. It summarises Terms and Privacy and links to them rather than repeating them, so the legal text has one home |
+| `llms-full.txt` | The site's own copy as plain text, plus the questions people ask. It summarizes Terms and Privacy and links to them rather than repeating them, so the legal text has one home |
 
 The home, downloads and assistants pages also carry `og:video` (`images/og.mp4`, 1280 × 640,
 H.264, 64 KB). Messages plays it in the link preview, muted and looping, and so do Slack,

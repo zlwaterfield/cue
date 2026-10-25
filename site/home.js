@@ -22,7 +22,7 @@
       const ms = Math.round(nav && nav.domContentLoadedEventEnd ? nav.domContentLoadedEventEnd : performance.now())
       return ms <= 240
         ? `Cue is ready in 240 ms. This page took ${ms} ms, so the website wins this one.`
-        : `Cue is ready in 240 ms. This page took ${ms} ms. I'm working on it.`
+        : `Cue is ready in 240 ms. This page took ${ms} ms. I’m working on it.`
     },
     fri: () => `→ ${short(parseDay('fri'))}`,
     reminders: () => 'Not even this one.',
@@ -163,7 +163,7 @@
   \___|\__,_|\___| | |
                    |_|`}`, 'font-family: ui-monospace, Menlo, monospace; line-height: 1.15; color: #8E8E94')
   console.log(
-    `%cHi, you're reading the source. Cue's source is open too: ${cue.GITHUB}\nA few more things are hidden on the page. Try ⌘K. — Zach`,
+    `%cHi, you’re reading the source. Cue’s source is open too: ${cue.GITHUB}\nA few more things are hidden on the page. Try ⌘K. — Zach`,
     'font: 13px/1.6 -apple-system, system-ui, sans-serif'
   )
 })()

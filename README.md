@@ -4,7 +4,7 @@
 </picture>
 
 <p align="center">
-  <strong>Daily notes and to-dos for Mac and iOS.</strong><br>
+  <strong>Daily notes and to-dos for Mac and iPhone.</strong><br>
   Fast, quiet and keyboard-first.
 </p>
 
