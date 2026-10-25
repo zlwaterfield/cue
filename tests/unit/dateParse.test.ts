@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { parseDateInput } from '../../src/shared/dateParse'
-import { weekViewDates } from '../../src/shared/dates'
+import { parseDateInput } from '../../core/dateParse'
+import { weekViewDates } from '../../core/dates'
 
 // Saturday, October 17, 2026
 const TODAY = '2026-10-17'

@@ -1,5 +1,5 @@
-import { handleMessage, type JsonRpcRequest } from '../../../src/shared/mcp/server.ts'
-import { SupabaseNotes, Unauthorized } from '../../../src/shared/mcp/notes.ts'
+import { handleMessage, type JsonRpcRequest } from '../../../core/mcp/server.ts'
+import { SupabaseNotes, Unauthorized } from '../../../core/mcp/notes.ts'
 
 /**
  * Cue's MCP endpoint: POST JSON-RPC to /functions/v1/mcp with a Supabase access token.

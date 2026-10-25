@@ -7,11 +7,11 @@ import {
   placement,
   prefixTops,
   subtreeEnd
-} from '../../src/shared/editor/geometry'
-import * as ops from '../../src/shared/editor/ops'
-import { Tx } from '../../src/shared/editor/tx'
-import { ItemStore, type StoreBackend } from '../../src/shared/itemStore'
-import type { Item } from '../../src/shared/types'
+} from '../../core/editor/geometry'
+import * as ops from '../../core/editor/ops'
+import { Tx } from '../../core/editor/tx'
+import { ItemStore, type StoreBackend } from '../../core/itemStore'
+import type { Item } from '../../core/types'
 
 /**
  * The iPhone app's drag and drop: the gap and depth worked out on the UI thread, turned

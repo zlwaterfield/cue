@@ -168,7 +168,7 @@ server: your own Supabase project, set up as in [docs/SYNC.md](docs/SYNC.md).
 - **Mac:** Electron, React 19 and TypeScript. Storage is SQLite through Node's built-in
   `node:sqlite`, owned by the main process.
 - **iPhone:** Expo and React Native.
-- **Shared core:** both apps share `src/shared`: the data model, storage, sync engine and
+- **Shared core:** both apps share `core`: the data model, storage, sync engine and
   every editing operation.
 - **Sync:** an optional Supabase backend (Postgres, Auth, Realtime), newest edit wins per
   item.
@@ -202,7 +202,7 @@ pnpm bench        # performance against the budgets
 
 A few rules keep Cue the way it is:
 
-- **Every action is a command** in `src/shared/commands.ts`, so it gets a shortcut, a palette
+- **Every action is a command** in `core/commands.ts`, so it gets a shortcut, a palette
   entry and a menu item together.
 - **Performance is a requirement.** If a change touches typing, navigation, search or
   startup, run `pnpm bench`.

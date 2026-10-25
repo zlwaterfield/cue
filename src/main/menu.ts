@@ -1,5 +1,5 @@
 import { app, BrowserWindow, Menu, type MenuItemConstructorOptions } from 'electron'
-import { COMMANDS_BY_ID, toAccelerator } from '../shared/commands'
+import { COMMANDS_BY_ID, toAccelerator } from '@shared/commands'
 
 /**
  * Native application menu generated from the shared command list. Menu items send

@@ -1,7 +1,7 @@
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { SyncError } from '../../shared/sync/engine'
-import { SIGN_IN_FAILED } from '../../shared/sync/status'
+import { SyncError } from '@shared/sync/engine'
+import { SIGN_IN_FAILED } from '@shared/sync/status'
 
 /**
  * Sign in with Apple on the Mac happens in the browser, which comes back to this Mac with

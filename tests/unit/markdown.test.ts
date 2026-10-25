@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { linesToMarkdown, parseMarkdownLines } from '../../src/shared/markdown'
-import { fold, matchRanges } from '../../src/shared/text'
+import { linesToMarkdown, parseMarkdownLines } from '../../core/markdown'
+import { fold, matchRanges } from '../../core/text'
 
 describe('markdown', () => {
   it('round-trips structure through the clipboard format', () => {

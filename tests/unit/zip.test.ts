@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { crc32, utf8, zip } from '../../src/shared/zip'
+import { crc32, utf8, zip } from '../../core/zip'
 import { tempDir } from './helpers'
 
 const WHEN = new Date(2026, 9, 25, 14, 30, 20)

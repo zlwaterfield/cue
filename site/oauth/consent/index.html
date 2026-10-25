@@ -224,7 +224,7 @@ $('#code form').onsubmit = (event) => {
     const { error } = await supabase.auth.verifyOtp({ email, token: event.target.code.value.trim(), type: 'email' })
     if (error) return fail('code', 'That code didn’t work. Check it, or send a new one.')
     fail('code', '')
-    // Signing in here agrees to the Terms, as in the apps. TERMS_VERSION in src/shared/terms.ts.
+    // Signing in here agrees to the Terms, as in the apps. TERMS_VERSION in core/terms.ts.
     const { error: terms } = await supabase.rpc('accept_terms', { version: '2026-10-24' })
     if (terms) console.warn('Couldn’t record accepting the terms', terms)
     await start()

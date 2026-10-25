@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { LinkPreview } from '../../src/shared/links'
+import type { LinkPreview } from '../../core/links'
 import { LinkPreviews } from '../../src/main/links'
 import { tempDir } from './helpers'
 

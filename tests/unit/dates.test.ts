@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { daySubtitle, relativeLabel } from '../../src/shared/dates'
+import { daySubtitle, relativeLabel } from '../../core/dates'
 
 // Saturday, October 17, 2026
 const TODAY = '2026-10-17'

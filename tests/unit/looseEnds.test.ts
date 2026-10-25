@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { buildOutline } from '../../src/shared/outline'
-import { collectLooseEnds, looseEndDays, looseEndsLabel, looseEndsRange, movedToTodayLabel } from '../../src/shared/looseEnds'
-import type { Item } from '../../src/shared/types'
+import { buildOutline } from '../../core/outline'
+import { collectLooseEnds, looseEndDays, looseEndsLabel, looseEndsRange, movedToTodayLabel } from '../../core/looseEnds'
+import type { Item } from '../../core/types'
 import { newItem } from './helpers'
 
 function storeOf(items: Item[]) {

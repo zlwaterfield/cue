@@ -3,8 +3,8 @@ const { getDefaultConfig } = require('expo/metro-config')
 
 const projectRoot = __dirname
 // The Mac app and the iPhone app share their data model, storage, sync and editing
-// operations: `src/shared` at the repository root.
-const shared = path.resolve(projectRoot, '../src/shared')
+// operations: the `core` folder at the repository root.
+const shared = path.resolve(projectRoot, '../core')
 
 const config = getDefaultConfig(projectRoot)
 config.watchFolders = [...(config.watchFolders ?? []), shared]

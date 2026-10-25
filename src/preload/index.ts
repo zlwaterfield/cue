@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import type { CueBridge, Item, SyncState } from '../shared/types'
+import type { CueBridge, Item, SyncState } from '@shared/types'
 
 /** The only surface the renderer has to the system: typed, narrow, no Node access. */
 

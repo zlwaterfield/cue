@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bareLabel, decodeEntities, fetchPreview, findLinks, parsePreview, postAuthor, soleLink } from '../../src/shared/links'
+import { bareLabel, decodeEntities, fetchPreview, findLinks, parsePreview, postAuthor, soleLink } from '../../core/links'
 
 describe('links in a line', () => {
   it('finds links and leaves trailing punctuation out', () => {

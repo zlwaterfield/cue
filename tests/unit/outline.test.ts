@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { buildOutline } from '../../src/shared/outline'
-import type { Item } from '../../src/shared/types'
+import { buildOutline } from '../../core/outline'
+import type { Item } from '../../core/types'
 
 let n = 0
 function item(partial: Partial<Item> & { id: string }): Item {

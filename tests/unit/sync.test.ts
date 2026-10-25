@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { addDays, todayISO } from '../../src/shared/dates'
-import { SyncEngine, type EngineTiming } from '../../src/shared/sync/engine'
-import { MemorySyncServer } from '../../src/shared/sync/memoryServer'
-import { isTextOnlyChange, type Repository } from '../../src/shared/repository'
-import type { Item } from '../../src/shared/types'
+import { addDays, todayISO } from '../../core/dates'
+import { SyncEngine, type EngineTiming } from '../../core/sync/engine'
+import { MemorySyncServer } from '../../core/sync/memoryServer'
+import { isTextOnlyChange, type Repository } from '../../core/repository'
+import type { Item } from '../../core/types'
 import { memoryRepo, newItem } from './helpers'
 
 function visible(items: Item[]) {

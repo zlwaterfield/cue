@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { errorMessage, OfflineError, SessionError, SyncError, type SessionEnd } from '../../src/shared/sync/engine'
-import { SupabaseSync, transportError, type SessionStore } from '../../src/shared/sync/supabase'
+import { errorMessage, OfflineError, SessionError, SyncError, type SessionEnd } from '../../core/sync/engine'
+import { SupabaseSync, transportError, type SessionStore } from '../../core/sync/supabase'
 
 const PAUSED = 'Sync paused. Cue will keep trying.'
 

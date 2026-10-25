@@ -5,7 +5,7 @@ import { defineConfig, loadEnv } from 'electron-vite'
 
 const { version } = JSON.parse(readFileSync(resolve(import.meta.dirname, 'package.json'), 'utf8')) as { version: string }
 
-const shared = { '@shared': resolve(import.meta.dirname, 'src/shared') }
+const shared = { '@shared': resolve(import.meta.dirname, 'core') }
 
 export default defineConfig(({ mode }) => {
   // The sync server is optional. Set CUE_SUPABASE_URL and CUE_SUPABASE_KEY in the

@@ -5,7 +5,7 @@ The iPhone app: today's page in your pocket, on its own or kept in sync with Cue
 It's built on the same core as the Mac app. The data model, the SQLite schema and
 repository, the hybrid logical clock, the sync engine and Supabase transport, the outline,
 dates, Markdown, and every editing operation (Return, Backspace, indent, move, drag and
-drop, undo) are the files in [`../src/shared`](../src/shared). There's one implementation
+drop, undo) are the files in [`../core`](../core). There's one implementation
 of how a line behaves and how a change merges, and the Mac's unit tests cover it. This
 folder holds what's specific to a phone: touch, the keyboard, and the app lifecycle.
 
@@ -30,8 +30,8 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 - **Export goes to the share sheet.** The Mac writes a folder you pick; a phone has
   nowhere to write, so Settings → Your notes hands iOS a file instead: Markdown as a zip of
   `<year>/<date>.md`, or the JSON backup the Mac imports. Both files are the Mac's, built by
-  [`../src/shared/portability.ts`](../src/shared/portability.ts), and the zip is written by
-  [`../src/shared/zip.ts`](../src/shared/zip.ts) rather than a dependency. They are built in
+  [`../core/portability.ts`](../core/portability.ts), and the zip is written by
+  [`../core/zip.ts`](../core/zip.ts) rather than a dependency. They are built in
   the cache directory, which iOS may empty whenever it likes: the copy that matters is the
   one you saved or sent.
 - **One day at a time**, with a week strip above it. Swipe the page (anywhere but on a
@@ -64,7 +64,7 @@ VoiceOver reads lines in the day's order.
   icon, the page's title and where it's from, in the line's own type, never more than two
   lines. A post on X shows its text, its author's handle and their picture. The preview
   comes from the page's own header (Open Graph and `<title>`, fetched the way iMessage
-  fetches previews), parsed by `../src/shared/links.ts`; no third-party service sees the
+  fetches previews), parsed by `../core/links.ts`; no third-party service sees the
   link. Previews are cached on the phone (`links.sqlite`) and never synced. Until a page answers, or if it can't, the line shows the link's address.
 - **Cue is in the share sheet.** Share a link (or text) from Safari, X, YouTube or any
   app, and it's added to today: a link goes last under the day's "Links" bullet (made at
@@ -99,7 +99,7 @@ VoiceOver reads lines in the day's order.
   character. The line being edited takes its own touches, so the loupe and selection work
   as usual, and can still be lifted by its marker.
 - **Drag runs on the UI thread** (Reanimated worklets; the geometry is in
-  `../src/shared/editor/geometry.ts`). JavaScript is involved only when the line is dropped,
+  `../core/editor/geometry.ts`). JavaScript is involved only when the line is dropped,
   and the drop is the Mac's `dropAt`.
 - **The blank last line already has an id.** Typing into it turns it into that item, so the
   same view keeps the keyboard and nothing is lost to a focus change mid-word.

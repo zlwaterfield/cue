@@ -16,8 +16,8 @@
     "allowImportingTsExtensions": true,
     "types": ["node"],
     "paths": {
-      "@shared/*": ["./src/shared/*"]
+      "@shared/*": ["./core/*"]
     }
   },
-  "include": ["src", "tests", "electron.vite.config.mts", "vitest.config.mts", "playwright.config.ts"]
+  "include": ["core", "src", "tests", "electron.vite.config.mts", "vitest.config.mts", "playwright.config.ts"]
 }
