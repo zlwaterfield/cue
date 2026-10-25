@@ -48,12 +48,20 @@ outlined wordmark, the favicons and `site.webmanifest` (`docs/brand/web`), and t
 (`docs/brand/social`). `images/og.mp4` is that same card writing itself; regenerate it with
 `pnpm og-video`, which needs ffmpeg. Newsreader, for headlines only, is served from `fonts/`
 (its Latin subset, SIL OFL), so the site makes no requests to anyone else; body text uses the
-system font. The screenshots are `docs/images/week-*.png` as WebP:
+system font. The Mac window on the home page is `docs/images/week-*.png` as WebP:
 
 ```sh
 cwebp -q 86 docs/images/week-light.png -o site/images/week-light.webp
 cwebp -q 86 docs/images/week-dark.png -o site/images/week-dark.webp
 ```
+
+The iPhone in front of it is `images/phone-*.webp`, holding the same notes and to-dos as the
+window behind it, in a frame the page draws in CSS. Both come from `python3
+scripts/phone-shots.py`, which takes the App Store screen
+[`docs/app-store/screens/08-mac.png`](../docs/app-store/screens/08-mac.png) and, since that day
+was only ever captured in light, derives the dark one from it with the app's own
+light-to-dark tone curve. That script's docstring has the details, and says what to delete
+once there is a real dark screenshot of the day.
 
 ## Being found, by people and by assistants
 
