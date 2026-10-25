@@ -12,7 +12,8 @@
  * - The hosted sync server in `.env.production.local` (docs/SYNC.md).
  *
  * electron-builder signs the app with the hardened runtime and notarizes it, then builds the
- * DMG and zip. This script signs, notarizes and staples the DMG too, and checks both with
+ * DMG and zip. This build is the only kind that updates itself, from the zip and
+ * latest-mac.yml that `pnpm release:upload` publishes. This script signs, notarizes and staples the DMG too, and checks both with
  * Gatekeeper. The results are in release/.
  */
 import { execFileSync } from 'node:child_process'
@@ -70,7 +71,9 @@ const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 console.log(`\nCue ${version}: signing as "${identity}", notarizing with "${profile}", sync ${new URL(env.CUE_SUPABASE_URL).host}\n`)
 
 rmSync(out, { recursive: true, force: true })
-run('npx', ['electron-vite', 'build'])
+// CUE_UPDATES=1 makes this build check GitHub for updates (src/main/updates.ts); builds
+// from `pnpm dist` or `pnpm package` don't.
+run('npx', ['electron-vite', 'build'], { ...process.env, CUE_UPDATES: '1' })
 // With APPLE_KEYCHAIN_PROFILE set, electron-builder notarizes and staples the app before
 // it packs the DMG and zip.
 run(

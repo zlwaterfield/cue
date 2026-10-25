@@ -1,5 +1,5 @@
 import { fold, searchTerms } from '@shared/text'
-import { DEFAULT_SETTINGS, SYNC_OFF, type CueBridge, type Item, type SearchResult, type Settings, type SyncBridge } from '@shared/types'
+import { DEFAULT_SETTINGS, SYNC_OFF, UPDATES_OFF, type CueBridge, type Item, type SearchResult, type Settings, type SyncBridge, type UpdateBridge } from '@shared/types'
 
 /**
  * The renderer's view of storage. In the desktop app this is the preload bridge to
@@ -141,6 +141,13 @@ class MemoryBackend implements Backend {
     syncNow: async () => ({ ok: false, error: 'Sync is available in the desktop app.' }),
     signOut: async () => {},
     deleteAccount: async () => null
+  }
+
+  updates: UpdateBridge = {
+    getState: async () => UPDATES_OFF,
+    onState: () => () => {},
+    check: async () => UPDATES_OFF,
+    install: () => {}
   }
 }
 

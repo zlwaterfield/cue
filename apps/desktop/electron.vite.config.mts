@@ -22,7 +22,10 @@ export default defineConfig(({ mode }) => {
       resolve: { alias: shared, dedupe: sharedDeps },
       define: {
         __CUE_SUPABASE_URL__: JSON.stringify(env.CUE_SUPABASE_URL ?? ''),
-        __CUE_SUPABASE_KEY__: JSON.stringify(env.CUE_SUPABASE_KEY ?? '')
+        __CUE_SUPABASE_KEY__: JSON.stringify(env.CUE_SUPABASE_KEY ?? ''),
+        // `pnpm release` sets CUE_UPDATES=1, so only the builds it signs check GitHub for
+        // updates (src/main/updates.ts).
+        __CUE_UPDATES__: JSON.stringify(env.CUE_UPDATES === '1')
       },
       build: { externalizeDeps: true }
     },

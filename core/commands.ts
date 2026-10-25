@@ -23,6 +23,8 @@ export interface CommandMeta {
   needsItem?: boolean
   /** Only offered when this build has a sync server. */
   needsSync?: boolean
+  /** Only offered when this build updates itself (the Mac app from `pnpm release`). */
+  needsUpdates?: boolean
 }
 
 export const COMMANDS: CommandMeta[] = [
@@ -31,6 +33,7 @@ export const COMMANDS: CommandMeta[] = [
   { id: 'help.shortcuts', title: 'Show keyboard shortcuts', group: 'General', shortcut: 'Mod+/', keywords: 'help keys' },
   { id: 'app.settings', title: 'Open settings', group: 'General', shortcut: 'Mod+,', keywords: 'preferences' },
   { id: 'app.about', title: 'About Cue', group: 'General', keywords: 'version info' },
+  { id: 'app.checkForUpdates', title: 'Check for updates…', group: 'General', keywords: 'update upgrade new version install', needsUpdates: true },
 
   { id: 'go.today', title: 'Go to today', group: 'Navigate', shortcut: 'Mod+1', keywords: 'day' },
   { id: 'go.tomorrow', title: 'Go to tomorrow', group: 'Navigate', shortcut: 'Mod+2', keywords: 'day' },

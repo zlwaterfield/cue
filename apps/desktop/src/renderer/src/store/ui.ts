@@ -61,6 +61,8 @@ export interface Toast {
   id: number
   message: string
   undo?: boolean
+  /** A button besides Undo, such as Restart Now. */
+  action?: { label: string; run: () => void }
 }
 
 export interface UIState {
@@ -89,8 +91,8 @@ export const ui = new Store<UIState>({
 let toastSeq = 0
 let toastTimer: ReturnType<typeof setTimeout> | null = null
 
-export function showToast(message: string, options: { undo?: boolean; duration?: number } = {}): void {
-  const toast = { id: ++toastSeq, message, undo: options.undo }
+export function showToast(message: string, options: { undo?: boolean; action?: Toast['action']; duration?: number } = {}): void {
+  const toast = { id: ++toastSeq, message, undo: options.undo, action: options.action }
   ui.set({ toast })
   if (toastTimer) clearTimeout(toastTimer)
   toastTimer = setTimeout(() => {

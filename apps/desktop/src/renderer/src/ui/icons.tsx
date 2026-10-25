@@ -132,6 +132,7 @@ const BY_COMMAND: Record<string, keyof typeof icons> = {
   'help.shortcuts': 'keyboard',
   'app.settings': 'settings',
   'app.about': 'info',
+  'app.checkForUpdates': 'importFile',
   'go.today': 'today',
   'go.tomorrow': 'tomorrow',
   'go.week': 'week',

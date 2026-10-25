@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import type { CueBridge, Item, SyncState } from '@shared/types'
+import type { CueBridge, Item, SyncState, UpdateState } from '@shared/types'
 
 /** The only surface the renderer has to the system: typed, narrow, no Node access. */
 
@@ -43,6 +43,12 @@ const bridge: CueBridge = {
     syncNow: () => ipcRenderer.invoke('sync:now'),
     signOut: () => ipcRenderer.invoke('sync:signOut'),
     deleteAccount: () => ipcRenderer.invoke('sync:deleteAccount')
+  },
+  updates: {
+    getState: () => ipcRenderer.invoke('updates:state'),
+    onState: (callback) => subscribe<UpdateState>('updates:state', callback),
+    check: () => ipcRenderer.invoke('updates:check'),
+    install: () => void ipcRenderer.invoke('updates:install')
   }
 }
 

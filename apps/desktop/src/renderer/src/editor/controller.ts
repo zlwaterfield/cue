@@ -8,6 +8,7 @@ import type { ISODate, Item, ItemType, Settings } from '@shared/types'
 import { backend } from '../data/backend'
 import { itemStore } from '../store/items'
 import { syncState } from '../store/sync'
+import { checkForUpdates } from '../store/updates'
 import { dismissToast, showToast, ui, type Selection, type View } from '../store/ui'
 import { caretLine, getOffsets, isTextInput, placeCaretAtX, scrollIntoViewIfNeeded, setOffsets } from './dom'
 import { refreshCaret } from './caret'
@@ -839,6 +840,9 @@ class EditorController {
         return
       case 'app.about':
         this.openOverlay({ kind: 'about' })
+        return
+      case 'app.checkForUpdates':
+        void checkForUpdates()
         return
       case 'go.today':
         void this.navigate({ mode: 'day', date: today })

@@ -2,12 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { COMMANDS, shortcutKeys } from '@shared/commands'
 import { reportIssueUrl } from '@shared/feedback'
 import { PRIVACY_URL, TERMS_URL } from '@shared/terms'
-import type { Settings } from '@shared/types'
+import type { Settings, UpdateState } from '@shared/types'
 import lockupDark from '../assets/cue-lockup-on-dark.svg'
 import lockupLight from '../assets/cue-lockup-on-light.svg'
 import { backend, isDesktop } from '../data/backend'
 import { controller } from '../editor/controller'
 import { refreshSync, syncState } from '../store/sync'
+import { checkForUpdates, updateState } from '../store/updates'
 import { SETTINGS_CATEGORIES, type SettingsCategory, ui, useStore } from '../store/ui'
 import { AssistantsSettings } from './AssistantsSettings'
 import { SyncSettings } from './SyncSettings'
@@ -205,6 +206,22 @@ export function SettingsSheet() {
   return <Settings opensOn={overlay.category ?? 'General'} />
 }
 
+/** What Settings ▸ About says after the version, in a build that updates itself. */
+function updateLine(state: UpdateState): string {
+  switch (state.status) {
+    case 'checking':
+      return 'Checking for updates…'
+    case 'downloading':
+      return `Downloading Cue ${state.version}…`
+    case 'ready':
+      return `Cue ${state.version} installs when you quit.`
+    case 'error':
+      return state.message ?? 'Couldn’t check for updates.'
+    default:
+      return 'Updates download by themselves and install when you quit.'
+  }
+}
+
 /**
  * One pane at a time, chosen in the rail: ↑/↓ (or ←/→) with the rail focused, ⌃Tab from
  * anywhere in the sheet. ⌘1–⌘4 are the Go menu's, so they stay out of this. Builds
@@ -213,6 +230,7 @@ export function SettingsSheet() {
 function Settings({ opensOn }: { opensOn: SettingsCategory }) {
   const settings = useStore(ui, (s) => s.settings)
   const syncAvailable = useStore(syncState, (s) => s.available)
+  const updates = useStore(updateState, (s) => s)
   const [chosen, setChosen] = useState<SettingsCategory>(opensOn)
   const rail = useRef<HTMLDivElement>(null)
   // Opening Settings is when the pending count and "Synced …" are re-read, whichever
@@ -368,11 +386,31 @@ function Settings({ opensOn }: { opensOn: SettingsCategory }) {
                 <div className="setting">
                   <div>
                     <div className="setting-label">Cue</div>
-                    <div className="setting-help">Version {__APP_VERSION__}</div>
+                    <div className="setting-help">
+                      Version {__APP_VERSION__}
+                      {updates.available && `. ${updateLine(updates)}`}
+                    </div>
                   </div>
-                  <button className="button is-quiet" onClick={() => controller.execute('app.about')}>
-                    About Cue
-                  </button>
+                  <div className="setting-actions">
+                    {updates.status === 'ready' ? (
+                      <button className="button" onClick={() => backend.updates.install()}>
+                        Restart to Update
+                      </button>
+                    ) : (
+                      updates.available && (
+                        <button
+                          className="button"
+                          disabled={updates.status === 'checking' || updates.status === 'downloading'}
+                          onClick={() => void checkForUpdates()}
+                        >
+                          Check for Updates
+                        </button>
+                      )
+                    )}
+                    <button className="button is-quiet" onClick={() => controller.execute('app.about')}>
+                      About Cue
+                    </button>
+                  </div>
                 </div>
                 <div className="setting">
                   <div>

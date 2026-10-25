@@ -8,6 +8,7 @@ import { backend } from '../data/backend'
 import { controller } from '../editor/controller'
 import { itemStore } from '../store/items'
 import { syncState } from '../store/sync'
+import { updateState } from '../store/updates'
 import { ui, useStore, type Overlay } from '../store/ui'
 import { fuzzyScore } from '../lib/fuzzy'
 import { Calendar } from './Calendar'
@@ -202,7 +203,10 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
 
     // Commands
     const syncAvailable = syncState.get().available
-    const visible = COMMANDS.filter((c) => !c.paletteHidden && (!c.needsItem || hasTarget) && (!c.needsSync || syncAvailable))
+    const updatesAvailable = updateState.get().available
+    const visible = COMMANDS.filter(
+      (c) => !c.paletteHidden && (!c.needsItem || hasTarget) && (!c.needsSync || syncAvailable) && (!c.needsUpdates || updatesAvailable)
+    )
     const tomorrow = addDays(today, 1)
     const hintFor = (id: string): string | undefined => {
       const targets = controller.targets()

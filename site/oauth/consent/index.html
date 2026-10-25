@@ -225,7 +225,7 @@ $('#code form').onsubmit = (event) => {
     if (error) return fail('code', 'That code didn’t work. Check it, or send a new one.')
     fail('code', '')
     // Signing in here agrees to the Terms, as in the apps. TERMS_VERSION in core/terms.ts.
-    const { error: terms } = await supabase.rpc('accept_terms', { version: '2026-10-24' })
+    const { error: terms } = await supabase.rpc('accept_terms', { version: '2026-10-25' })
     if (terms) console.warn('Couldn’t record accepting the terms', terms)
     await start()
   })

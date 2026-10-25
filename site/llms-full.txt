@@ -142,7 +142,8 @@ Sync is free too. It’s a personal project, not a business, and I don’t plan 
 sync server and this website. https://github.com/zlwaterfield/cue
 
 **Does it work offline?** Completely. Both apps keep your notes on the device and need no
-network at all. Without sync, Cue never talks to a server.
+network at all. Without sync, the only thing the Mac app does online is ask GitHub, every few
+hours, whether there's a newer version of Cue.
 
 **Where are my notes stored?** On the Mac, in one SQLite file at
 `~/Library/Application Support/Cue/cue.sqlite`, with a daily snapshot kept for 14 days. On
@@ -161,7 +162,8 @@ your own devices.
 your days, add to-dos, check them off and move them, and what it does syncs to your devices
 like any other edit. It can’t delete anything. There is still no AI inside the app itself.
 
-**What servers does Cue use?** With sync off, none at all. With it on, two: a Postgres database
+**What servers does Cue use?** With sync off, none of Cue's: the Mac app only asks GitHub,
+every few hours, whether there's a newer version. With it on, two: a Postgres database
 at Supabase that holds your notes, where row-level security means an account can only ever read
 its own rows, and the MCP endpoint an assistant talks to. There is nothing else — no analytics
 service, no ad network, no third party.
