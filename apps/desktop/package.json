@@ -28,6 +28,7 @@
     "vitest": "^5.0.5"
   },
   "scripts": {
+    "postinstall": "node scripts/bins.mjs",
     "dev": "node scripts/dev.mjs",
     "build": "electron-vite build",
     "start": "electron-vite preview",
