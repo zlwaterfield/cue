@@ -12,9 +12,9 @@
  * - The hosted sync server in `.env.production.local` (docs/SYNC.md).
  *
  * electron-builder signs the app with the hardened runtime and notarizes it, then builds the
- * DMG and zip. This build is the only kind that updates itself, from the zip and
- * latest-mac.yml that `pnpm release:upload` publishes. This script signs, notarizes and staples the DMG too, and checks both with
- * Gatekeeper. The results are in release/.
+ * DMG and zip. This script notarizes and staples the DMG as well, and checks both with
+ * Gatekeeper. This build is the only kind that updates itself, from the zip and latest-mac.yml
+ * that `pnpm release:upload` publishes. The results are in release/.
  *
  * It builds what's committed, so uncommitted changes stop it before any of that: `pnpm
  * release:upload` won't publish a build made from them. `pnpm release --dirty` builds one
@@ -25,6 +25,7 @@ import { createHash } from 'node:crypto'
 import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { loadEnv } from 'electron-vite'
+import { fixBins } from './bins.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const out = join(root, 'release')
@@ -85,6 +86,9 @@ const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 console.log(`\nCue ${version}: signing as "${identity}", notarizing with "${profile}", sync ${new URL(env.CUE_SUPABASE_URL).host}\n`)
 
 rmSync(out, { recursive: true, force: true })
+// Some bins come out of `pnpm install` without their executable bit, and the build is the
+// first thing to notice: "sh: node_modules/.bin/electron-vite: Permission denied" (bins.mjs).
+fixBins()
 // CUE_UPDATES=1 makes this build check GitHub for updates (src/main/updates.ts); builds
 // from `pnpm dist` or `pnpm package` don't.
 run('npx', ['electron-vite', 'build'], { ...process.env, CUE_UPDATES: '1' })
