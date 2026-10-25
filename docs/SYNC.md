@@ -153,8 +153,9 @@ the same path an import uses, with one rule: **an edit in progress always wins.*
 The words are shared by the Mac and iPhone (`core/sync/status.ts`): `indicator` for the
 title bar or header, `statusLine` for Settings, `syncedAgo` for the time.
 
-- **Settings → Sync**: off, then **Continue with Apple** or your email, then (for email) the
-  code, then on. The email step checks the address before asking for a code
+- **Settings → Sync** (a pane in the Mac's rail, a screen on the iPhone): off, then
+  **Continue with Apple** or your email, then (for email) the code, then on. The email
+  step checks the address before asking for a code
   (`isEmailAddress`, the iPhone's check and words) and has **Cancel**; the code step has
   **Send a New Code** and **Use a Different Email**. While Apple's page is open, it says
   "Finish signing in with Apple in your browser." with **Cancel**; cancelling there or on
@@ -165,11 +166,11 @@ title bar or header, `statusLine` for Settings, `syncedAgo` for the time.
   Again…**, which goes straight to the code for the same account (or to Apple's page, if
   it signed in with Apple), or **Not Now**, which
   dismisses it. A deleted account offers **Turn On Sync…** with any email instead. Builds
-  without a sync server don't show it.
+  without a sync server have no Sync category at all.
 - **Title bar**: nothing while sync is healthy, or for anyone who never turned it on. A quiet
-  "Offline", "Sync paused" or "Sign in to sync" when it needs a word, which opens Settings
-  when clicked. A long sync, such as the first upload, fades in "Syncing…" after 1.2 s;
-  quick ones never show.
+  "Offline", "Sync paused" or "Sign in to sync" when it needs a word, which opens
+  Settings → Sync when clicked, where the reason and the way out are. A long sync, such as
+  the first upload, fades in "Syncing…" after 1.2 s; quick ones never show.
 - **Sync now** is a command (palette and File menu).
 
 ## Protocol

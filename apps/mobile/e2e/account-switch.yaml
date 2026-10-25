@@ -21,6 +21,8 @@ name: Account switch
     id: tool-hide
 
 - tapOn: "Settings"
+- tapOn:
+    id: settings-sync
 - tapOn: "Turn Off Sync"
 - extendedWaitUntil:
     visible: "Turn On Sync…"

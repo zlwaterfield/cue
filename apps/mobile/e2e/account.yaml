@@ -17,7 +17,7 @@ name: Account
 - tapOn:
     id: tool-hide
 - tapOn: "Settings"
-- assertVisible: "Off. Your notes are stored only on this iPhone. Turn on sync to keep them on your other devices too."
+- assertVisible: "Your notes are stored only on this iPhone. Turn on sync to keep them on your other devices too."
 - tapOn:
     id: sheet-close
 
@@ -49,7 +49,10 @@ name: Account
 
 # Off: every line stays, and the phone keeps working on its own.
 - tapOn: "Settings"
+# The index lists the account beside Sync; turning it off is inside.
 - assertVisible: ${output.email}
+- tapOn:
+    id: settings-sync
 - tapOn: "Turn Off Sync"
 - extendedWaitUntil:
     visible: "Turn On Sync…"

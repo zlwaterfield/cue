@@ -216,7 +216,8 @@ function SyncIndicator({ compact }: { compact: boolean }) {
   return (
     <Animated.View entering={shown.delayed ? FadeIn.duration(INDICATOR_FADE) : undefined}>
       <Pressable
-        onPress={() => router.push('/settings')}
+        // Straight to Sync: that screen is where the reason and the way out are.
+        onPress={() => router.push('/settings/sync')}
         hitSlop={{ top: 12, bottom: 12, left: 6, right: 6 }}
         accessibilityRole="button"
         accessibilityLabel={shown.label}

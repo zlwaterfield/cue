@@ -905,7 +905,7 @@ class EditorController {
         return
       case 'sync.now':
         if (!syncState.get().email) {
-          this.openOverlay({ kind: 'settings' })
+          this.openOverlay({ kind: 'settings', category: 'Sync' })
           return
         }
         void backend.sync.syncNow().then((r) => showToast(r.ok ? 'Synced' : r.error))

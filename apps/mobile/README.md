@@ -208,7 +208,8 @@ in front of the app.
 ## Layout
 
 ```
-src/app/        screens (Expo Router): day, sign-in, settings, search, move, calendar
+src/app/        screens (Expo Router): day, sign-in, search, move, calendar
+src/app/settings/  the settings sheet: an index that pushes into a category
 src/core/       database adapter (expo-sqlite), optional sync lifecycle, app state, link previews, share inbox, export
 src/editor/     the day page: layout, rows, drag, swipe, toolbar, editing controller
 src/ui/         header and week strip, calendar, toast, theme (brand tokens)

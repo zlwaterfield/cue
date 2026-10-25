@@ -4,15 +4,15 @@ import { createServer, type AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { signInCode, syncServer, testEmail } from '../syncServer'
-import { caret, focusedText, launch, lines, outline, today, typeLines } from './app'
+import { caret, focusedText, launch, lines, openSettings, outline, today, typeLines } from './app'
 
 test('sync is off until you turn it on, and Cue works the same', async () => {
   // A configured server that is never contacted: nothing happens until sign-in.
   const cue = await launch(undefined, { CUE_SUPABASE_URL: 'http://127.0.0.1:9', CUE_SUPABASE_KEY: 'unused' })
   await cue.page.keyboard.type('Just this Mac')
-  await cue.page.keyboard.press('Meta+,')
+  await openSettings(cue.page, 'Sync')
   await expect(cue.page.getByRole('button', { name: 'Turn On Sync…' })).toBeVisible()
-  await expect(cue.page.getByText('Off. Your notes are stored only on this Mac.', { exact: false })).toBeVisible()
+  await expect(cue.page.getByText('Your notes are stored only on this Mac.', { exact: false })).toBeVisible()
   await cue.page.keyboard.press('Escape')
   await expect(cue.page.locator('.sync-status')).toHaveCount(0)
   expect(await outline(cue.page)).toBe('Just this Mac')
@@ -50,10 +50,12 @@ test('a session the server ended asks to sign in again, quietly, until dismissed
   cue = await launch(cue.dataDir, env)
   const { page } = cue
   await page.locator('.sync-status', { hasText: 'Sign in to sync' }).click()
+  // The indicator opens Settings on Sync, not General: that pane holds the reason and the way out.
+  await expect(page.getByRole('tab', { name: 'Sync' })).toHaveAttribute('aria-selected', 'true')
   await expect(page.getByText('Your sync session ended. Sign in again to keep syncing.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Sign In Again…' })).toBeVisible()
   await page.getByRole('button', { name: 'Not Now' }).click()
-  await expect(page.getByText('Off. Your notes are stored only on this Mac.', { exact: false })).toBeVisible()
+  await expect(page.getByText('Your notes are stored only on this Mac.', { exact: false })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.locator('.sync-status')).toHaveCount(0)
   await cue.app.close()
@@ -73,7 +75,7 @@ test('the email step checks the address itself, in the iPhone’s words, and can
   // Nothing is listening at this address: a request would fail with "Can’t reach the sync server".
   const cue = await launch(undefined, { CUE_SUPABASE_URL: 'http://127.0.0.1:9', CUE_SUPABASE_KEY: 'unused' })
   const { page } = cue
-  await page.keyboard.press('Meta+,')
+  await openSettings(page, 'Sync')
   await page.getByRole('button', { name: 'Turn On Sync…' }).click()
   await expect(page.getByText('Enter your email and we’ll send a six-digit code.')).toBeVisible()
   await page.getByLabel('Email').fill('not-an-email')
@@ -82,8 +84,16 @@ test('the email step checks the address itself, in the iPhone’s words, and can
   await expect(page.locator('.setting-error')).toHaveText('That doesn’t look like an email address.')
   await expect(page.locator('form[novalidate]')).toHaveCount(1)
 
+  // Looking at another category and coming back doesn't abandon a sign-in: the address
+  // typed so far is still there, and so would be a code already sent.
+  await page.getByLabel('Email').fill('me@example.com')
+  await page.getByRole('tab', { name: 'General' }).click()
+  await expect(page.getByLabel('Email')).toBeHidden()
+  await page.getByRole('tab', { name: 'Sync' }).click()
+  await expect(page.getByLabel('Email')).toHaveValue('me@example.com')
+
   await page.getByRole('button', { name: 'Cancel' }).click()
-  await expect(page.getByText('Off. Your notes are stored only on this Mac.', { exact: false })).toBeVisible()
+  await expect(page.getByText('Your notes are stored only on this Mac.', { exact: false })).toBeVisible()
   await expect(page.locator('.setting-error')).toHaveCount(0)
   await cue.app.close()
 })
@@ -121,7 +131,7 @@ test('Sign in with Apple waits for the browser, and Cancel there or here goes ba
     return new URL(url.searchParams.get('back')!)
   }
 
-  await page.keyboard.press('Meta+,')
+  await openSettings(page, 'Sync')
   await page.getByRole('button', { name: 'Turn On Sync…' }).click()
   await page.getByRole('button', { name: 'Continue with Apple' }).click()
   await expect(page.getByText('Finish signing in with Apple in your browser.')).toBeVisible()
@@ -188,13 +198,13 @@ test.describe('with a sync server', () => {
   const env = () => ({ CUE_SUPABASE_URL: syncServer!.url, CUE_SUPABASE_KEY: syncServer!.key })
 
   async function turnOnSync(page: Page, email: string): Promise<void> {
-    await page.keyboard.press('Meta+,')
+    await openSettings(page, 'Sync')
     await page.getByRole('button', { name: 'Turn On Sync…' }).click()
     await page.getByLabel('Email').fill(email)
     await page.keyboard.press('Enter')
     await page.getByLabel('Sign-in code').fill(await signInCode(email))
     await page.keyboard.press('Enter')
-    await expect(page.locator('.setting-help', { hasText: `On as ${email}` })).toBeVisible()
+    await expect(page.locator('.setting-label', { hasText: `On as ${email}` })).toBeVisible()
     await page.keyboard.press('Escape')
   }
 
@@ -226,7 +236,7 @@ test.describe('with a sync server', () => {
     await expect.poll(() => outline(b.page, day)).toBe(expected)
 
     // Turning sync off on one Mac leaves its notes in place.
-    await a.page.keyboard.press('Meta+,')
+    await openSettings(a.page, 'Sync')
     await a.page.getByRole('button', { name: 'Turn Off Sync' }).click()
     await expect(a.page.getByRole('button', { name: 'Turn On Sync…' })).toBeVisible()
     await a.page.keyboard.press('Escape')
@@ -280,7 +290,7 @@ test.describe('with a sync server', () => {
     await expect(page.locator('.setting-error')).toHaveCount(0)
     await page.getByLabel('Sign-in code').fill(await signInCode(email))
     await page.keyboard.press('Enter')
-    await expect(page.locator('.setting-help', { hasText: `On as ${email}` })).toBeVisible()
+    await expect(page.locator('.setting-label', { hasText: `On as ${email}` })).toBeVisible()
     await expect(page.locator('.setting-help', { hasText: 'Synced just now' })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(page.locator('.sync-status')).toHaveCount(0)

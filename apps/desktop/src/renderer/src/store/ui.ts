@@ -45,11 +45,16 @@ export type Selection =
 
 export type PaletteMode = 'commands' | 'search' | 'date'
 
+/** Settings' categories, in the order the rail lists them. */
+export const SETTINGS_CATEGORIES = ['General', 'Sync', 'Your data', 'About'] as const
+export type SettingsCategory = (typeof SETTINGS_CATEGORIES)[number]
+
 export type Overlay =
   | null
   | { kind: 'palette'; mode: PaletteMode; dateAction?: 'go' | 'move'; query?: string }
   | { kind: 'shortcuts' }
-  | { kind: 'settings' }
+  /** Opens on General unless something (the sync indicator) asks for its own category. */
+  | { kind: 'settings'; category?: SettingsCategory }
   | { kind: 'about' }
 
 export interface Toast {

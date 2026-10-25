@@ -27,6 +27,13 @@ export async function launch(dataDir = freshDataDir(), env: Record<string, strin
   return { app, page, dataDir }
 }
 
+/** ⌘, opens Settings on General; every other category is a click down the rail. */
+export async function openSettings(page: Page, category = 'General'): Promise<void> {
+  await page.keyboard.press('Meta+,')
+  await expect(page.getByRole('tab', { name: 'General' })).toBeVisible()
+  if (category !== 'General') await page.getByRole('tab', { name: category }).click()
+}
+
 export function focusedId(page: Page): Promise<string | null> {
   return page.evaluate(() => (document.activeElement as HTMLElement | null)?.dataset?.editableId ?? null)
 }

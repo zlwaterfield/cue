@@ -3,6 +3,8 @@
 appId: app.cue
 ---
 - tapOn: "Settings"
+- tapOn:
+    id: settings-sync
 - tapOn: "Turn On Sync…"
 - extendedWaitUntil:
     visible: "Sign in to sync your notes"
