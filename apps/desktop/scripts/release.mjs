@@ -15,6 +15,10 @@
  * DMG and zip. This build is the only kind that updates itself, from the zip and
  * latest-mac.yml that `pnpm release:upload` publishes. This script signs, notarizes and staples the DMG too, and checks both with
  * Gatekeeper. The results are in release/.
+ *
+ * It builds what's committed, so uncommitted changes stop it before any of that: `pnpm
+ * release:upload` won't publish a build made from them. `pnpm release --dirty` builds one
+ * anyway, to try out yourself.
  */
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -25,6 +29,7 @@ import { loadEnv } from 'electron-vite'
 const root = resolve(import.meta.dirname, '..')
 const out = join(root, 'release')
 const profile = process.env.CUE_NOTARY_PROFILE || 'cue-notary'
+const allowDirty = process.argv.includes('--dirty')
 
 function fail(message) {
   console.error(`\n${message}\n`)
@@ -65,7 +70,16 @@ try {
 
 // Saved with the build, so `pnpm release:upload` tags the commit it was built from.
 const commit = capture('git', ['rev-parse', 'HEAD']).trim()
+// `pnpm release:upload` refuses a build made from a dirty tree, since the release points at a
+// commit that isn't what was built. Saying so now costs a second; saying it afterwards wastes
+// the signing and notarizing in between. --dirty builds one anyway, to try out locally.
 const dirty = Boolean(capture('git', ['status', '--porcelain']).trim())
+if (dirty && !allowDirty) {
+  fail(
+    'The working tree has uncommitted changes, and `pnpm release:upload` won’t publish a build made ' +
+      'from one. Commit them and run this again, or `pnpm release --dirty` for a build to try out yourself.'
+  )
+}
 if (dirty) console.warn('\nNote: the working tree has uncommitted changes, so `pnpm release:upload` won’t publish this build.')
 const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 console.log(`\nCue ${version}: signing as "${identity}", notarizing with "${profile}", sync ${new URL(env.CUE_SUPABASE_URL).host}\n`)
