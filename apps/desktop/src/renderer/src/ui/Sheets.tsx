@@ -262,7 +262,7 @@ function Settings({ opensOn }: { opensOn: SettingsCategory }) {
               key={c}
               role="tab"
               aria-selected={c === category}
-              aria-controls="settings-pane"
+              aria-controls={`settings-pane-${c}`}
               tabIndex={c === category ? 0 : -1}
               className={c === category ? 'is-active' : ''}
               onClick={() => setChosen(c)}
@@ -271,125 +271,130 @@ function Settings({ opensOn }: { opensOn: SettingsCategory }) {
             </button>
           ))}
         </div>
-        <div className="settings-pane" id="settings-pane" role="tabpanel" aria-label={category}>
-          {category === 'General' && (
-            <>
-              <div className="setting">
-                <div>
-                  <div className="setting-label">Appearance</div>
-                  <div className="setting-help">Follows your Mac unless you choose otherwise.</div>
+        {categories.map((c) => (
+          /* Every pane stays mounted, so changing category part-way through a sign-in
+             doesn't throw the code away. `hidden` keeps the rest off the page and out
+             of the tab order. */
+          <div key={c} className="settings-pane" id={`settings-pane-${c}`} role="tabpanel" aria-label={c} hidden={c !== category}>
+            {c === 'General' && (
+              <>
+                <div className="setting">
+                  <div>
+                    <div className="setting-label">Appearance</div>
+                    <div className="setting-help">Follows your Mac unless you choose otherwise.</div>
+                  </div>
+                  <Segmented
+                    value={settings.theme}
+                    options={[
+                      ['system', 'System'],
+                      ['light', 'Light'],
+                      ['dark', 'Dark']
+                    ]}
+                    onChange={(theme) => update({ theme })}
+                  />
                 </div>
-                <Segmented
-                  value={settings.theme}
-                  options={[
-                    ['system', 'System'],
-                    ['light', 'Light'],
-                    ['dark', 'Dark']
-                  ]}
-                  onChange={(theme) => update({ theme })}
-                />
-              </div>
-              <div className="setting">
-                <div>
-                  <div className="setting-label">Week starts on</div>
-                  <div className="setting-help">Shapes the week view and “next week”.</div>
+                <div className="setting">
+                  <div>
+                    <div className="setting-label">Week starts on</div>
+                    <div className="setting-help">Shapes the week view and “next week”.</div>
+                  </div>
+                  <Segmented
+                    value={settings.weekStartsOn}
+                    options={[
+                      [1, 'Monday'],
+                      [0, 'Sunday']
+                    ]}
+                    onChange={(weekStartsOn) => update({ weekStartsOn })}
+                  />
                 </div>
-                <Segmented
-                  value={settings.weekStartsOn}
-                  options={[
-                    [1, 'Monday'],
-                    [0, 'Sunday']
-                  ]}
-                  onChange={(weekStartsOn) => update({ weekStartsOn })}
-                />
-              </div>
-              <div className="setting">
-                <div>
-                  <div className="setting-label">Earlier to-dos on Today</div>
-                  <div className="setting-help">Today starts with the to-dos you didn’t finish in the last 30 days, folded into one line.</div>
+                <div className="setting">
+                  <div>
+                    <div className="setting-label">Earlier to-dos on Today</div>
+                    <div className="setting-help">Today starts with the to-dos you didn’t finish in the last 30 days, folded into one line.</div>
+                  </div>
+                  <Segmented
+                    value={settings.looseEnds}
+                    options={[
+                      [true, 'Show'],
+                      [false, 'Hide']
+                    ]}
+                    onChange={(looseEnds) => update({ looseEnds })}
+                  />
                 </div>
-                <Segmented
-                  value={settings.looseEnds}
-                  options={[
-                    [true, 'Show'],
-                    [false, 'Hide']
-                  ]}
-                  onChange={(looseEnds) => update({ looseEnds })}
-                />
-              </div>
-            </>
-          )}
-          {category === 'Sync' && <SyncSettings />}
-          {category === 'Your data' && (
-            <>
-              <div className="setting">
-                <div>
-                  <div className="setting-label">Export</div>
-                  <div className="setting-help">Everything is stored on this Mac and saved as you type.</div>
+              </>
+            )}
+            {c === 'Sync' && <SyncSettings />}
+            {c === 'Your data' && (
+              <>
+                <div className="setting">
+                  <div>
+                    <div className="setting-label">Export</div>
+                    <div className="setting-help">Everything is stored on this Mac and saved as you type.</div>
+                  </div>
+                  <div className="setting-actions">
+                    <button className="button" onClick={run('export.markdown')} disabled={!isDesktop}>
+                      Markdown…
+                    </button>
+                    <button className="button" onClick={run('export.json')} disabled={!isDesktop}>
+                      JSON Backup…
+                    </button>
+                  </div>
                 </div>
-                <div className="setting-actions">
-                  <button className="button" onClick={run('export.markdown')} disabled={!isDesktop}>
-                    Markdown…
+                <div className="setting">
+                  <div>
+                    <div className="setting-label">Import</div>
+                    <div className="setting-help">Merges a JSON backup into the days it came from.</div>
+                  </div>
+                  <button className="button" onClick={run('import.json')} disabled={!isDesktop}>
+                    Import JSON Backup…
                   </button>
-                  <button className="button" onClick={run('export.json')} disabled={!isDesktop}>
-                    JSON Backup…
+                </div>
+                <div className="setting">
+                  <div>
+                    <div className="setting-label">Backups</div>
+                    <div className="setting-help">A snapshot is kept for each of the last 14 days.</div>
+                  </div>
+                  <button className="button is-quiet" onClick={run('app.revealData')} disabled={!isDesktop}>
+                    Show in Finder
                   </button>
                 </div>
-              </div>
-              <div className="setting">
-                <div>
-                  <div className="setting-label">Import</div>
-                  <div className="setting-help">Merges a JSON backup into the days it came from.</div>
+              </>
+            )}
+            {c === 'About' && (
+              <>
+                <div className="setting">
+                  <div>
+                    <div className="setting-label">Cue</div>
+                    <div className="setting-help">Version {__APP_VERSION__}</div>
+                  </div>
+                  <button className="button is-quiet" onClick={() => controller.execute('app.about')}>
+                    About Cue
+                  </button>
                 </div>
-                <button className="button" onClick={run('import.json')} disabled={!isDesktop}>
-                  Import JSON Backup…
-                </button>
-              </div>
-              <div className="setting">
-                <div>
-                  <div className="setting-label">Backups</div>
-                  <div className="setting-help">A snapshot is kept for each of the last 14 days.</div>
+                <div className="setting">
+                  <div>
+                    <div className="setting-label">Report an issue</div>
+                    <div className="setting-help">Opens a new issue on GitHub with your version filled in.</div>
+                  </div>
+                  <button className="button" onClick={() => void backend.openExternal(reportIssueUrl(`Mac, version ${__APP_VERSION__}`))}>
+                    Report an Issue…
+                  </button>
                 </div>
-                <button className="button is-quiet" onClick={run('app.revealData')} disabled={!isDesktop}>
-                  Show in Finder
-                </button>
-              </div>
-            </>
-          )}
-          {category === 'About' && (
-            <>
-              <div className="setting">
-                <div>
-                  <div className="setting-label">Cue</div>
-                  <div className="setting-help">Version {__APP_VERSION__}</div>
+                <div className="setting">
+                  <div className="setting-legal">
+                    <a href={TERMS_URL} target="_blank" rel="noreferrer">
+                      Terms
+                    </a>
+                    {' · '}
+                    <a href={PRIVACY_URL} target="_blank" rel="noreferrer">
+                      Privacy Policy
+                    </a>
+                  </div>
                 </div>
-                <button className="button is-quiet" onClick={() => controller.execute('app.about')}>
-                  About Cue
-                </button>
-              </div>
-              <div className="setting">
-                <div>
-                  <div className="setting-label">Report an issue</div>
-                  <div className="setting-help">Opens a new issue on GitHub with your version filled in.</div>
-                </div>
-                <button className="button" onClick={() => void backend.openExternal(reportIssueUrl(`Mac, version ${__APP_VERSION__}`))}>
-                  Report an Issue…
-                </button>
-              </div>
-              <div className="setting">
-                <div className="setting-legal">
-                  <a href={TERMS_URL} target="_blank" rel="noreferrer">
-                    Terms
-                  </a>
-                  {' · '}
-                  <a href={PRIVACY_URL} target="_blank" rel="noreferrer">
-                    Privacy Policy
-                  </a>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+              </>
+            )}
+          </div>
+        ))}
       </div>
     </Sheet>
   )

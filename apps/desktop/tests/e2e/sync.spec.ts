@@ -84,6 +84,14 @@ test('the email step checks the address itself, in the iPhone’s words, and can
   await expect(page.locator('.setting-error')).toHaveText('That doesn’t look like an email address.')
   await expect(page.locator('form[novalidate]')).toHaveCount(1)
 
+  // Looking at another category and coming back doesn't abandon a sign-in: the address
+  // typed so far is still there, and so would be a code already sent.
+  await page.getByLabel('Email').fill('me@example.com')
+  await page.getByRole('tab', { name: 'General' }).click()
+  await expect(page.getByLabel('Email')).toBeHidden()
+  await page.getByRole('tab', { name: 'Sync' }).click()
+  await expect(page.getByLabel('Email')).toHaveValue('me@example.com')
+
   await page.getByRole('button', { name: 'Cancel' }).click()
   await expect(page.getByText('Your notes are stored only on this Mac.', { exact: false })).toBeVisible()
   await expect(page.locator('.setting-error')).toHaveCount(0)

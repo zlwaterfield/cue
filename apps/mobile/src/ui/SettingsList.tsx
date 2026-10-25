@@ -1,6 +1,6 @@
 import { Children } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { router } from 'expo-router'
+import { router, useNavigation } from 'expo-router'
 import { SymbolView } from 'expo-symbols'
 import { metrics, useColors } from './theme'
 
@@ -13,6 +13,10 @@ import { metrics, useColors } from './theme'
 /** A sub-screen of Settings: back to the index on the left, close the sheet on the right. */
 export function SettingsScreen({ title, children }: { title: string; children: React.ReactNode }) {
   const c = useColors()
+  // Close goes to the day, not back to the index. An action raised here reaches this
+  // stack first, and a stack answers "dismiss" by popping to its own first screen
+  // (`expo-router`'s `findActionHandler`), so it has to be the sheet that's asked.
+  const sheet = useNavigation().getParent()
   return (
     <View style={[styles.screen, { backgroundColor: c.bgElevated }]}>
       <View style={[styles.nav, { borderBottomColor: c.line }]}>
@@ -36,7 +40,7 @@ export function SettingsScreen({ title, children }: { title: string; children: R
           {title}
         </Text>
         <Pressable
-          onPress={() => router.dismissAll()}
+          onPress={() => sheet?.goBack()}
           hitSlop={7}
           accessibilityRole="button"
           accessibilityLabel="Close"
