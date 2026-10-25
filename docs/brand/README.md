@@ -43,6 +43,7 @@ Geist (OFL); those fonts keep their own licenses.
 | `web/` | `favicon.svg` (adapts to dark mode), `favicon.ico` (16/32/48), `apple-touch-icon.png`, icon-192/512, a maskable 512, `site.webmanifest`, and a `<head>` snippet. |
 | `hero/` | A self-contained landing-page hero (`index.html`, light and dark via tokens) and PNG renders. |
 | `guide/` | The one-page usage guide (PDF, PNG and HTML). |
+| `video/` | The launch video (1920 × 1080 H.264, silent) and its poster frame, built by `pnpm video`. |
 | `APP-FEEDBACK.md` | Changes to fold back into the app. |
 | `source/` | The Python scripts that generated everything. Re-run them to regenerate the kit. |
 

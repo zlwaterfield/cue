@@ -39,7 +39,8 @@
     "release:upload": "node scripts/upload-release.mjs",
     "seed": "node scripts/run-ts.mjs scripts/seed.ts",
     "bench": "node scripts/bench.mjs",
-    "screenshots": "node scripts/screenshots.mjs"
+    "screenshots": "node scripts/screenshots.mjs",
+    "video": "node scripts/launch-video.mjs"
   },
   "engines": {
     "node": ">=24"
