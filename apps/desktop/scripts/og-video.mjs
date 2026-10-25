@@ -3,7 +3,7 @@
  *
  *   pnpm og-video
  *
- * Opens docs/brand/social/og-video.html in Chrome, steps window.cueFrame(t) one
+ * Opens brand/social/og-video.html in Chrome, steps window.cueFrame(t) one
  * frame at a time at 2x, and pipes the frames straight into ffmpeg. Needs ffmpeg
  * on PATH (`brew install ffmpeg`) and a Chrome to drive; Google Fonts is fetched
  * for Newsreader and Geist, so it needs the network too.
@@ -18,7 +18,7 @@ import { chromium } from '@playwright/test'
 
 // Both belong to the repository, and the working directory is this app's folder.
 const REPO = resolve(import.meta.dirname, '../../..')
-const PAGE = resolve(REPO, 'docs/brand/social/og-video.html')
+const PAGE = resolve(REPO, 'brand/social/og-video.html')
 const OUT = resolve(REPO, 'site/images/og.mp4')
 const FPS = 30
 const SCALE = 2 // render at 2560x1280 and let ffmpeg resample down, for cleaner type

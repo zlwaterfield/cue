@@ -32,7 +32,7 @@ export const DEVICES = {
   seconds: 5.2,
   caption: 'Your Mac and your iPhone.',
   sub: 'Sync is optional, and free.',
-  screen: 'docs/app-store/screens/07-dark.png'
+  screen: 'brand/app-store/screens/07-dark.png'
 }
 
 /** The closing card. */

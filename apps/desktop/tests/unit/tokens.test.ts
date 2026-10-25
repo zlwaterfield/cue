@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
- * The brand tokens (docs/brand/tokens) are copied by hand into the Mac's app.css and
+ * The brand tokens (brand/tokens) are copied by hand into the Mac's app.css and
  * the iPhone's theme.ts. This keeps the copies honest.
  */
 
@@ -50,7 +50,7 @@ function themePalette(source: string, name: 'light' | 'dark'): Map<string, strin
   return out
 }
 
-const brandBlocks = cssBlocks(read('docs/brand/tokens/tokens.css'))
+const brandBlocks = cssBlocks(read('brand/tokens/tokens.css'))
 const brand = {
   light: brandBlocks.find((b) => b.selector.includes(':root[data-theme="light"]'))!.vars,
   dark: brandBlocks.find((b) => b.selector === ':root:not([data-theme="light"])')!.vars
@@ -75,7 +75,7 @@ describe('brand tokens', () => {
   })
 
   it('matches tokens.json', () => {
-    const json = JSON.parse(read('docs/brand/tokens/tokens.json')) as Record<'light' | 'dark', Record<string, { hex8: string }>>
+    const json = JSON.parse(read('brand/tokens/tokens.json')) as Record<'light' | 'dark', Record<string, { hex8: string }>>
     for (const mode of ['light', 'dark'] as const) {
       const fromJson = Object.fromEntries(Object.entries(json[mode]).map(([name, token]) => [`--${name}`, token.hex8]))
       expect(fromJson).toEqual(Object.fromEntries(brand[mode]))

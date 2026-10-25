@@ -3,7 +3,7 @@ Writes the home page's iPhone shot, light and dark (Pillow).
 
     python3 apps/desktop/scripts/phone-shots.py
 
-The light one is the App Store screen `docs/app-store/screens/08-mac.png`, which
+The light one is the App Store screen `brand/app-store/screens/08-mac.png`, which
 holds the same day as the Mac window beside it on the page, at half size.
 
 There is no dark screenshot of that day, and the screens can only be captured on a

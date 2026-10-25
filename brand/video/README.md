@@ -19,9 +19,9 @@ pnpm build && pnpm video
 ```
 
 `apps/desktop/scripts/launch-video.mjs` films the built app playing
-[`storyboard.mjs`](../../../apps/desktop/scripts/launch-video/storyboard.mjs) at 30 fps, then
+[`storyboard.mjs`](../../apps/desktop/scripts/launch-video/storyboard.mjs) at 30 fps, then
 draws the captions, the window and the cards around that footage one frame at a
-time in [`stage.html`](../../../apps/desktop/scripts/launch-video/stage.html) and encodes the
+time in [`stage.html`](../../apps/desktop/scripts/launch-video/stage.html) and encodes the
 result. Needs `ffmpeg` on PATH and an X display; on Linux and CI it starts its
 own Xvfb. Working frames land in `.video/`, which is not committed.
 
@@ -46,9 +46,9 @@ thing takes a few minutes.
 ## Using it
 
 Off a Mac the app has no SF Pro and no SF Mono, so the capture stands Inter and
-Geist Mono in their place, as `docs/brand/README.md` ▸ Typography allows for
+Geist Mono in their place, as `brand/README.md` ▸ Typography allows for
 non-Apple renders. A take filmed on a Mac uses the real thing and is the one to
 prefer for anything the App Store sees.
 
 App Store app previews are a different shape again (886 × 1920 at 6.3", portrait
-and from the iPhone app) and there are none yet; see `docs/app-store/README.md`.
+and from the iPhone app) and there are none yet; see `brand/app-store/README.md`.

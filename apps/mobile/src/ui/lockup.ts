@@ -1,5 +1,5 @@
 /**
- * The Cue lockup from the brand kit (docs/brand/logo/cue-lockup-on-light.svg): the
+ * The Cue lockup from the brand kit (brand/logo/cue-lockup-on-light.svg): the
  * wordmark in outlined Newsreader, and the caret. Newsreader is never loaded as a font.
  * Generated from the SVG; keep it in sync with the kit.
  */

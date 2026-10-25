@@ -30,7 +30,7 @@ const config: ExpoConfig = {
     buildNumber: process.env.CUE_IOS_BUILD_NUMBER || '1',
     appleTeamId: process.env.CUE_APPLE_TEAM_ID || undefined,
     supportsTablet: true,
-    // The Icon Composer source shared with the Mac app (docs/brand/app-icon/ICON-COMPOSER.md).
+    // The Icon Composer source shared with the Mac app (brand/app-icon/ICON-COMPOSER.md).
     icon: '../desktop/build/Cue.icon',
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,

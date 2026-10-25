@@ -5,7 +5,7 @@
  *
  * Films the real app playing `scripts/launch-video/storyboard.mjs`, then draws
  * the captions, the window and the cards around that footage a frame at a time
- * and encodes the result. Writes docs/brand/video/launch.mp4 and a poster.
+ * and encodes the result. Writes brand/video/launch.mp4 and a poster.
  *
  * Needs ffmpeg on PATH, and an X display to film on — Linux and CI get one from
  * Xvfb automatically. The working frames land in .video/ and are not committed.
@@ -19,7 +19,7 @@ import { OPENING, WINDOW } from './launch-video/storyboard.mjs'
 
 const WORK = '.video'
 // The film belongs to the brand kit, in the repository; the working frames stay here.
-const OUT = resolve(import.meta.dirname, '../../..', 'docs/brand/video')
+const OUT = resolve(import.meta.dirname, '../../..', 'brand/video')
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 function need(command, hint) {
