@@ -1,4 +1,13 @@
 <!doctype html>
+<!--
+  Hi, you opened the source.
+
+  It's one HTML file with no build step, no framework and no tracking.
+  Cue's code is open too: https://github.com/zlwaterfield/cue
+
+  A few small things are hidden on this page. Take your time.
+  — Zach
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -35,7 +44,7 @@
   --text-selection: #2C2C3129;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     color-scheme: dark;
     --bg: #18181A; /* Night */
     --bg-subtle: #2C2C30;
@@ -49,6 +58,21 @@
     --on-accent: #18181A;
     --text-selection: #E6E6EA38;
   }
+}
+/* The same dark tokens, for the ⌘K palette's "Toggle dark mode". */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #18181A;
+  --bg-subtle: #2C2C30;
+  --bg-hover: #FFFFFF0F;
+  --text: #ECECEF;
+  --text-2: #9D9DA4;
+  --text-3: #76767D;
+  --line: #FFFFFF13;
+  --line-strong: #FFFFFF42;
+  --accent: #E6E6EA;
+  --on-accent: #18181A;
+  --text-selection: #E6E6EA38;
 }
 
 * { box-sizing: border-box; }
@@ -73,16 +97,31 @@ nav .links a:hover { color: var(--text); }
 
 header { text-align: center; padding: 64px 0 40px; }
 .status { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px;
-  border: 1px solid var(--line-strong); border-radius: 999px; font-size: 13px; color: var(--text-2); }
+  border: 1px solid var(--line-strong); border-radius: 999px; font: inherit; font-size: 13px; color: var(--text-2);
+  background: none; cursor: default; }
 .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--text-2); }
+.status:hover::before, .status:focus-visible::before { animation: beat 1.4s ease-in-out infinite; }
+.status:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@keyframes beat { 0%, 40%, 100% { transform: scale(1); } 12% { transform: scale(1.6); } 26% { transform: scale(1.3); } }
 h1 { font-size: clamp(46px, 7.4vw, 84px); line-height: 1.02; margin: 26px 0 22px; text-wrap: balance; }
 .caret { display: inline-block; width: 0.055em; height: 0.92em; margin-left: 0.06em; vertical-align: -0.1em;
   background: var(--accent); border-radius: 0.03em; animation: blink 1.1s steps(1) infinite; }
+.caret.solid { animation: none; }
 @keyframes blink { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .caret { animation: none; } }
+/* ⌘↩ on the page checks off the headline, like a done to-do. */
+.h1-text { text-decoration: line-through 0.045em transparent; transition: color .3s, text-decoration-color .3s; }
+h1.done .h1-text { color: var(--text-3); text-decoration-color: var(--text-3); }
+/* Start typing anywhere near the top and it lands on the next line. */
+.next-line { font-size: clamp(30px, 4.6vw, 52px); line-height: 1.1; margin: -10px 0 26px; min-height: 1.1em;
+  overflow-wrap: anywhere; }
+.next-line.empty::after { content: "Start typing…"; color: var(--text-3); }
+
 .lede { max-width: 560px; margin: 0 auto; font-size: 20px; color: var(--text-2); text-wrap: balance; }
 kbd { font: 500 0.8em ui-monospace, "SF Mono", Menlo, monospace; padding: 2px 6px; border-radius: 6px;
-  background: var(--bg-subtle); color: var(--text); border: 1px solid var(--line); white-space: nowrap; }
+  background: var(--bg-subtle); color: var(--text); border: 1px solid var(--line); white-space: nowrap;
+  display: inline-block; transition: background .2s, color .2s, transform .2s; }
+kbd.pressed { background: var(--text); color: var(--bg); transform: translateY(1px); transition-duration: 0s; }
 
 .shot { margin: 8px auto 0; max-width: 980px; }
 .shot img { display: block; width: 100%; height: auto; }
@@ -99,6 +138,11 @@ h2 { font-size: clamp(32px, 4.4vw, 44px); line-height: 1.1; margin: 0 0 24px; }
 .grid p { color: var(--text-2); font-size: 16px; }
 .num { color: var(--text); font-variant-numeric: tabular-nums; }
 .not { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--text-2); font-size: 16px; }
+.not .item { text-decoration: line-through 1px transparent; transition: color .25s, text-decoration-color .25s; }
+.not:hover .item { color: var(--text-3); text-decoration-color: currentColor; }
+.not:hover .item:nth-child(2) { transition-delay: .15s; }
+.not:hover .item:nth-child(3) { transition-delay: .3s; }
+.not:hover .item:nth-child(4) { transition-delay: .45s; }
 
 .btn { display: inline-flex; align-items: center; height: 44px; padding: 0 18px; border-radius: 12px;
   font-size: 16px; font-weight: 500; text-decoration: none; margin-top: 32px; }
@@ -109,9 +153,80 @@ h2 { font-size: clamp(32px, 4.4vw, 44px); line-height: 1.1; margin: 0 0 24px; }
 footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
   padding: 32px 0 48px; border-top: 1px solid var(--line); font-size: 14px; color: var(--text-2); }
 footer .symbol { display: block; width: 20px; height: 20px; color: var(--text); }
+footer .symbol .line { transform-box: fill-box; transform-origin: left; }
+footer .symbol:hover .line { animation: write .7s steps(3, end); }
+@keyframes write { from { transform: scaleX(0); } }
 footer .left { display: flex; align-items: center; gap: 12px; }
 footer a { text-decoration: none; }
 footer a:hover { color: var(--text); }
+
+/* Hover card for the "Made by" link. */
+.maker { position: relative; }
+.card { position: absolute; left: 0; bottom: calc(100% + 12px); z-index: 10; width: 290px; padding: 16px;
+  border: 1px solid var(--line-strong); border-radius: 14px; background: var(--bg); color: var(--text-2);
+  box-shadow: 0 12px 40px #0000001F; font-size: 14px; line-height: 1.5;
+  opacity: 0; visibility: hidden; transform: translateY(4px); transition: opacity .18s, transform .18s, visibility 0s .18s; }
+.card::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 14px; }
+.maker:hover .card, .maker:focus-within .card, .maker.open .card { opacity: 1; visibility: visible; transform: none;
+  transition-delay: .15s, .15s, 0s; }
+.card .who { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.card img { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-subtle); }
+.card .name { display: block; color: var(--text); font-weight: 600; }
+.card .where { display: block; font-size: 13px; color: var(--text-3); }
+.card .links { display: flex; gap: 14px; margin-top: 12px; }
+.card a { color: var(--text); }
+.card a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.farewell { margin: -16px 0 0; padding-bottom: 48px; text-align: center; font-size: 17px; color: var(--text-3);
+  opacity: 0; transition: opacity 1.4s; }
+.farewell.seen { opacity: 1; }
+
+.tip { position: fixed; z-index: 30; top: 0; left: 0; max-width: min(300px, calc(100vw - 16px)); padding: 6px 10px;
+  border-radius: 8px; background: var(--text); color: var(--bg); font-size: 13px; line-height: 1.4;
+  pointer-events: none; opacity: 0; transform: translateY(3px); transition: opacity .15s, transform .15s; }
+.tip.show { opacity: 1; transform: none; }
+.toast { position: fixed; z-index: 30; left: 50%; bottom: 28px; padding: 10px 16px; border-radius: 12px;
+  background: var(--text); color: var(--bg); font-size: 14px; white-space: nowrap; pointer-events: none;
+  opacity: 0; transform: translate(-50%, 8px); transition: opacity .2s, transform .2s; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ⌘K: a tiny command palette, like the app's. */
+.palette { width: min(520px, calc(100vw - 32px)); margin: 14vh auto auto; padding: 0; border: 1px solid var(--line-strong);
+  border-radius: 14px; background: var(--bg); color: var(--text); box-shadow: 0 24px 64px #00000033; }
+.palette::backdrop { background: #00000026; }
+.palette input { display: block; width: 100%; height: 54px; padding: 0 18px; border: 0; border-bottom: 1px solid var(--line);
+  background: transparent; color: var(--text); font: inherit; font-size: 17px; outline: none; }
+.palette input::placeholder { color: var(--text-3); }
+.palette ul { list-style: none; margin: 0; padding: 6px; max-height: 340px; overflow: auto; }
+.palette li { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 40px; padding: 0 12px;
+  border-radius: 8px; font-size: 15px; color: var(--text-2); cursor: default; }
+.palette li[aria-selected="true"] { background: var(--bg-hover); color: var(--text); }
+.palette li.none { color: var(--text-3); }
+.palette li kbd { font-size: 12px; }
+
+.print-page { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .status:hover::before, .status:focus-visible::before, footer .symbol:hover .line { animation: none; }
+  .card, .tip, kbd.pressed { transform: none; }
+  .toast, .toast.show { transform: translateX(-50%); }
+}
+
+/* Printing the site prints a blank page for today. */
+@media print {
+  @page { margin: 0.6in; }
+  body { background: #fff; color: #1C1C1E; }
+  .wrap, .tip, .toast, .palette { display: none !important; }
+  .print-page { display: block; }
+  .print-page .weekday { font-size: 11pt; letter-spacing: .02em; color: #6C6C72; }
+  .print-page .date { margin: 2pt 0 18pt; font-size: 34pt; line-height: 1.1; }
+  .print-page ol { list-style: none; margin: 0; padding: 0; }
+  .print-page li { height: 0.36in; border-bottom: 0.5pt solid #C8C8CC; display: flex; align-items: flex-end; padding-bottom: 4pt; }
+  .print-page li .caret { width: 1.5pt; height: 16pt; margin: 0; background: #2C2C31; animation: none; }
+  .print-page footer { display: flex; justify-content: space-between; align-items: center; margin-top: 16pt;
+    padding: 0; border: 0; font-size: 9pt; color: #8E8E94; }
+  .print-page footer svg { width: 12pt; height: 12pt; color: #1C1C1E; }
+}
 
 @media (max-width: 720px) {
   header { padding: 40px 0 24px; }
@@ -129,8 +244,9 @@ footer a:hover { color: var(--text); }
   </nav>
 
   <header>
-    <span class="status">Beta · my daily driver</span>
-    <h1 class="serif">Every day is a page.<span class="caret" aria-hidden="true"></span></h1>
+    <button class="status" type="button" data-egg="beta"><span class="status-text">Beta · my daily driver</span></button>
+    <h1 class="serif"><span class="h1-text">Every day is a page.</span><span class="caret" aria-hidden="true"></span></h1>
+    <p class="next-line serif" aria-hidden="true" hidden><span class="typed"></span></p>
     <p class="lede">Daily notes and to-dos for Mac and iOS.<br>
       Fast, quiet and keyboard-first.</p>
     <a class="btn primary" href="download/">Download</a>
@@ -143,7 +259,7 @@ footer a:hover { color: var(--text); }
   </picture>
 
   <main>
-    <section class="narrow prose">
+    <section class="narrow prose" id="why">
       <h2 class="serif">Why I built it</h2>
       <p>I wanted one place to put the day. Not a project manager or a second brain, just a page
         for today that I could open and type into without deciding where anything goes first.</p>
@@ -163,11 +279,11 @@ footer a:hover { color: var(--text); }
           <div>
             <h3>Keyboard first</h3>
             <p><kbd>Tab</kbd> nests, <kbd>⌘↩</kbd> completes, and <kbd>⌘K</kbd> does everything
-              else, including dates like “move to fri”. The mouse still works.</p>
+              else, including dates like <span data-egg="fri">“move to fri”</span>. The mouse still works.</p>
           </div>
           <div>
             <h3>Fast, and measured</h3>
-            <p>Ready to type <span class="num">240 ms</span> after launch, even with five years
+            <p>Ready to type <span class="num" data-egg="speed">240 ms</span> after launch, even with five years
               of notes. A keystroke renders in about <span class="num">2 ms</span>. Every number
               has a budget and a test.</p>
           </div>
@@ -177,8 +293,9 @@ footer a:hover { color: var(--text); }
               needs no account; turn on sync and the same notes are on your iPhone.</p>
           </div>
         </div>
-        <p class="not">Cue stays small on purpose: no reminders, recurring tasks, collaboration
-          or AI features.</p>
+        <p class="not">Cue stays small on purpose: no <span class="item" data-egg="reminders">reminders</span>,
+          <span class="item">recurring tasks</span>, <span class="item">collaboration</span>
+          or <span class="item">AI features</span>.</p>
     </section>
 
     <section class="narrow prose">
@@ -195,11 +312,324 @@ footer a:hover { color: var(--text); }
 
   <footer>
     <div class="left">
-      <svg class="symbol" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="13.5" width="9" height="3" rx="1.5" fill="currentColor"/><rect x="16.5" y="3" width="3" height="18" rx="1.5" fill="currentColor"/></svg>
-      <span>Made by <a href="https://github.com/zlwaterfield">Zach Waterfield</a></span>
+      <svg class="symbol" viewBox="0 0 24 24" aria-hidden="true"><rect class="line" x="4.5" y="13.5" width="9" height="3" rx="1.5" fill="currentColor"/><rect x="16.5" y="3" width="3" height="18" rx="1.5" fill="currentColor"/></svg>
+      <span class="maker">Made by <a class="maker-link" href="https://github.com/zlwaterfield">Zach Waterfield</a>
+        <span class="card">
+          <span class="who">
+            <img src="https://github.com/zlwaterfield.png?size=96" width="40" height="40" alt="" loading="lazy">
+            <span><span class="name">Zach Waterfield</span><span class="where">Toronto, Canada</span></span>
+          </span>
+          Hey, I'm Zach! Engineer, investor and coffee enthusiast. I lead the engineering team at
+          Rove Travel.
+          <span class="links"><a href="https://zlwaterfield.com">zlwaterfield.com</a><a href="https://github.com/zlwaterfield">GitHub</a><a href="https://x.com/zlwaterfield">X</a></span>
+        </span>
+      </span>
     </div>
     <span>Open source, MIT · <a href="https://github.com/zlwaterfield/cue">GitHub</a> · <a href="terms/">Terms</a> · <a href="privacy/">Privacy</a></span>
   </footer>
+  <p class="farewell serif" aria-hidden="true">See you tomorrow.</p>
 </div>
+
+<div class="print-page" aria-hidden="true">
+  <div class="weekday"></div>
+  <div class="date serif"></div>
+  <ol><li><span class="caret"></span></li></ol>
+  <footer><span>Cue · usecue.today</span><svg viewBox="0 0 24 24"><rect x="4.5" y="13.5" width="9" height="3" rx="1.5" fill="currentColor"/><rect x="16.5" y="3" width="3" height="18" rx="1.5" fill="currentColor"/></svg></footer>
+</div>
+
+<div class="tip" aria-hidden="true"></div>
+<div class="toast" role="status" aria-live="polite"></div>
+<dialog class="palette" aria-label="Command palette">
+  <input type="text" placeholder="Type a command, or “move to fri”" aria-label="Command" autocomplete="off" spellcheck="false"
+    role="combobox" aria-expanded="true" aria-controls="palette-list" aria-autocomplete="list">
+  <ul role="listbox" id="palette-list" aria-label="Commands"></ul>
+</dialog>
+<script>
+// Small things for people who take their time. None of this is needed to read the page.
+(() => {
+  const $ = (sel, el = document) => el.querySelector(sel)
+  const $$ = (sel, el = document) => [...el.querySelectorAll(sel)]
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
+  const GITHUB = 'https://github.com/zlwaterfield/cue'
+  const SINCE = new Date(2026, 9, 17) // The first commit, and the first day I used it.
+
+  // Dates
+  const fmt = (date, options) => date.toLocaleDateString('en-US', options)
+  const short = (date) => fmt(date, { weekday: 'short', month: 'short', day: 'numeric' })
+  const long = (date) => fmt(date, { weekday: 'long', month: 'long', day: 'numeric' })
+  const today = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()) }
+  const addDays = (date, n) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + n)
+  const dayNumber = () => Math.round((today() - SINCE) / 864e5) + 1
+  const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+
+  // A pocket version of the app's date parser: today, tomorrow, yesterday, weekdays, next week.
+  // Like the app, a bare weekday means the next one after today.
+  function parseDay(text) {
+    const t = text.trim().toLowerCase().replace(/^(this|on)\s+/, '')
+    const base = today()
+    if (t === 'next week') return addDays(base, 7)
+    const aliases = { now: 0, tmr: 1, tmrw: 1, tom: 1, tomo: 1, yday: -1, yest: -1 }
+    if (Object.hasOwn(aliases, t)) return addDays(base, aliases[t])
+    if (t.length >= 3) {
+      for (const [word, n] of [['today', 0], ['tomorrow', 1], ['yesterday', -1]]) {
+        if (word.startsWith(t)) return addDays(base, n)
+      }
+    }
+    if (t.length >= 2 || ['m', 'w', 'f'].includes(t)) {
+      for (const i of [1, 2, 3, 4, 5, 6, 0]) {
+        if (WEEKDAYS[i].startsWith(t)) return addDays(base, (i - base.getDay() + 7) % 7 || 7)
+      }
+    }
+    return null
+  }
+
+  // Toast
+  const toastEl = $('.toast')
+  let toastTimer
+  function toast(text) {
+    toastEl.textContent = text
+    toastEl.classList.add('show')
+    clearTimeout(toastTimer)
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2800)
+  }
+
+  // Which kind of pointer was used last, so taps can open what hovers open.
+  let lastPointer = 'mouse'
+  document.addEventListener('pointerdown', (e) => { lastPointer = e.pointerType }, true)
+
+  // Tooltips
+  const tipEl = $('.tip')
+  const TIPS = {
+    beta: () => `Used every day since ${fmt(SINCE, { month: 'short', day: 'numeric', year: 'numeric' })} · day ${dayNumber()}`,
+    speed: () => {
+      const nav = performance.getEntriesByType('navigation')[0]
+      const ms = Math.round(nav && nav.domContentLoadedEventEnd ? nav.domContentLoadedEventEnd : performance.now())
+      return ms <= 240
+        ? `Cue is ready in 240 ms. This page took ${ms} ms, so the website wins this one.`
+        : `Cue is ready in 240 ms. This page took ${ms} ms. I'm working on it.`
+    },
+    fri: () => `→ ${short(parseDay('fri'))}`,
+    reminders: () => 'Not even this one.'
+  }
+  let tipFor = null
+  function showTip(el) {
+    tipFor = el
+    tipEl.textContent = TIPS[el.dataset.egg]()
+    const r = el.getClientRects()[0] || el.getBoundingClientRect()
+    const w = tipEl.offsetWidth, h = tipEl.offsetHeight
+    let top = r.top - h - 8
+    if (top < 8) top = r.bottom + 8
+    const left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), innerWidth - w - 8)
+    tipEl.style.top = `${top}px`
+    tipEl.style.left = `${left}px`
+    tipEl.classList.add('show')
+  }
+  function hideTip() { tipFor = null; tipEl.classList.remove('show') }
+  for (const el of $$('[data-egg]')) {
+    el.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') showTip(el) })
+    el.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') hideTip() })
+    el.addEventListener('focus', () => showTip(el))
+    el.addEventListener('blur', hideTip)
+    el.addEventListener('click', () => {
+      if (lastPointer !== 'mouse') tipFor === el ? hideTip() : showTip(el)
+    })
+  }
+  document.addEventListener('pointerdown', (e) => { if (!e.target.closest('[data-egg]')) hideTip() })
+  addEventListener('scroll', hideTip, { passive: true })
+
+  // The beta badge gives in after five clicks.
+  let badgeClicks = 0
+  $('.status').addEventListener('click', () => {
+    if (++badgeClicks !== 5) return
+    $('.status-text').textContent = 'Beta · okay, fine, it’s pretty stable'
+    hideTip()
+  })
+
+  // Type anywhere near the top and it lands on the next line, like the app.
+  const header = $('header'), h1 = $('h1'), caret = $('.caret')
+  const nextLine = $('.next-line'), typed = $('.typed')
+  let typing = false, solidTimer
+  function holdCaret() {
+    caret.classList.add('solid')
+    clearTimeout(solidTimer)
+    solidTimer = setTimeout(() => caret.classList.remove('solid'), 600)
+  }
+  function stopTyping() {
+    typing = false
+    typed.textContent = ''
+    nextLine.hidden = true
+    nextLine.classList.remove('empty')
+    h1.appendChild(caret)
+  }
+  function typeKey(e) {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return false
+    if (!typing && header.getBoundingClientRect().bottom <= 0) return false
+    if (e.key === 'Escape') {
+      if (!typing) return false
+      stopTyping()
+      return true
+    }
+    if (e.key === 'Backspace') {
+      if (!typing) return false
+      typed.textContent = typed.textContent.slice(0, -1)
+    } else {
+      if (e.key.length !== 1) return false
+      if (e.key === ' ' && (!typed.textContent || e.target.closest('button, a[href]'))) return false
+      if (!typing) {
+        typing = true
+        nextLine.hidden = false
+        nextLine.appendChild(caret)
+        if (document.activeElement !== document.body) document.activeElement.blur()
+      }
+      if (typed.textContent.length < 60) typed.textContent += e.key
+    }
+    nextLine.classList.toggle('empty', !typed.textContent)
+    holdCaret()
+    return true
+  }
+
+  // The shortcut chips press down when you press the real keys.
+  const chips = Object.fromEntries($$('.grid kbd').map((k) => [k.textContent, k]))
+  function press(label) {
+    const chip = chips[label]
+    if (!chip) return
+    chip.classList.add('pressed')
+    setTimeout(() => chip.classList.remove('pressed'), 160)
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (palette.open || e.target.closest('input, textarea, select, [contenteditable]')) return
+    const mod = (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey
+    const key = e.key.toLowerCase()
+    if (mod && key === 'k') { e.preventDefault(); press('⌘K'); openPalette() }
+    else if (mod && key === 'd') { e.preventDefault(); press('⌘D'); toast('Moved to tomorrow. (Not really, this is a website.)') }
+    else if (mod && key === 'enter') { e.preventDefault(); press('⌘↩'); h1.classList.toggle('done') }
+    else if (key === 'tab' && !e.metaKey && !e.ctrlKey && !e.altKey) press('Tab')
+    else if (typeKey(e)) e.preventDefault()
+  })
+
+  // Theme, for the palette.
+  const root = document.documentElement
+  const shotSource = $('.shot source')
+  const themeMetas = $$('meta[name="theme-color"]')
+  function toggleTheme() {
+    const isDark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+    root.dataset.theme = isDark ? 'light' : 'dark'
+    shotSource.media = isDark ? 'not all' : 'all'
+    for (const meta of themeMetas) meta.content = isDark ? '#FAFAFB' : '#18181A'
+    toast(isDark ? 'Lights on.' : 'Lights off.')
+  }
+
+  // ⌘K
+  const palette = $('.palette'), paletteInput = $('input', palette), paletteList = $('ul', palette)
+  function moveTo(date) {
+    const diff = Math.round((date - today()) / 864e5)
+    if (diff === 0) toast('It’s already on today.')
+    else if (diff < 0) toast('Moving things into the past isn’t a feature. Yet.')
+    else toast(`See you ${long(date)}.`)
+  }
+  const COMMANDS = [
+    { label: 'Go to GitHub', run: () => { location.href = GITHUB } },
+    { label: 'Join the waitlist', run: () => { location.href = `${GITHUB}/issues/13` } },
+    { label: 'Why I built it', run: () => $('#why').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' }) },
+    { label: 'Move to fri', move: true, run: () => moveTo(parseDay('fri')) },
+    { label: 'Toggle dark mode', run: toggleTheme },
+    { label: 'Print today’s page', hint: '⌘P', run: () => print() },
+    { label: 'Who made this?', run: () => { location.href = 'https://zlwaterfield.com' } }
+  ]
+  let items = [], active = 0
+  function render() {
+    const q = paletteInput.value.trim().toLowerCase().replace(/\s+/g, ' ')
+    const move = /^move (?:to )?(.+)$/.exec(q)
+    const date = move && parseDay(move[1])
+    const words = q.split(' ').filter(Boolean)
+    items = COMMANDS.filter((c) => !(date && c.move) && words.every((w) => c.label.toLowerCase().includes(w)))
+    if (date) items.unshift({ label: `Move to ${short(date)}`, run: () => moveTo(date) })
+    active = Math.min(active, Math.max(items.length - 1, 0))
+    paletteList.replaceChildren(...items.map((c, i) => {
+      const li = document.createElement('li')
+      li.id = `palette-option-${i}`
+      li.setAttribute('role', 'option')
+      li.setAttribute('aria-selected', String(i === active))
+      li.textContent = c.label
+      if (c.hint) { const k = document.createElement('kbd'); k.textContent = c.hint; li.append(k) }
+      li.addEventListener('pointermove', () => { if (active !== i) { active = i; render() } })
+      li.addEventListener('click', () => run(i))
+      return li
+    }))
+    if (!items.length) {
+      const li = document.createElement('li')
+      li.className = 'none'
+      li.setAttribute('role', 'option')
+      li.setAttribute('aria-disabled', 'true')
+      li.textContent = 'Nothing matches. Cue stays small on purpose.'
+      paletteList.append(li)
+    }
+    if (items.length) paletteInput.setAttribute('aria-activedescendant', `palette-option-${active}`)
+    else paletteInput.removeAttribute('aria-activedescendant')
+  }
+  function run(i) {
+    const command = items[i]
+    if (!command) return
+    palette.close()
+    command.run()
+  }
+  function openPalette() {
+    hideTip()
+    paletteInput.value = ''
+    active = 0
+    render()
+    palette.showModal()
+    paletteInput.focus()
+  }
+  paletteInput.addEventListener('input', () => { active = 0; render() })
+  paletteInput.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (items.length) { active = (active + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length; render() }
+    } else if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); run(active) }
+    else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); palette.close() }
+  })
+  palette.addEventListener('click', (e) => { if (e.target === palette) palette.close() })
+  // Closing hands focus back to whatever had it, which shouldn't pop a tooltip open.
+  palette.addEventListener('close', hideTip)
+
+  // The "Made by" card opens on the first tap on touch screens; the second tap follows the link.
+  const maker = $('.maker')
+  $('.maker-link').addEventListener('click', (e) => {
+    if (lastPointer === 'touch' && !maker.classList.contains('open')) { e.preventDefault(); maker.classList.add('open') }
+  })
+  document.addEventListener('pointerdown', (e) => { if (!maker.contains(e.target)) maker.classList.remove('open') })
+
+  // A note for whoever reads to the very end.
+  const farewell = $('.farewell')
+  new IntersectionObserver(([entry], observer) => {
+    if (!entry.isIntersecting) return
+    farewell.classList.add('seen')
+    observer.disconnect()
+  }, { threshold: 1 }).observe(farewell)
+
+  // ⌘P prints a blank page for today.
+  const printList = $('.print-page ol')
+  for (let i = 1; i < 22; i++) printList.append(document.createElement('li'))
+  function setPrintDate() {
+    $('.print-page .weekday').textContent = fmt(today(), { weekday: 'long' })
+    $('.print-page .date').textContent = fmt(today(), { month: 'long', day: 'numeric', year: 'numeric' })
+  }
+  setPrintDate()
+  addEventListener('beforeprint', setPrintDate)
+
+  console.log(`%c${String.raw`
+   ___ _   _  ___   _
+  / __| | | |/ _ \ | |
+ | (__| |_| |  __/ | |
+  \___|\__,_|\___| | |
+                   |_|`}`, 'font-family: ui-monospace, Menlo, monospace; line-height: 1.15; color: #8E8E94')
+  console.log(
+    `%cHi, you're reading the source. Cue's source is open too: ${GITHUB}\nA few more things are hidden on the page. Try ⌘K. — Zach`,
+    'font: 13px/1.6 -apple-system, system-ui, sans-serif'
+  )
+})()
+</script>
 </body>
 </html>
