@@ -19,6 +19,32 @@ test('sync is off until you turn it on, and Cue works the same', async () => {
   await cue.app.close()
 })
 
+test('Assistants gives the MCP URL once sync is on, and points to Sync until then', async () => {
+  const env = { CUE_SUPABASE_URL: 'http://127.0.0.1:9', CUE_SUPABASE_KEY: 'unused' }
+  let cue = await launch(undefined, env)
+  let page = cue.page
+  const pane = () => page.getByRole('tabpanel', { name: 'Assistants' })
+  await openSettings(page, 'Assistants')
+  await expect(pane().getByText('Turn on sync first')).toBeVisible()
+  await expect(pane().getByText('https://www.usecue.today/mcp')).toBeVisible()
+  await expect(pane().getByRole('button', { name: 'Copy URL' })).toHaveCount(0)
+  await pane().getByRole('button', { name: 'Go to Sync' }).click()
+  await expect(page.getByRole('tab', { name: 'Sync' })).toBeFocused()
+  await expect(page.getByRole('button', { name: 'Turn On Sync…' })).toBeVisible()
+  await cue.app.close()
+
+  signedIn(cue.dataDir, 'mcp@example.com')
+  cue = await launch(cue.dataDir, env)
+  page = cue.page
+  await openSettings(page, 'Assistants')
+  await expect(pane().getByText('sign in as mcp@example.com', { exact: false })).toBeVisible()
+  await pane().getByRole('button', { name: 'Copy URL' }).click()
+  await expect(pane().getByRole('button', { name: 'Copied' })).toBeVisible()
+  expect(await cue.app.evaluate(({ clipboard }) => clipboard.readText())).toBe('https://www.usecue.today/mcp')
+  await expect(pane().getByRole('button', { name: 'Manage…' })).toBeVisible()
+  await cue.app.close()
+})
+
 test('a network that resets every connection never freezes Cue', async () => {
   test.setTimeout(60_000)
   // Accepts each connection, then resets it, as some firewalls and proxies do. Before

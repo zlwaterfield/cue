@@ -116,7 +116,7 @@ test('Settings categories: one pane at a time, by arrow or ⌃Tab', async () => 
   const { page } = cue
   await page.keyboard.press('Meta+,')
   const pane = (name: string) => page.getByRole('tabpanel', { name })
-  // This build has no sync server, so the rail is General, Your data, About.
+  // This build has no sync server, so the rail has no Sync or Assistants.
   await expect(page.locator('.settings-rail').getByRole('tab')).toHaveText(['General', 'Your data', 'About'])
   await expect(pane('General')).toBeVisible()
 

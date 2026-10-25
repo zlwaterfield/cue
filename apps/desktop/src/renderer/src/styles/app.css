@@ -1271,11 +1271,12 @@ kbd.is-text {
   overflow: hidden;
 }
 
-/* One height for every category, so clicking down the rail never resizes the sheet. */
+/* One height for every category, so clicking down the rail never resizes the sheet. The
+   tallest is Assistants, signed in. */
 .settings {
   display: flex;
   align-items: stretch;
-  min-height: 300px;
+  min-height: 312px;
 }
 
 .settings-rail {
@@ -1443,6 +1444,18 @@ kbd.is-text {
   font-weight: 500;
   color: var(--text);
   max-width: 360px;
+}
+
+/* The MCP server's URL, to read or select; Copy URL is beside it. */
+.setting-url {
+  padding: 7px 10px;
+  border-radius: 7px;
+  font: 12px/1.4 var(--font-mono);
+  color: var(--text);
+  background: var(--bg-subtle);
+  box-shadow: 0 0 0 0.5px var(--line);
+  user-select: all;
+  cursor: text;
 }
 
 .setting-legal {

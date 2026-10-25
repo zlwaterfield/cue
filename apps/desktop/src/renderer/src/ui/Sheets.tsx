@@ -9,6 +9,7 @@ import { backend, isDesktop } from '../data/backend'
 import { controller } from '../editor/controller'
 import { refreshSync, syncState } from '../store/sync'
 import { SETTINGS_CATEGORIES, type SettingsCategory, ui, useStore } from '../store/ui'
+import { AssistantsSettings } from './AssistantsSettings'
 import { SyncSettings } from './SyncSettings'
 
 function Keys({ shortcut }: { shortcut: string }) {
@@ -207,7 +208,7 @@ export function SettingsSheet() {
 /**
  * One pane at a time, chosen in the rail: ↑/↓ (or ←/→) with the rail focused, ⌃Tab from
  * anywhere in the sheet. ⌘1–⌘4 are the Go menu's, so they stay out of this. Builds
- * without a sync server have no Sync category.
+ * without a sync server have no Sync or Assistants category.
  */
 function Settings({ opensOn }: { opensOn: SettingsCategory }) {
   const settings = useStore(ui, (s) => s.settings)
@@ -221,13 +222,14 @@ function Settings({ opensOn }: { opensOn: SettingsCategory }) {
   // categories straight away. Escape still closes: that listener is on the window.
   useEffect(() => rail.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus({ preventScroll: true }), [])
 
-  const categories = SETTINGS_CATEGORIES.filter((c) => c !== 'Sync' || syncAvailable)
+  const categories = SETTINGS_CATEGORIES.filter((c) => (c !== 'Sync' && c !== 'Assistants') || syncAvailable)
   const category = categories.includes(chosen) ? chosen : 'General'
-  const step = (delta: number): void => {
-    const next = (categories.indexOf(category) + delta + categories.length) % categories.length
-    setChosen(categories[next])
-    ;(rail.current?.children[next] as HTMLElement | undefined)?.focus()
+  const choose = (next: SettingsCategory): void => {
+    setChosen(next)
+    ;(rail.current?.children[categories.indexOf(next)] as HTMLElement | undefined)?.focus()
   }
+  const step = (delta: number): void =>
+    choose(categories[(categories.indexOf(category) + delta + categories.length) % categories.length])
 
   const update = (patch: Partial<Settings>): void => void controller.updateSettings(patch)
   const run = (id: string) => () => {
@@ -324,6 +326,7 @@ function Settings({ opensOn }: { opensOn: SettingsCategory }) {
               </>
             )}
             {c === 'Sync' && <SyncSettings />}
+            {c === 'Assistants' && <AssistantsSettings goToSync={() => choose('Sync')} />}
             {c === 'Your data' && (
               <>
                 <div className="setting">

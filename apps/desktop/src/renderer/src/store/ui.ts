@@ -46,7 +46,7 @@ export type Selection =
 export type PaletteMode = 'commands' | 'search' | 'date'
 
 /** Settings' categories, in the order the rail lists them. */
-export const SETTINGS_CATEGORIES = ['General', 'Sync', 'Your data', 'About'] as const
+export const SETTINGS_CATEGORIES = ['General', 'Sync', 'Assistants', 'Your data', 'About'] as const
 export type SettingsCategory = (typeof SETTINGS_CATEGORIES)[number]
 
 export type Overlay =

@@ -50,7 +50,9 @@ correct itself.
 ## Connecting
 
 1. In the assistant, add a custom connector with the URL `https://www.usecue.today/mcp`.
-   The connected-apps page shows it with a Copy button. The site proxies it to the function
+   The connected-apps page shows it with a Copy button, and so does **Settings → Assistants**
+   on the Mac and the iPhone (`core/assistants.ts`), which until sync is on says to turn it on
+   first. The site proxies it to the function
    (`site/vercel.json`), so the assistant only ever sees Cue's domain for the server itself.
    Use `www`: the bare domain redirects there, and not every client follows a redirect on a
    POST.
