@@ -1,0 +1,23 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@shared/*": [
+        "../../core/*"
+      ],
+      // The shared core is outside this folder, so TypeScript looks for the packages it imports
+      // beside it, and finds them only when the Mac app happens to be installed too. They
+      // belong to this app; keep them pointed here, as metro.config.js does for the bundler.
+      "@supabase/supabase-js": ["./node_modules/@supabase/supabase-js"],
+      "fractional-indexing": ["./node_modules/fractional-indexing"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}

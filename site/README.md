@@ -14,7 +14,7 @@ Three files, and no framework:
 | File | What it's for |
 | --- | --- |
 | `cue.css` | The brand tokens (light, dark, and the `[data-theme]` override), the base layer, the nav and footer, and the ⌘K palette. Every page links it first and then adds only its own CSS |
-| `cue.js` | The behaviour that's the same everywhere: the light/dark choice, a toast, and the palette. Loaded `defer` by every page except the consent page |
+| `cue.js` | The behavior that's the same everywhere: the light/dark choice, a toast, and the palette. Loaded `defer` by every page except the consent page |
 | `legal.css` | What Terms and Privacy add on top of `cue.css` |
 
 The home page's own small things live in `home.js`, and the 404's in `404.js`; both load after
@@ -43,9 +43,9 @@ Two links on the downloads page point outside the repo and need a hand now and t
 button goes to the current GitHub release (releases carry their version in the file name), and
 the iPhone button goes to the TestFlight invitation.
 
-Everything comes from the brand kit in [`docs/brand`](../docs/brand): the color tokens, the
-outlined wordmark, the favicons and `site.webmanifest` (`docs/brand/web`), and the social image
-(`docs/brand/social`). `images/og.mp4` is that same card writing itself; regenerate it with
+Everything comes from the brand kit in [`brand`](../brand): the color tokens, the
+outlined wordmark, the favicons and `site.webmanifest` (`brand/web`), and the social image
+(`brand/social`). `images/og.mp4` is that same card writing itself; regenerate it with
 `pnpm og-video`, which needs ffmpeg. Newsreader, for headlines only, is served from `fonts/`
 (its Latin subset, SIL OFL), so the site makes no requests to anyone else; body text uses the
 system font. The Mac window on the home page is `docs/images/week-*.png` as WebP:
@@ -57,8 +57,8 @@ cwebp -q 86 docs/images/week-dark.png -o site/images/week-dark.webp
 
 The iPhone in front of it is `images/phone-*.webp`, holding the same notes and to-dos as the
 window behind it, in a frame the page draws in CSS. Both come from `python3
-scripts/phone-shots.py`, which takes the App Store screen
-[`docs/app-store/screens/08-mac.png`](../docs/app-store/screens/08-mac.png) and, since that day
+apps/desktop/scripts/phone-shots.py`, which takes the App Store screen
+[`brand/app-store/screens/08-mac.png`](../brand/app-store/screens/08-mac.png) and, since that day
 was only ever captured in light, derives the dark one from it with the app's own
 light-to-dark tone curve. That script's docstring has the details, and says what to delete
 once there is a real dark screenshot of the day.
@@ -76,9 +76,9 @@ Four files at the root are for crawlers and assistants:
 | File | What it's for |
 | --- | --- |
 | `robots.txt` | Allows everything, grants all three [content signals](https://contentsignals.org) (`search`, `ai-input`, `ai-train`), and points at the sitemap. The consent page stays out of indexes with its own `noindex`, so there is nothing to disallow |
-| `sitemap.xml` | The four public pages, with `lastmod` dates to keep current |
+| `sitemap.xml` | The five public pages, with `lastmod` dates to keep current |
 | `llms.txt` | Cue in one page, in the [llms.txt](https://llmstxt.org) format: what it is, what it deliberately isn't, and where the pages are |
-| `llms-full.txt` | The site's own copy as plain text, plus the questions people ask. It summarises Terms and Privacy and links to them rather than repeating them, so the legal text has one home |
+| `llms-full.txt` | The site's own copy as plain text, plus the questions people ask. It summarizes Terms and Privacy and links to them rather than repeating them, so the legal text has one home |
 
 The home, downloads and assistants pages also carry `og:video` (`images/og.mp4`, 1280 × 640,
 H.264, 64 KB). Messages plays it in the link preview, muted and looping, and so do Slack,
@@ -101,5 +101,5 @@ When page copy changes in substance, change them too, and move the sitemap's `la
 `terms/` and `privacy/` share `legal.css`, on top of `cue.css`. Every sign-in (the Mac, the iPhone, and
 `oauth/consent`) says that continuing agrees to both, and records it in
 `public.terms_acceptances`. When either page changes in substance, change its "Last updated"
-date, `TERMS_VERSION` in `src/shared/terms.ts`, and the version in `oauth/consent/index.html`
+date, `TERMS_VERSION` in `core/terms.ts`, and the version in `oauth/consent/index.html`
 to match; each account's next sign-in records the new version.

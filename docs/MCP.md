@@ -7,7 +7,7 @@ the way another device's would, usually within a second.
 
 ```
  assistant ──POST JSON-RPC──▶ www.usecue.today/mcp ──proxy──▶ Edge Function `mcp` ──REST, as you──▶ items (RLS)
-     │        Bearer token                                    src/shared/mcp           sync_push ──▶ Realtime ──▶ Mac, iPhone
+     │        Bearer token                                    core/mcp           sync_push ──▶ Realtime ──▶ Mac, iPhone
      └──OAuth──▶ Supabase Auth ──▶ www.usecue.today/oauth/consent (sign in, Allow)
 ```
 
@@ -19,14 +19,14 @@ OAuth server.** There's no new table, service key or server to run.
 - **Reads** use your own access token against the `items` table, so row-level security
   decides what's visible, exactly as it does for the apps. A day is read in full, page by
   page, because edits place lines among all of its lines.
-- **Writes** run the editor's own operations (`src/shared/editor/ops.ts`: `insertLinesAfter`,
+- **Writes** run the editor's own operations (`core/editor/ops.ts`: `insertLinesAfter`,
   `moveToDate`) over the days involved, then upload the changes with `sync_push`. A line an
   assistant adds or moves lands exactly where it would if you typed it, and the push's
   realtime hint makes every signed-in device pull it.
 - **Versions.** The function is its own "device", with its own hybrid logical clock. Before
   stamping an edit it observes the stored version, so its edit always counts as newer, even
   when some device's clock runs ahead (`sync_push` ignores anything that isn't newer).
-- **Markdown** is the format, as for copy, paste and export (`src/shared/markdown.ts`),
+- **Markdown** is the format, as for copy, paste and export (`core/markdown.ts`),
   with each line's id after it: `- [ ] Call the dentist {#0199e3a4-…}`.
 - **The protocol** is MCP's stateless, JSON-only subset: POST a JSON-RPC message, get a JSON
   answer. There are no sessions and no event stream, which a tool server doesn't need, so
@@ -108,7 +108,7 @@ On a project already set up for sync ([SYNC.md](SYNC.md#setting-up-a-server)):
    check that it matches the URL they connected to. Without it, the function names its own
    Supabase URL, which is what the local stack uses. The function
    checks tokens itself, so it can send the `401` that starts sign-in. It imports
-   `src/shared` directly; `supabase/functions/mcp/deno.json` maps the extensionless imports
+   `core` directly; `supabase/functions/mcp/deno.json` maps the extensionless imports
    Deno needs spelled out. If a new shared import fails with "Module not found", add it
    there.
 3. **Auth → OAuth Server:** turn it on, set the authorization path to `/oauth/consent`, and
@@ -136,11 +136,11 @@ port the local Site URL expects:
 python3 -m http.server 4173 -d site
 ```
 
-- **`tests/unit/mcp.test.ts`** covers the protocol and every tool over an in-memory server:
+- **`apps/desktop/tests/unit/mcp.test.ts`** covers the protocol and every tool over an in-memory server:
   the Markdown with ids, nesting, adding after a line, checking off, rewriting, moving with
   children, beating a device whose clock runs ahead, sending nothing when nothing changes, and
   reading a day longer than one page.
-- **`tests/integration/mcp.test.ts`** runs the whole thing against the local stack: the `401`
+- **`apps/desktop/tests/integration/mcp.test.ts`** runs the whole thing against the local stack: the `401`
   and the discovery documents, dynamic registration, consent, the token exchange with PKCE,
   then an added to-do reaching a signed-in Mac and being checked off. It also covers the
   assistant's token failing to delete the account or a line when calling the database

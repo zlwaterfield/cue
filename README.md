@@ -1,10 +1,10 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/readme/readme-header-dark.svg">
-  <img alt="cue — Every day is a page. Start typing." src="docs/brand/readme/readme-header-light.svg" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="brand/readme/readme-header-dark.svg">
+  <img alt="cue — Every day is a page. Start typing." src="brand/readme/readme-header-light.svg" width="100%">
 </picture>
 
 <p align="center">
-  <strong>Daily notes and to-dos for Mac and iOS.</strong><br>
+  <strong>Daily notes and to-dos for Mac and iPhone.</strong><br>
   Fast, quiet and keyboard-first.
 </p>
 
@@ -48,7 +48,7 @@ tomorrow (⌘D) or any date (⇧⌘D), and select several lines to act on them t
 </p>
 
 **Reliability.** Saves as you type, with undo and redo for everything. Edits survive a crash
-(the tests `kill -9` the app to check), a daily snapshot is kept for 14 days, and you can
+(the tests `kill -9` the app to check), a daily snapshot is kept for 14 days, and both apps
 export to Markdown or JSON at any time.
 
 **Sync.** Optional on the Mac and iPhone, and off by default. Sign in with Apple, or with your email and
@@ -63,7 +63,7 @@ and [docs/MCP.md](docs/MCP.md).
 **iPhone.** The same core as the Mac, built for touch: tap a bullet to make it a to-do, tap a
 box to check it, swipe to complete or send to tomorrow, and long-press to drag. Like the
 Mac, it needs no account; turn on sync to share notes with your Mac. Share a link from any app to add it to today, and a line
-that's only a link shows its page. See [mobile/README.md](mobile/README.md).
+that's only a link shows its page. See [apps/mobile/README.md](apps/mobile/README.md).
 
 **Feel.** One calm column in monochrome graphite, system typography, and light and dark
 appearance. The caret is the brand: it holds still while you type and rests after ten idle
@@ -138,15 +138,15 @@ Build Cue from source on an Apple silicon Mac with Node 24+ and pnpm:
 ```sh
 git clone https://github.com/zlwaterfield/cue.git
 cd cue
-pnpm install
-pnpm dev        # run with hot reload
-pnpm package    # or build release/mac-arm64/Cue.app
+pnpm install:all   # the Mac app and the iPhone app, each with its own lockfile
+pnpm dev           # run the Mac app with hot reload
+pnpm package       # or build apps/desktop/release/mac-arm64/Cue.app
 ```
 
 Development builds run as "Cue Dev" and keep their data separate from the packaged app, so
 working on Cue can't touch your notes.
 
-For the iPhone app, see [mobile/README.md](mobile/README.md). It needs Xcode 26 and a sync
+For the iPhone app, see [apps/mobile/README.md](apps/mobile/README.md). It needs Xcode 26 and a sync
 server: your own Supabase project, set up as in [docs/SYNC.md](docs/SYNC.md).
 
 ## Your data
@@ -158,6 +158,8 @@ server: your own Supabase project, set up as in [docs/SYNC.md](docs/SYNC.md).
   build it yourself). Turning sync off keeps every note on your Mac, and you can delete the
   account from Settings.
 - File ▸ Export as Markdown writes one file per day; Export JSON Backup writes everything.
+  On the iPhone, Settings → Your notes shares the same two: the Markdown as a zip, the
+  backup as the file the Mac imports.
 - The hosted service's [Privacy Policy](https://www.usecue.today/privacy) and
   [Terms](https://www.usecue.today/terms) are short and in plain words.
 
@@ -166,14 +168,17 @@ server: your own Supabase project, set up as in [docs/SYNC.md](docs/SYNC.md).
 - **Mac:** Electron, React 19 and TypeScript. Storage is SQLite through Node's built-in
   `node:sqlite`, owned by the main process.
 - **iPhone:** Expo and React Native.
-- **Shared core:** both apps share `src/shared`: the data model, storage, sync engine and
+- **Shared core:** both apps share [`core`](core): the data model, storage, sync engine and
   every editing operation.
+- **The folders:** `apps/desktop` (Mac) and `apps/mobile` (iPhone) are the two apps, each
+  installed and built on its own; `core` is what they share; `site` is usecue.today;
+  `supabase` is the sync server and the MCP endpoint.
 - **Sync:** an optional Supabase backend (Postgres, Auth, Realtime), newest edit wins per
   item.
 
 More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/SYNC.md](docs/SYNC.md),
 [docs/MCP.md](docs/MCP.md) and [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md). The brand kit lives
-in [docs/brand](docs/brand).
+in [brand](brand).
 
 ## Roadmap
 
@@ -200,7 +205,7 @@ pnpm bench        # performance against the budgets
 
 A few rules keep Cue the way it is:
 
-- **Every action is a command** in `src/shared/commands.ts`, so it gets a shortcut, a palette
+- **Every action is a command** in `core/commands.ts`, so it gets a shortcut, a palette
   entry and a menu item together.
 - **Performance is a requirement.** If a change touches typing, navigation, search or
   startup, run `pnpm bench`.
@@ -212,6 +217,6 @@ A few rules keep Cue the way it is:
 
 The code is [MIT](LICENSE) © 2026 Zach Waterfield.
 
-The Cue name, logo and app icon ([docs/brand](docs/brand)) aren't covered by the MIT license.
+The Cue name, logo and app icon ([brand](brand)) aren't covered by the MIT license.
 You're welcome to use them to refer to Cue, but not for your own app or in a way that suggests
 endorsement. If you distribute a modified version, give it a different name and icon.
