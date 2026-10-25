@@ -8,6 +8,7 @@
   "author": "Zach Waterfield",
   "license": "MIT",
   "devDependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
     "@playwright/test": "^1.64.1",
     "@supabase/supabase-js": "^2.118.0",
     "@types/node": "^24.19.2",
@@ -35,6 +36,7 @@
     "package": "electron-vite build && electron-builder --mac --dir",
     "dist": "electron-vite build && electron-builder --mac",
     "release": "node scripts/release.mjs",
+    "release:upload": "node scripts/upload-release.mjs",
     "seed": "node scripts/run-ts.mjs scripts/seed.ts",
     "bench": "node scripts/bench.mjs",
     "screenshots": "node scripts/screenshots.mjs"
