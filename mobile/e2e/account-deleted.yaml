@@ -8,6 +8,8 @@ name: Account deleted
 - runFlow: subflows/launch.yaml
 - runScript: scripts/today.js
 - tapOn: "Settings"
+- tapOn:
+    id: settings-sync
 - tapOn: "Turn On Sync…"
 - extendedWaitUntil:
     visible: "Sign in to sync your notes"

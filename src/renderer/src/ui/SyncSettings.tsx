@@ -4,19 +4,18 @@ import { PRIVACY_URL, TERMS_URL } from '@shared/terms'
 import { isEmailAddress, NOT_AN_EMAIL } from '@shared/text'
 import type { SyncResult, SyncState } from '@shared/types'
 import { backend } from '../data/backend'
-import { refreshSync, syncState } from '../store/sync'
+import { syncState } from '../store/sync'
 import { useStore } from '../store/ui'
 
 /**
- * The Sync row in Settings. Sync is off until you sign in, with Apple or with your email
- * and a six-digit code. Builds without a sync server don't show this at all. The words
- * are the iPhone's (`shared/sync/status`).
+ * The Sync pane in Settings. Sync is off until you sign in, with Apple or with your email
+ * and a six-digit code. Builds without a sync server have no Sync category at all. The
+ * words are the iPhone's (`shared/sync/status`).
  */
 export function SyncSettings() {
   const state = useStore(syncState, (s) => s)
-  useEffect(refreshSync, [])
   if (!state.available) return null
-  return <div className="setting is-stacked">{state.email ? <SignedIn state={state} /> : <SignIn state={state} />}</div>
+  return state.email ? <SignedIn state={state} /> : <SignIn state={state} />
 }
 
 /** The time, updated every `ms`, so "Synced 2 min ago" stays true while Settings is open. */
@@ -46,23 +45,34 @@ function SignedIn({ state }: { state: SyncState }) {
   }
   return (
     <>
-      <div className="setting-split">
-        <div>
-          <div className="setting-label">Sync</div>
-          <div className="setting-help">
-            On as <strong>{state.email}</strong>
+      <div className="setting is-stacked">
+        <div className="setting-split">
+          <div>
+            <div className="setting-label">
+              On as <strong>{state.email}</strong>
+            </div>
+            <div className="setting-help">{statusLine(state, now)}</div>
+            {error && <div className="setting-error">{error}</div>}
           </div>
-          <div className="setting-help">{statusLine(state, now)}</div>
-          {error && <div className="setting-error">{error}</div>}
+          <button className="button" onClick={() => void syncNow()} disabled={busy || state.status === 'syncing'}>
+            Sync Now
+          </button>
         </div>
-        <button className="button" onClick={() => void syncNow()} disabled={busy || state.status === 'syncing'}>
-          Sync Now
-        </button>
       </div>
-      <div className="button-row">
+      <div className="setting">
+        <div>
+          <div className="setting-label">Turn off sync</div>
+          <div className="setting-help">Every note stays on this Mac. Turn sync back on any time.</div>
+        </div>
         <button className="button is-quiet" onClick={() => void backend.sync.signOut()}>
           Turn Off Sync
         </button>
+      </div>
+      <div className="setting">
+        <div>
+          <div className="setting-label">Delete account</div>
+          <div className="setting-help">Deletes your account and its notes from the sync server. Notes on this Mac stay here.</div>
+        </div>
         <button className="button is-quiet" onClick={() => void deleteAccount()}>
           Delete Account…
         </button>
@@ -148,18 +158,31 @@ function SignIn({ state }: { state: SyncState }) {
   }
 
   const previous = state.previousEmail
+  // The label says where the sign-in has got to; the rail already says "Sync".
+  let label: string
   let help: React.ReactNode
-  if (step.kind === 'code') help = `Enter the code we sent to ${step.email}.`
-  else if (step.kind === 'apple') help = 'Finish signing in with Apple in your browser.'
-  else if (step.kind === 'email') help = 'Continue with Apple, or enter your email and we’ll send a six-digit code.'
-  else if (state.needsSignIn) help = <span className="setting-notice">{state.message}</span>
-  else help = 'Off. Your notes are stored only on this Mac. Turn on sync to keep them on your other devices too.'
+  if (step.kind === 'code') {
+    label = 'Check your email'
+    help = `Enter the code we sent to ${step.email}.`
+  } else if (step.kind === 'apple') {
+    label = 'Continue in your browser'
+    help = 'Finish signing in with Apple in your browser.'
+  } else if (step.kind === 'email') {
+    label = 'Turn on sync'
+    help = 'Continue with Apple, or enter your email and we’ll send a six-digit code.'
+  } else if (state.needsSignIn) {
+    label = 'Sync has stopped'
+    help = <span className="setting-notice">{state.message}</span>
+  } else {
+    label = 'Sync is off'
+    help = 'Your notes are stored only on this Mac. Turn on sync to keep them on your other devices too.'
+  }
 
   return (
-    <>
+    <div className="setting is-stacked">
       <div className="setting-split">
         <div>
-          <div className="setting-label">Sync</div>
+          <div className="setting-label">{label}</div>
           <div className="setting-help">{help}</div>
           {error && <div className="setting-error">{error}</div>}
         </div>
@@ -250,7 +273,7 @@ function SignIn({ state }: { state: SyncState }) {
           </div>
         </>
       )}
-    </>
+    </div>
   )
 }
 

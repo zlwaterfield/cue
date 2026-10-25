@@ -94,7 +94,8 @@ test('Settings segments: keyboard focus shows on the chosen option, and arrows c
   const system = page.getByRole('radio', { name: 'System' })
   const light = page.getByRole('radio', { name: 'Light' })
   await expect(system).toBeVisible()
-  await page.keyboard.press('Tab') // Close
+  // Settings opens with the rail holding focus, so ↑/↓ move between categories at once.
+  await expect(page.getByRole('tab', { name: 'General' })).toBeFocused()
   await page.keyboard.press('Tab') // the chosen appearance: one Tab stop per group
   await expect(system).toBeFocused()
   expect(await system.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe('solid')
@@ -109,6 +110,26 @@ test('Settings segments: keyboard focus shows on the chosen option, and arrows c
 
   await page.keyboard.press('Tab')
   await expect(page.getByRole('radio', { name: 'Monday' })).toBeFocused()
+})
+
+test('Settings categories: one pane at a time, by arrow or ⌃Tab', async () => {
+  const { page } = cue
+  await page.keyboard.press('Meta+,')
+  const pane = (name: string) => page.getByRole('tabpanel', { name })
+  // This build has no sync server, so the rail is General, Your data, About.
+  await expect(page.locator('.settings-rail').getByRole('tab')).toHaveText(['General', 'Your data', 'About'])
+  await expect(pane('General')).toBeVisible()
+
+  await page.keyboard.press('ArrowDown')
+  await expect(page.getByRole('tab', { name: 'Your data' })).toBeFocused()
+  await expect(pane('Your data')).toBeVisible()
+  await expect(page.getByRole('radio', { name: 'System' })).toHaveCount(0)
+
+  // ⌃Tab cycles from anywhere in the sheet; ⌘1–⌘4 belong to the Go menu.
+  await page.keyboard.press('Control+Tab')
+  await expect(pane('About')).toBeVisible()
+  await page.keyboard.press('Control+Shift+Tab')
+  await expect(pane('Your data')).toBeVisible()
 })
 
 test('the whole marker cell completes a to-do, and the caret stays put', async () => {

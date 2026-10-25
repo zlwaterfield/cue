@@ -93,7 +93,8 @@ function SyncIndicator() {
     <button
       className={`sync-status${shown.delayed ? ' is-delayed' : ' is-attention'}`}
       onMouseDown={(e) => e.preventDefault()}
-      onClick={() => controller.execute('app.settings')}
+      // Straight to Sync: that pane is where the reason and the way out are.
+      onClick={() => controller.openOverlay({ kind: 'settings', category: 'Sync' })}
       title={statusLine(sync, Date.now())}
       // Narrow windows show only the dot.
       aria-label={shown.label}

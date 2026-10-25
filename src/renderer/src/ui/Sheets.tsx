@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { COMMANDS, shortcutKeys } from '@shared/commands'
 import { reportIssueUrl } from '@shared/feedback'
 import { PRIVACY_URL, TERMS_URL } from '@shared/terms'
@@ -7,7 +7,8 @@ import lockupDark from '../assets/cue-lockup-on-dark.svg'
 import lockupLight from '../assets/cue-lockup-on-light.svg'
 import { backend, isDesktop } from '../data/backend'
 import { controller } from '../editor/controller'
-import { ui, useStore } from '../store/ui'
+import { refreshSync, syncState } from '../store/sync'
+import { SETTINGS_CATEGORIES, type SettingsCategory, ui, useStore } from '../store/ui'
 import { SyncSettings } from './SyncSettings'
 
 function Keys({ shortcut }: { shortcut: string }) {
@@ -24,13 +25,16 @@ function Sheet({
   title,
   children,
   wide,
-  bare
+  bare,
+  variant
 }: {
   title: string
   children: React.ReactNode
   wide?: boolean
   /** No visible title (the content carries its own identity, e.g. About). */
   bare?: boolean
+  /** An extra `is-` class for sheets whose body lays itself out (e.g. Settings' rail). */
+  variant?: string
 }) {
   // Take focus so keys go to the sheet, not the line behind it.
   const ref = useRef<HTMLDivElement>(null)
@@ -40,7 +44,7 @@ function Sheet({
       <div
         ref={ref}
         tabIndex={-1}
-        className={`sheet${wide ? ' is-wide' : ''}${bare ? ' is-bare' : ''}`}
+        className={`sheet${wide ? ' is-wide' : ''}${bare ? ' is-bare' : ''}${variant ? ` is-${variant}` : ''}`}
         role="dialog"
         aria-label={title}
       >
@@ -195,90 +199,197 @@ export function AboutSheet() {
 }
 
 export function SettingsSheet() {
-  const open = useStore(ui, (s) => s.overlay?.kind === 'settings')
+  const overlay = useStore(ui, (s) => (s.overlay?.kind === 'settings' ? s.overlay : null))
+  if (!overlay) return null
+  return <Settings opensOn={overlay.category ?? 'General'} />
+}
+
+/**
+ * One pane at a time, chosen in the rail: ↑/↓ (or ←/→) with the rail focused, ⌃Tab from
+ * anywhere in the sheet. ⌘1–⌘4 are the Go menu's, so they stay out of this. Builds
+ * without a sync server have no Sync category.
+ */
+function Settings({ opensOn }: { opensOn: SettingsCategory }) {
   const settings = useStore(ui, (s) => s.settings)
-  if (!open) return null
+  const syncAvailable = useStore(syncState, (s) => s.available)
+  const [chosen, setChosen] = useState<SettingsCategory>(opensOn)
+  const rail = useRef<HTMLDivElement>(null)
+  // Opening Settings is when the pending count and "Synced …" are re-read, whichever
+  // category shows.
+  useEffect(refreshSync, [])
+  // After the sheet's own focus (layout effects run before this one), so ↑/↓ move between
+  // categories straight away. Escape still closes: that listener is on the window.
+  useEffect(() => rail.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus({ preventScroll: true }), [])
+
+  const categories = SETTINGS_CATEGORIES.filter((c) => c !== 'Sync' || syncAvailable)
+  const category = categories.includes(chosen) ? chosen : 'General'
+  const step = (delta: number): void => {
+    const next = (categories.indexOf(category) + delta + categories.length) % categories.length
+    setChosen(categories[next])
+    ;(rail.current?.children[next] as HTMLElement | undefined)?.focus()
+  }
+
   const update = (patch: Partial<Settings>): void => void controller.updateSettings(patch)
   const run = (id: string) => () => {
     controller.closeOverlay()
     controller.execute(id)
   }
+
   return (
-    <Sheet title="Settings">
-      <div className="setting">
-        <div>
-          <div className="setting-label">Appearance</div>
-          <div className="setting-help">Follows your Mac unless you choose otherwise.</div>
+    <Sheet title="Settings" variant="settings">
+      <div
+        className="settings"
+        onKeyDown={(e) => {
+          if (e.key !== 'Tab' || !e.ctrlKey) return
+          e.preventDefault()
+          step(e.shiftKey ? -1 : 1)
+        }}
+      >
+        <div
+          className="settings-rail"
+          role="tablist"
+          aria-orientation="vertical"
+          ref={rail}
+          onKeyDown={(e) => {
+            const delta = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0
+            if (!delta) return
+            e.preventDefault()
+            step(delta)
+          }}
+        >
+          {categories.map((c) => (
+            <button
+              key={c}
+              role="tab"
+              aria-selected={c === category}
+              aria-controls="settings-pane"
+              tabIndex={c === category ? 0 : -1}
+              className={c === category ? 'is-active' : ''}
+              onClick={() => setChosen(c)}
+            >
+              {c}
+            </button>
+          ))}
         </div>
-        <Segmented
-          value={settings.theme}
-          options={[
-            ['system', 'System'],
-            ['light', 'Light'],
-            ['dark', 'Dark']
-          ]}
-          onChange={(theme) => update({ theme })}
-        />
-      </div>
-      <div className="setting">
-        <div>
-          <div className="setting-label">Week starts on</div>
-          <div className="setting-help">Shapes the week view and “next week”.</div>
+        <div className="settings-pane" id="settings-pane" role="tabpanel" aria-label={category}>
+          {category === 'General' && (
+            <>
+              <div className="setting">
+                <div>
+                  <div className="setting-label">Appearance</div>
+                  <div className="setting-help">Follows your Mac unless you choose otherwise.</div>
+                </div>
+                <Segmented
+                  value={settings.theme}
+                  options={[
+                    ['system', 'System'],
+                    ['light', 'Light'],
+                    ['dark', 'Dark']
+                  ]}
+                  onChange={(theme) => update({ theme })}
+                />
+              </div>
+              <div className="setting">
+                <div>
+                  <div className="setting-label">Week starts on</div>
+                  <div className="setting-help">Shapes the week view and “next week”.</div>
+                </div>
+                <Segmented
+                  value={settings.weekStartsOn}
+                  options={[
+                    [1, 'Monday'],
+                    [0, 'Sunday']
+                  ]}
+                  onChange={(weekStartsOn) => update({ weekStartsOn })}
+                />
+              </div>
+              <div className="setting">
+                <div>
+                  <div className="setting-label">Earlier to-dos on Today</div>
+                  <div className="setting-help">Today starts with the to-dos you didn’t finish in the last 30 days, folded into one line.</div>
+                </div>
+                <Segmented
+                  value={settings.looseEnds}
+                  options={[
+                    [true, 'Show'],
+                    [false, 'Hide']
+                  ]}
+                  onChange={(looseEnds) => update({ looseEnds })}
+                />
+              </div>
+            </>
+          )}
+          {category === 'Sync' && <SyncSettings />}
+          {category === 'Your data' && (
+            <>
+              <div className="setting">
+                <div>
+                  <div className="setting-label">Export</div>
+                  <div className="setting-help">Everything is stored on this Mac and saved as you type.</div>
+                </div>
+                <div className="setting-actions">
+                  <button className="button" onClick={run('export.markdown')} disabled={!isDesktop}>
+                    Markdown…
+                  </button>
+                  <button className="button" onClick={run('export.json')} disabled={!isDesktop}>
+                    JSON Backup…
+                  </button>
+                </div>
+              </div>
+              <div className="setting">
+                <div>
+                  <div className="setting-label">Import</div>
+                  <div className="setting-help">Merges a JSON backup into the days it came from.</div>
+                </div>
+                <button className="button" onClick={run('import.json')} disabled={!isDesktop}>
+                  Import JSON Backup…
+                </button>
+              </div>
+              <div className="setting">
+                <div>
+                  <div className="setting-label">Backups</div>
+                  <div className="setting-help">A snapshot is kept for each of the last 14 days.</div>
+                </div>
+                <button className="button is-quiet" onClick={run('app.revealData')} disabled={!isDesktop}>
+                  Show in Finder
+                </button>
+              </div>
+            </>
+          )}
+          {category === 'About' && (
+            <>
+              <div className="setting">
+                <div>
+                  <div className="setting-label">Cue</div>
+                  <div className="setting-help">Version {__APP_VERSION__}</div>
+                </div>
+                <button className="button is-quiet" onClick={() => controller.execute('app.about')}>
+                  About Cue
+                </button>
+              </div>
+              <div className="setting">
+                <div>
+                  <div className="setting-label">Report an issue</div>
+                  <div className="setting-help">Opens a new issue on GitHub with your version filled in.</div>
+                </div>
+                <button className="button" onClick={() => void backend.openExternal(reportIssueUrl(`Mac, version ${__APP_VERSION__}`))}>
+                  Report an Issue…
+                </button>
+              </div>
+              <div className="setting">
+                <div className="setting-legal">
+                  <a href={TERMS_URL} target="_blank" rel="noreferrer">
+                    Terms
+                  </a>
+                  {' · '}
+                  <a href={PRIVACY_URL} target="_blank" rel="noreferrer">
+                    Privacy Policy
+                  </a>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-        <Segmented
-          value={settings.weekStartsOn}
-          options={[
-            [1, 'Monday'],
-            [0, 'Sunday']
-          ]}
-          onChange={(weekStartsOn) => update({ weekStartsOn })}
-        />
-      </div>
-      <div className="setting">
-        <div>
-          <div className="setting-label">Earlier to-dos on Today</div>
-          <div className="setting-help">Today starts with the to-dos you didn’t finish in the last 30 days, folded into one line.</div>
-        </div>
-        <Segmented
-          value={settings.looseEnds}
-          options={[
-            [true, 'Show'],
-            [false, 'Hide']
-          ]}
-          onChange={(looseEnds) => update({ looseEnds })}
-        />
-      </div>
-      <SyncSettings />
-      <div className="setting is-stacked">
-        <div>
-          <div className="setting-label">Your data</div>
-          <div className="setting-help">
-            Everything is stored on this Mac and saved as you type. A backup snapshot is kept for each of the last 14 days.
-          </div>
-        </div>
-        <div className="button-row">
-          <button className="button" onClick={run('export.markdown')} disabled={!isDesktop}>
-            Export as Markdown…
-          </button>
-          <button className="button" onClick={run('export.json')} disabled={!isDesktop}>
-            Export JSON Backup…
-          </button>
-          <button className="button" onClick={run('import.json')} disabled={!isDesktop}>
-            Import JSON Backup…
-          </button>
-          <button className="button is-quiet" onClick={run('app.revealData')} disabled={!isDesktop}>
-            Show in Finder
-          </button>
-        </div>
-      </div>
-      <div className="setting">
-        <div>
-          <div className="setting-label">Report an issue</div>
-          <div className="setting-help">Opens a new issue on GitHub with your version filled in.</div>
-        </div>
-        <button className="button" onClick={() => void backend.openExternal(reportIssueUrl(`Mac, version ${__APP_VERSION__}`))}>
-          Report an Issue…
-        </button>
       </div>
     </Sheet>
   )
