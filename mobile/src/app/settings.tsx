@@ -8,6 +8,7 @@ import { statusLine } from '@shared/sync/status'
 import { PRIVACY_URL, TERMS_URL } from '@shared/terms'
 import type { Settings } from '@shared/types'
 import { sync, updateSettings } from '../core/app'
+import { exportBackup, exportMarkdown, type ExportResult } from '../core/export'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { lockup } from '../ui/lockup'
@@ -15,8 +16,9 @@ import { SheetTitle } from '../ui/Sheet'
 import { metrics, useColors } from '../ui/theme'
 
 /**
- * Sync, appearance, and the week. Sync is the Mac's: off until you turn it on, and turning
- * it off keeps every note here. The words are the Mac's (`shared/sync/status`).
+ * Sync, appearance, the week, and taking your notes with you. Sync is the Mac's: off until
+ * you turn it on, and turning it off keeps every note here. The words are the Mac's
+ * (`shared/sync/status`).
  */
 export default function SettingsSheet() {
   const c = useColors()
@@ -24,6 +26,7 @@ export default function SettingsSheet() {
   const settings = useStore(ui, (s) => s.settings)
   const [now, setNow] = useState(Date.now())
   const [syncing, setSyncing] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 15_000)
@@ -37,6 +40,17 @@ export default function SettingsSheet() {
     // Offline or paused needs no alert: the footnote already says why, as on the Mac.
     const { status } = sync.state.get()
     if (!result.ok && status !== 'offline' && status !== 'error') Alert.alert('Couldn’t sync', result.error)
+  }
+
+  // Nothing to say when it works: the share sheet already showed up, and cancelling it
+  // isn't a failure either.
+  const runExport = async (run: () => Promise<ExportResult>): Promise<void> => {
+    setExporting(true)
+    const result = await run()
+    setExporting(false)
+    if (result.ok) return
+    if (result.empty) Alert.alert('Nothing to export yet', 'Write something first, and it will be here.')
+    else Alert.alert('Couldn’t export', result.error ?? 'Please try again.')
   }
 
   const deleteAccount = (): void => {
@@ -114,6 +128,11 @@ export default function SettingsSheet() {
         />
       </Section>
 
+      <Section title="Your notes" footnote="Markdown is one file per day, in a zip. The backup is everything, in the file the Mac imports.">
+        <Row label="Export as Markdown…" onPress={() => void runExport(exportMarkdown)} disabled={exporting} />
+        <Row label="Export a Backup…" onPress={() => void runExport(exportBackup)} disabled={exporting} />
+      </Section>
+
       <Section footnote="Opens a new issue on GitHub with your version filled in.">
         <Row label="Report an Issue…" action="" onPress={reportIssue} />
       </Section>
@@ -183,7 +202,13 @@ function Row({ label, action, onPress, disabled }: { label: string; action?: str
   }
   if (!onPress) return <View style={styles.row}>{text}</View>
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && { backgroundColor: c.bgHover }]} accessibilityRole="button">
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [styles.row, pressed && { backgroundColor: c.bgHover }, disabled && styles.rowDimmed]}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
+    >
       {text}
     </Pressable>
   )
