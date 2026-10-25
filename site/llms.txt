@@ -24,8 +24,7 @@ driver. It is in beta and deliberately small.
   tomorrow, and ⌘K is a command palette that understands dates like “move to fri”.
 - Touch-first on the iPhone: tap a bullet to make it a to-do, swipe to complete or send to
   tomorrow, long-press to drag.
-- Export from the Mac at any time: Markdown, one file per day, or the whole database as
-  JSON.
+- Export from the Mac at any time: Markdown, one file per day, or all notes as JSON.
 
 ## What it deliberately isn’t
 
