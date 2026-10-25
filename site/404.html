@@ -10,30 +10,12 @@
 <meta name="theme-color" content="#FAFAFB" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#18181A" media="(prefers-color-scheme: dark)">
 <link rel="preload" href="/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/cue.css">
+<!-- The light/dark choice from the last page, before the first paint. -->
+<script>try { const t = localStorage.getItem('cue-theme'); if (t) document.documentElement.dataset.theme = t } catch {}</script>
 <style>
-@font-face { font-family: "Newsreader"; font-style: normal; font-weight: 400; font-display: swap;
-  src: url("/fonts/newsreader-latin.woff2") format("woff2"); }
-/* Tokens from docs/brand/tokens/tokens.css, as on the home page. */
-:root {
-  color-scheme: light;
-  --bg: #FAFAFB; --text: #1C1C1E; --text-2: #6C6C72; --text-3: #8E8E94; --accent: #2C2C31;
-  --text-selection: #2C2C3129;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --bg: #18181A; --text: #ECECEF; --text-2: #9D9DA4; --text-3: #76767D; --accent: #E6E6EA;
-    --text-selection: #E6E6EA38;
-  }
-}
-* { box-sizing: border-box; }
-::selection { background: var(--text-selection); }
-body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
-  background: var(--bg); color: var(--text);
-  font: 17px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+body { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
 main { width: 100%; max-width: 560px; }
-.serif { font-family: "Newsreader", "New York", ui-serif, Georgia, serif; font-weight: 400;
-  letter-spacing: -0.02em; font-optical-sizing: auto; }
 .date { font-size: 15px; color: var(--text-3); }
 h1 { font-size: clamp(40px, 7vw, 64px); line-height: 1.05; margin: 8px 0 14px; }
 .line { min-height: 1.55em; font-size: 20px; color: var(--text); overflow-wrap: anywhere; }
@@ -55,22 +37,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   <p class="line empty" aria-hidden="true"><span class="typed"></span><span class="caret"></span></p>
   <a href="/">← Back to today</a>
 </main>
-<script>
-// An empty page, like an empty day: type and it's yours, until you leave.
-(() => {
-  const now = new Date()
-  document.querySelector('.date').textContent =
-    now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-  const line = document.querySelector('.line'), typed = document.querySelector('.typed')
-  document.addEventListener('keydown', (e) => {
-    if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return
-    if (e.key === 'Backspace') typed.textContent = typed.textContent.slice(0, -1)
-    else if (e.key.length === 1 && typed.textContent.length < 80) typed.textContent += e.key
-    else return
-    e.preventDefault()
-    line.classList.toggle('empty', !typed.textContent)
-  })
-})()
-</script>
+<script src="/cue.js" defer></script>
+<script src="/404.js" defer></script>
 </body>
 </html>

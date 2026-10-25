@@ -14,6 +14,14 @@
 <meta property="og:url" content="https://www.usecue.today/download">
 <meta property="og:image" content="https://www.usecue.today/images/og.png">
 <meta property="og:image:alt" content="Cue: every day is a page.">
+<!-- Messages (and Slack, Discord, Telegram) play this in the preview card; everything
+     else falls back to og:image. Rendered by scripts/og-video.mjs. -->
+<meta property="og:video" content="https://www.usecue.today/images/og.mp4">
+<meta property="og:video:secure_url" content="https://www.usecue.today/images/og.mp4">
+<meta property="og:video:type" content="video/mp4">
+<meta property="og:video:width" content="1280">
+<meta property="og:video:height" content="640">
+<meta property="og:video:alt" content="The Cue card typing itself: cue, every day is a page.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://www.usecue.today/images/og.png">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
@@ -23,44 +31,11 @@
 <meta name="theme-color" content="#FAFAFB" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#18181A" media="(prefers-color-scheme: dark)">
 <link rel="preload" href="/fonts/newsreader-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/cue.css">
+<!-- The light/dark choice from the last page, before the first paint. -->
+<script>try { const t = localStorage.getItem('cue-theme'); if (t) document.documentElement.dataset.theme = t } catch {}</script>
 <style>
-@font-face { font-family: "Newsreader"; font-style: normal; font-weight: 400; font-display: swap;
-  src: url("/fonts/newsreader-latin.woff2") format("woff2"); }
-/* Tokens from docs/brand/tokens/tokens.css, as on the home page. */
-:root {
-  color-scheme: light;
-  --bg: #FAFAFB; --bg-subtle: #F0F0F2; --bg-hover: #0000000B; --text: #1C1C1E; --text-2: #6C6C72;
-  --text-3: #8E8E94; --line: #00000012; --line-strong: #0000003D; --accent: #2C2C31; --on-accent: #FFFFFF;
-  --text-selection: #2C2C3129;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --bg: #18181A; --bg-subtle: #2C2C30; --bg-hover: #FFFFFF0F; --text: #ECECEF; --text-2: #9D9DA4;
-    --text-3: #76767D; --line: #FFFFFF13; --line-strong: #FFFFFF42; --accent: #E6E6EA; --on-accent: #18181A;
-    --text-selection: #E6E6EA38;
-  }
-}
-
-* { box-sizing: border-box; }
-::selection { background: var(--text-selection); }
-html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--bg); color: var(--text);
-  font: 17px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased; }
-a { color: inherit; }
 p { margin: 0; }
-.wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
-.narrow { max-width: 680px; margin: 0 auto; }
-
-nav { display: flex; align-items: center; justify-content: space-between; height: 76px; }
-nav .lockup { display: block; height: 26px; width: auto; color: var(--text); }
-nav .links { display: flex; gap: 24px; }
-nav .links a { font-size: 15px; color: var(--text-2); text-decoration: none; }
-nav .links a:hover, nav .links a[aria-current] { color: var(--text); }
-
-.serif { font-family: "Newsreader", "New York", ui-serif, Georgia, serif; font-weight: 400;
-  letter-spacing: -0.02em; font-optical-sizing: auto; }
 
 header { text-align: center; padding: 64px 0 48px; }
 .status { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px;
@@ -84,8 +59,7 @@ h1 { font-size: clamp(46px, 7.4vw, 72px); line-height: 1.02; margin: 26px 0 22px
 .btn svg { width: 17px; height: 17px; flex: none; }
 .btn.primary { background: var(--accent); color: var(--on-accent); }
 .btn.primary:hover { opacity: .9; }
-.btn:focus-visible, nav a:focus-visible, footer a:focus-visible, .prose a:focus-visible {
-  outline: 2px solid var(--accent); outline-offset: 3px; }
+.btn:focus-visible, .prose a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 section { padding: 72px 0; border-top: 1px solid var(--line); }
 h2.section { font-size: clamp(32px, 4.4vw, 44px); line-height: 1.1; margin: 0 0 24px; }
@@ -95,12 +69,6 @@ h2.section { font-size: clamp(32px, 4.4vw, 44px); line-height: 1.1; margin: 0 0 
 .not { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--text-2); font-size: 16px; }
 .not a { color: var(--text); }
 
-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
-  padding: 32px 0 48px; border-top: 1px solid var(--line); font-size: 14px; color: var(--text-2); }
-footer .symbol { display: block; width: 20px; height: 20px; color: var(--text); }
-footer .left { display: flex; align-items: center; gap: 12px; }
-footer a { text-decoration: none; }
-footer a:hover { color: var(--text); }
 
 @media (max-width: 720px) {
   header { padding: 40px 0 32px; }
@@ -267,5 +235,6 @@ footer a:hover { color: var(--text); }
     <span>Open source, MIT · <a href="https://github.com/zlwaterfield/cue">GitHub</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></span>
   </footer>
 </div>
+<script src="/cue.js" defer></script>
 </body>
 </html>

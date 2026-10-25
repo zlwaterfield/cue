@@ -24,7 +24,10 @@ Portrait, in upload order, at both of the iPhone sizes App Store Connect asks fo
 | 8 | [08-mac](store/08-mac.png) | Your iPhone and Mac, always in sync. | The same day on the phone and in the Mac's README screenshot |
 
 `screens/` holds the plain screenshots, and `store/` and `store-6.3/` the images to
-upload — the same eight at two sizes, all PNGs without alpha.
+upload — the same eight at two sizes, all PNGs without alpha. `screens/08-mac.png` has a
+second job: it is also the iPhone on the website's home page, and `screens/01-today.png`
+and `screens/07-dark.png` are what the dark version of it is derived from
+(`scripts/phone-shots.py`), so changing those three changes the site too.
 
 - **`store-6.3/`, 1206 × 2622.** The slot for 6.1" and 6.3" displays, which is the one
   Apple requires of an iPhone app. It takes 1179 × 2556 or 1206 × 2622 and nothing else,

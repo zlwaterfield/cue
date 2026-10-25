@@ -10,24 +10,13 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#FAFAFB" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#18181A" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/cue.css">
+<!-- The light/dark choice from the rest of the site, before the first paint. There's no
+     palette here: this page has one job. -->
+<script>try { const t = localStorage.getItem('cue-theme'); if (t) document.documentElement.dataset.theme = t } catch {}</script>
 <style>
-/* Tokens from docs/brand/tokens/tokens.css, as on the home page. */
-:root {
-  color-scheme: light;
-  --bg: #FAFAFB; --bg-subtle: #F0F0F2; --text: #1C1C1E; --text-2: #6C6C72; --text-3: #8E8E94;
-  --line: #00000012; --line-strong: #0000003D; --accent: #2C2C31; --on-accent: #FFFFFF;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --bg: #18181A; --bg-subtle: #2C2C30; --text: #ECECEF; --text-2: #9D9DA4; --text-3: #76767D;
-    --line: #FFFFFF13; --line-strong: #FFFFFF42; --accent: #E6E6EA; --on-accent: #18181A;
-  }
-}
-* { box-sizing: border-box; }
-body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
-  background: var(--bg); color: var(--text);
-  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+body { min-height: 100vh; display: grid; place-items: center; padding: 24px;
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
 main { width: 100%; max-width: 380px; }
 .symbol { display: block; width: 28px; height: 28px; margin-bottom: 28px; }
 h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 8px; }

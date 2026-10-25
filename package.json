@@ -40,6 +40,7 @@
     "seed": "node scripts/run-ts.mjs scripts/seed.ts",
     "bench": "node scripts/bench.mjs",
     "screenshots": "node scripts/screenshots.mjs",
+    "og-video": "node scripts/og-video.mjs",
     "video": "node scripts/launch-video.mjs"
   },
   "engines": {

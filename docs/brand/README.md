@@ -38,7 +38,7 @@ Geist (OFL); those fonts keep their own licenses.
 | `app-icon/` | macOS 1024 icons on Apple's grid (824 body) in light, dark, tinted-light, tinted-dark, clear-light and clear-dark, as SVG and PNG. Also `Cue.iconset`, `Cue.icns`, the Icon Composer layers and settings (`ICON-COMPOSER.md`), iOS full-bleed variants, and `preview-appearances.png`. |
 | `tokens/` | `tokens.css` (CSS custom properties, 8-digit hex for translucency), `tokens.json` (hex + opacity), and `contrast.md`. |
 | `readme/` | GitHub README header in light and dark (SVG plus 2× PNG), with a `<picture>` snippet. |
-| `social/` | GitHub social preview, 1280 × 640 (SVG, PNG, @2x). |
+| `social/` | GitHub social preview, 1280 × 640 (SVG, PNG, @2x), and `og-video.html` — the same card writing itself, rendered to the site's `og:video` by `pnpm og-video`. |
 | `dmg/` | DMG background, 540 × 380 and @2x, with icon positions and a create-dmg line. |
 | `web/` | `favicon.svg` (adapts to dark mode), `favicon.ico` (16/32/48), `apple-touch-icon.png`, icon-192/512, a maskable 512, `site.webmanifest`, and a `<head>` snippet. |
 | `hero/` | A self-contained landing-page hero (`index.html`, light and dark via tokens) and PNG renders. |

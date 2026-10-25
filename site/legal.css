@@ -1,56 +1,14 @@
-/* The Terms and Privacy pages. Tokens from docs/brand/tokens/tokens.css, as on the home page. */
-@font-face {
-  font-family: "Newsreader";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url("/fonts/newsreader-latin.woff2") format("woff2");
-}
-:root {
-  color-scheme: light;
-  --bg: #FAFAFB;
-  --bg-subtle: #F0F0F2;
-  --text: #1C1C1E;
-  --text-2: #6C6C72;
-  --text-3: #8E8E94;
-  --line: #00000012;
-  --line-strong: #0000003D;
-  --accent: #2C2C31;
-  --text-selection: #2C2C3129;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --bg: #18181A;
-    --bg-subtle: #222225;
-    --text: #ECECEF;
-    --text-2: #9D9DA4;
-    --text-3: #76767D;
-    --line: #FFFFFF13;
-    --line-strong: #FFFFFF42;
-    --accent: #E6E6EA;
-    --text-selection: #E6E6EA38;
-  }
-}
-
-* { box-sizing: border-box; }
-::selection { background: var(--text-selection); }
-html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--bg); color: var(--text);
-  font: 17px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased; }
-a { color: inherit; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+/* The Terms and Privacy pages. The tokens, the base layer and the chrome are in cue.css;
+ * this is what these two pages add on top. */
+body { line-height: 1.6; }
+a { text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
 a:hover { text-decoration-color: currentColor; }
 a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
 p, ul { margin: 0; }
-.wrap { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+.wrap { max-width: 680px; }
 
-nav { display: flex; align-items: center; justify-content: space-between; height: 76px; }
 nav .home { display: block; color: var(--text); }
-nav .home svg { display: block; height: 22px; width: auto; }
-nav .links { display: flex; gap: 24px; }
-nav .links a { font-size: 15px; color: var(--text-2); text-decoration: none; }
-nav .links a:hover, nav .links a[aria-current="page"] { color: var(--text); }
+nav .home svg { height: 22px; }
 
 header { padding: 56px 0 36px; }
 h1 { font: 400 clamp(44px, 7vw, 60px)/1.05 "Newsreader", "New York", ui-serif, Georgia, serif;
@@ -75,11 +33,8 @@ main section ul { padding-left: 20px; display: grid; gap: 8px; }
 main section li::marker { color: var(--text-3); }
 main strong { color: var(--text); font-weight: 600; }
 
-footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
-  margin-top: 72px; padding: 32px 0 48px; border-top: 1px solid var(--line); font-size: 14px; color: var(--text-2); }
+footer { margin-top: 72px; }
 footer .links { display: flex; gap: 20px; }
-footer a { text-decoration: none; }
-footer a:hover { color: var(--text); }
 
 @media (max-width: 720px) {
   header { padding: 32px 0 28px; }
