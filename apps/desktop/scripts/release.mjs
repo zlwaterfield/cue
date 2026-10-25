@@ -85,7 +85,13 @@ run(
 const files = readdirSync(out)
 const dmg = files.find((file) => file.endsWith('.dmg'))
 const zip = files.find((file) => file.endsWith('.zip'))
-if (!dmg || !zip) fail(`Expected a .dmg and a .zip in release/, found: ${files.join(', ')}`)
+// latest-mac.yml is the auto-updater's manifest, which electron-builder writes from the
+// `publish` config in electron-builder.yml. `pnpm release:upload` needs it, so a build without
+// one is caught here rather than after notarization, which takes minutes.
+const manifest = files.includes('latest-mac.yml')
+if (!dmg || !zip || !manifest) {
+  fail(`Expected a .dmg, a .zip and latest-mac.yml in release/, found: ${files.join(', ')}`)
+}
 
 // The DMG is what people download, so it's notarized and stapled as well.
 console.log(`\nNotarizing ${dmg}…`)

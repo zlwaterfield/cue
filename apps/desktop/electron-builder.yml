@@ -10,6 +10,17 @@ files:
 asar: true
 # All code is bundled by electron-vite, and package.json has no runtime
 # dependencies, so nothing from node_modules ships.
+
+# Where the build is published. electron-builder only writes release/latest-mac.yml — the
+# manifest an auto-updater reads, and one of the files `pnpm release:upload` puts on the
+# release — when it knows the repository. It used to read that from .git/config, which stopped
+# working when the app moved into apps/ and the repository root went a level up, so it's named
+# here. Nothing is uploaded by electron-builder itself: `pnpm release` passes --publish never.
+publish:
+  provider: github
+  owner: zlwaterfield
+  repo: cue
+
 mac:
   category: public.app-category.productivity
   # Icon Composer source (brand/app-icon/ICON-COMPOSER.md). electron-builder compiles it
