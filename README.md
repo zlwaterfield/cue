@@ -125,8 +125,13 @@ pnpm bench --check    # exits non-zero if anything misses its budget
 
 ## Getting started
 
-There are no downloads yet, so build Cue from source on an Apple silicon Mac with Node 24+ and
-pnpm:
+Download Cue from [usecue.today/download](https://www.usecue.today/download): the Mac app for
+Apple silicon, and the iPhone beta on TestFlight. The Mac app is free and works offline with no
+account. Syncing it with your iPhone needs one (Sign in with Apple, or an emailed code).
+
+### Build it yourself
+
+Build Cue from source on an Apple silicon Mac with Node 24+ and pnpm:
 
 ```sh
 git clone https://github.com/zlwaterfield/cue.git
@@ -140,20 +145,16 @@ Development builds run as "Cue Dev" and keep their data separate from the packag
 working on Cue can't touch your notes.
 
 For the iPhone app, see [mobile/README.md](mobile/README.md). It needs Xcode 26 and a sync
-server.
-
-**Rather not build it yourself?** I'm open to a hosted version with sync run for you, free or
-very cheap, if there's enough interest. If you'd use it, add a 👍 to the
-[waitlist issue](https://github.com/zlwaterfield/cue/issues/13) and subscribe to hear if it
-happens.
+server: your own Supabase project, set up as in [docs/SYNC.md](docs/SYNC.md).
 
 ## Your data
 
 - On the Mac, everything lives in one SQLite file at
   `~/Library/Application Support/Cue/cue.sqlite`, with daily snapshots in `Backups/`.
-- No telemetry. Without sync, Cue never talks to a server.
-- With sync on, your notes are also stored in your Supabase account. Turning sync off keeps
-  every note on your Mac, and you can delete the account from Settings.
+- No telemetry, analytics or tracking. Without sync, Cue never talks to a server.
+- With sync on, your notes are also stored on the sync server (Cue's, or your own if you
+  build it yourself). Turning sync off keeps every note on your Mac, and you can delete the
+  account from Settings.
 - File ▸ Export as Markdown writes one file per day; Export JSON Backup writes everything.
 - The hosted service's [Privacy Policy](https://www.usecue.today/privacy) and
   [Terms](https://www.usecue.today/terms) are short and in plain words.
@@ -177,12 +178,8 @@ in [docs/brand](docs/brand).
 There isn't a big one, on purpose. Cue is meant to stay small, so most of the work goes into
 making what's already here faster and more dependable. Nothing below is promised to a date.
 
-**Before the stable 1.0:** a stable storage format with tested migrations, signed Mac downloads with
-automatic updates, and TestFlight builds for iPhone.
-
-**Exploring:**
-- **A hosted version**, so anyone can sign in and sync without running their own Supabase.
-  Join the [waitlist](https://github.com/zlwaterfield/cue/issues/13) if you'd use it.
+**Before the stable 1.0:** a stable storage format with tested migrations, and automatic
+updates on the Mac.
 
 **Not planned:** projects, tags, priorities, reminders, recurring tasks, attachments,
 collaboration, AI built into the app and dashboards.
