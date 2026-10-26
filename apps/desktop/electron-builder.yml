@@ -8,23 +8,17 @@ files:
   - out/**
   - package.json
 asar: true
-# Where release builds look for updates (src/main/updates.ts). electron-builder writes it into
-# the app as Resources/app-update.yml, which the updater reads for its download cache, and
-# makes latest-mac.yml beside the zip. It used to infer this from the git remote; spelled out,
-# a build made from a fork or a renamed remote still points here. `pnpm release` passes
-# `--publish never`, so nothing is uploaded until `pnpm release:upload`.
-publish:
-  provider: github
-  owner: zlwaterfield
-  repo: cue
 # All code is bundled by electron-vite, and package.json has no runtime
 # dependencies, so nothing from node_modules ships.
 
-# Where the build is published. electron-builder only writes release/latest-mac.yml — the
-# manifest an auto-updater reads, and one of the files `pnpm release:upload` puts on the
-# release — when it knows the repository. It used to read that from .git/config, which stopped
-# working when the app moved into apps/ and the repository root went a level up, so it's named
-# here. Nothing is uploaded by electron-builder itself: `pnpm release` passes --publish never.
+# Where release builds look for updates (src/main/updates.ts), and the only reason
+# electron-builder writes release/latest-mac.yml — the manifest the updater reads, and one of
+# the files `pnpm release:upload` puts on the release. It used to work the repository out from
+# <projectDir>/.git/config, which found nothing once the app moved into apps/ and the
+# repository root went a level up; named here, a build from a renamed remote or a fork still
+# points back here. It also goes into the app as Resources/app-update.yml, which the updater
+# reads for its download cache. Nothing is uploaded by electron-builder itself: `pnpm release`
+# passes --publish never, so nothing reaches GitHub until `pnpm release:upload`.
 publish:
   provider: github
   owner: zlwaterfield
