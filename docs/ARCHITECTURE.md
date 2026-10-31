@@ -8,6 +8,8 @@
 │  db.ts         SQLite (node:sqlite), WAL, synchronous=FULL             │
 │  sync/service  optional sync: account, lifecycle, Keychain session    │
 │  portability.ts the filesystem around core/portability, backups        │
+│  addToToday.ts cue://add links: a new line at the end of today        │
+│  capture.ts    ⌃⌥⌘L: the front browser tab, over AppleScript          │
 └──────────────▲─────────────────────────────────────────────────────────┘
                │ narrow, typed IPC (preload/index.ts → window.cue)
 ┌──────────────┴──────────────── Renderer (React) ───────────────────────┐

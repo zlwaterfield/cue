@@ -1,5 +1,16 @@
 import { fold, searchTerms } from '@shared/text'
-import { DEFAULT_SETTINGS, SYNC_OFF, UPDATES_OFF, type CueBridge, type Item, type SearchResult, type Settings, type SyncBridge, type UpdateBridge } from '@shared/types'
+import {
+  DEFAULT_SETTINGS,
+  SYNC_OFF,
+  UPDATES_OFF,
+  type CueBridge,
+  type Item,
+  type SearchResult,
+  type Settings,
+  type ShortcutStatus,
+  type SyncBridge,
+  type UpdateBridge
+} from '@shared/types'
 
 /**
  * The renderer's view of storage. In the desktop app this is the preload bridge to
@@ -128,6 +139,14 @@ class MemoryBackend implements Backend {
   }
 
   onItemsChanged(): () => void {
+    return () => {}
+  }
+
+  async shortcutStatus(): Promise<ShortcutStatus> {
+    return 'off'
+  }
+
+  onNotice(): () => void {
     return () => {}
   }
 

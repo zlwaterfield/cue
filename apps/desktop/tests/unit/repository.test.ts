@@ -76,9 +76,18 @@ describe('Repository', () => {
     const repo = memoryRepo()
     expect(repo.getSettings().looseEnds).toBe(true)
     repo.setSettings({ looseEnds: false })
-    expect(repo.getSettings()).toEqual({ theme: 'system', weekStartsOn: 1, looseEnds: false })
+    expect(repo.getSettings()).toEqual({ theme: 'system', weekStartsOn: 1, looseEnds: false, saveTabShortcut: true })
     repo.setMeta('settings', JSON.stringify({ theme: 'dark', looseEnds: 'yes' }))
-    expect(repo.getSettings()).toEqual({ theme: 'dark', weekStartsOn: 1, looseEnds: true })
+    expect(repo.getSettings()).toEqual({ theme: 'dark', weekStartsOn: 1, looseEnds: true, saveTabShortcut: true })
+  })
+
+  it('offers the save-tab shortcut unless turned off, and keeps the choice', () => {
+    const repo = memoryRepo()
+    expect(repo.getSettings().saveTabShortcut).toBe(true)
+    repo.setSettings({ saveTabShortcut: false })
+    expect(repo.getSettings().saveTabShortcut).toBe(false)
+    repo.setMeta('settings', JSON.stringify({ saveTabShortcut: 'no' }))
+    expect(repo.getSettings().saveTabShortcut).toBe(true)
   })
 
   it('skips malformed records without blocking the rest of the batch', () => {

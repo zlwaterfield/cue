@@ -420,7 +420,8 @@ export class Repository {
     const theme = ['system', 'light', 'dark'].includes(stored.theme as string) ? stored.theme! : DEFAULT_SETTINGS.theme
     const weekStartsOn = stored.weekStartsOn === 0 || stored.weekStartsOn === 1 ? stored.weekStartsOn : DEFAULT_SETTINGS.weekStartsOn
     const looseEnds = typeof stored.looseEnds === 'boolean' ? stored.looseEnds : DEFAULT_SETTINGS.looseEnds
-    return { theme, weekStartsOn, looseEnds }
+    const saveTabShortcut = typeof stored.saveTabShortcut === 'boolean' ? stored.saveTabShortcut : DEFAULT_SETTINGS.saveTabShortcut
+    return { theme, weekStartsOn, looseEnds, saveTabShortcut }
   }
 
   setSettings(patch: Partial<Settings>): Settings {

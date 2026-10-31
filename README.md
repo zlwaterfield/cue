@@ -89,10 +89,27 @@ seconds.
 | Select lines | Esc, then ⇧↑ / ⇧↓ (⌘A twice for the whole day) |
 | Undo / redo | ⌘Z · ⇧⌘Z |
 | Every shortcut | ⌘/ |
+| Save the front browser tab to today, from any app | ⌃⌥⌘L |
 
 <p align="center">
   <img src="docs/images/shortcuts.png" alt="The ⌘/ keyboard shortcuts sheet" width="80%">
 </p>
+
+### Saving links from the Mac
+
+Three ways to put a page on today without leaving your browser. A link goes under today's
+"Links" bullet, as a share from the iPhone does; anything else goes at the end of today.
+
+- **⌃⌥⌘L** saves the tab you're on in Safari, Chrome, Arc, Brave, Edge, Vivaldi and other
+  Chromium browsers. macOS asks once per browser whether Cue may read its tab. Firefox doesn't
+  share its tabs with other apps, so use the bookmarklet there. Turn it off in Settings ▸ General.
+- **A bookmarklet.** Save this as a bookmark's address and click it on any page:
+  `javascript:location.href='cue://add?text='+encodeURIComponent(location.href)`
+- **The Share menu.** In the Shortcuts app, make a shortcut that receives URLs from the Share
+  Sheet, then URL Encode the Shortcut Input and Open URLs `cue://add?text=[URL Encoded Text]`.
+  It shows in the Share menu of Safari and any other app that shares links.
+
+`cue://add?text=…` works from anything that can open a link. It only ever adds a line.
 
 ## Performance
 

@@ -5,5 +5,9 @@
     <!-- V8 compiles JavaScript at run time; the hardened runtime needs this to allow it. -->
     <key>com.apple.security.cs.allow-jit</key>
     <true/>
+    <!-- ⌃⌥⌘L asks the browser in front for its tab over Apple events (src/main/capture.ts).
+         Under the hardened runtime they're refused without this. -->
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
   </dict>
 </plist>

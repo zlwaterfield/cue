@@ -24,6 +24,12 @@ publish:
   owner: zlwaterfield
   repo: cue
 
+# cue://add?text=… adds a line to today (src/main/addToToday.ts), for bookmarklets and
+# Shortcuts. It lands in Info.plist as CFBundleURLTypes.
+protocols:
+  - name: Cue
+    schemes: [cue]
+
 mac:
   category: public.app-category.productivity
   # Icon Composer source (brand/app-icon/ICON-COMPOSER.md). electron-builder compiles it
@@ -46,6 +52,8 @@ mac:
   extendInfo:
     LSApplicationCategoryType: public.app-category.productivity
     NSSupportsAutomaticGraphicsSwitching: true
+    # What macOS shows the first time ⌃⌥⌘L asks a browser for its tab (src/main/capture.ts).
+    NSAppleEventsUsageDescription: Cue asks your browser for the address of the tab you’re on when you save it to today. It doesn’t read or change anything else.
 dmg:
   title: Cue
   # Brand kit DMG (brand/dmg): 540 × 380, 128 px icons, retina TIFF background.

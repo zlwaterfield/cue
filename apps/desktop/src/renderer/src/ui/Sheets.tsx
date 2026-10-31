@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { COMMANDS, shortcutKeys } from '@shared/commands'
+import { COMMANDS, SAVE_TAB_SHORTCUT, shortcutKeys } from '@shared/commands'
 import { reportIssueUrl } from '@shared/feedback'
 import { PRIVACY_URL, TERMS_URL } from '@shared/terms'
-import type { Settings, UpdateState } from '@shared/types'
+import type { Settings, ShortcutStatus, UpdateState } from '@shared/types'
 import lockupDark from '../assets/cue-lockup-on-dark.svg'
 import lockupLight from '../assets/cue-lockup-on-light.svg'
 import { backend, isDesktop } from '../data/backend'
@@ -232,6 +232,7 @@ function Settings({ opensOn }: { opensOn: SettingsCategory }) {
   const syncAvailable = useStore(syncState, (s) => s.available)
   const updates = useStore(updateState, (s) => s)
   const [chosen, setChosen] = useState<SettingsCategory>(opensOn)
+  const [shortcut, setShortcut] = useState<ShortcutStatus | null>(null)
   const rail = useRef<HTMLDivElement>(null)
   // Opening Settings is when the pending count and "Synced …" are re-read, whichever
   // category shows.
@@ -239,6 +240,15 @@ function Settings({ opensOn }: { opensOn: SettingsCategory }) {
   // After the sheet's own focus (layout effects run before this one), so ↑/↓ move between
   // categories straight away. Escape still closes: that listener is on the window.
   useEffect(() => rail.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus({ preventScroll: true }), [])
+  // Asked again whenever the setting changes: the main process has just taken the keys or let them go.
+  useEffect(() => {
+    let current = true
+    void backend.shortcutStatus().then((status) => current && setShortcut(status))
+    return () => {
+      current = false
+    }
+  }, [settings.saveTabShortcut])
+  const saveTabKeys = shortcutKeys(SAVE_TAB_SHORTCUT).join('')
 
   const categories = SETTINGS_CATEGORIES.filter((c) => (c !== 'Sync' && c !== 'Assistants') || syncAvailable)
   const category = categories.includes(chosen) ? chosen : 'General'
@@ -339,6 +349,24 @@ function Settings({ opensOn }: { opensOn: SettingsCategory }) {
                       [false, 'Hide']
                     ]}
                     onChange={(looseEnds) => update({ looseEnds })}
+                  />
+                </div>
+                <div className="setting">
+                  <div>
+                    <div className="setting-label">Save browser tab</div>
+                    <div className="setting-help">
+                      {settings.saveTabShortcut && shortcut === 'taken'
+                        ? `Another app already uses ${saveTabKeys}. Change it there, and Cue picks it up the next time you open Settings.`
+                        : `Press ${saveTabKeys} in Safari, Chrome or another browser to add the tab you’re on to today.`}
+                    </div>
+                  </div>
+                  <Segmented
+                    value={settings.saveTabShortcut}
+                    options={[
+                      [true, 'On'],
+                      [false, 'Off']
+                    ]}
+                    onChange={(saveTabShortcut) => update({ saveTabShortcut })}
                   />
                 </div>
               </>

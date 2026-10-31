@@ -1202,6 +1202,7 @@ class EditorController {
     window.addEventListener('focus', () => void this.checkToday())
     backend.onCommand((id) => this.execute(id, 'menu'))
     backend.onItemsChanged((items) => this.applyExternal(items))
+    backend.onNotice((message) => showToast(message))
     setInterval(() => void this.checkToday(), 30_000)
   }
 

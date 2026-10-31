@@ -58,13 +58,22 @@ export interface Settings {
   weekStartsOn: 0 | 1
   /** Today opens with the unfinished to-dos left on earlier days ("loose ends"). */
   looseEnds: boolean
+  /** On the Mac, ⌃⌥⌘L saves the front browser tab to today, from any app. */
+  saveTabShortcut: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   weekStartsOn: 1,
-  looseEnds: true
+  looseEnds: true,
+  saveTabShortcut: true
 }
+
+/**
+ * The Mac's save-tab shortcut: turned off in Settings, working, or not available because
+ * another app already uses the keys.
+ */
+export type ShortcutStatus = 'off' | 'on' | 'taken'
 
 export interface ExportResult {
   ok: boolean
@@ -205,8 +214,12 @@ export interface CueBridge {
   markInteractive(): void
   /** Commands invoked from the native menu. Returns an unsubscribe function. */
   onCommand(callback: (commandId: string) => void): () => void
-  /** Items changed outside the renderer (import, sync). */
+  /** Items changed outside the renderer (import, sync, a link saved from a browser). */
   onItemsChanged(callback: (items: Item[]) => void): () => void
+  /** Whether the save-tab shortcut is working right now. */
+  shortcutStatus(): Promise<ShortcutStatus>
+  /** A short message from the main process for the toast. Returns an unsubscribe function. */
+  onNotice(callback: (message: string) => void): () => void
   sync: SyncBridge
   updates: UpdateBridge
 }

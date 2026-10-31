@@ -33,6 +33,8 @@ const bridge: CueBridge = {
   markInteractive: () => ipcRenderer.send('app:interactive'),
   onCommand: (callback) => subscribe<string>('command', callback),
   onItemsChanged: (callback) => subscribe<Item[]>('items:changed', callback),
+  shortcutStatus: () => ipcRenderer.invoke('shortcut:status'),
+  onNotice: (callback) => subscribe<string>('notice', callback),
   sync: {
     getState: () => ipcRenderer.invoke('sync:state'),
     onState: (callback) => subscribe<SyncState>('sync:state', callback),

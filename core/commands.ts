@@ -76,6 +76,13 @@ export const COMMANDS: CommandMeta[] = [
   { id: 'theme.dark', title: 'Use dark appearance', group: 'General', keywords: 'theme night' }
 ]
 
+/**
+ * The Mac's shortcut that saves the front browser tab to today, from any app
+ * (apps/desktop/src/main/capture.ts). It's registered with the system rather than the menu,
+ * and isn't a command: from ⌘K, Cue itself would be the app in front.
+ */
+export const SAVE_TAB_SHORTCUT = 'Ctrl+Alt+Mod+L'
+
 export const COMMANDS_BY_ID: Record<string, CommandMeta> = Object.fromEntries(COMMANDS.map((c) => [c.id, c]))
 
 const KEY_SYMBOLS: Record<string, string> = {

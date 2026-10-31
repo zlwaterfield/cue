@@ -1,10 +1,28 @@
 import './guard'
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net, powerMonitor, safeStorage, screen, shell } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  dialog,
+  globalShortcut,
+  ipcMain,
+  Menu,
+  nativeTheme,
+  net,
+  Notification,
+  powerMonitor,
+  safeStorage,
+  screen,
+  shell
+} from 'electron'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
+import { SAVE_TAB_SHORTCUT, toAccelerator } from '@shared/commands'
 import { todayISO } from '@shared/dates'
-import type { ExportResult, ImportResult, Item, Settings, ThemePreference } from '@shared/types'
+import type { ExportResult, ImportResult, Item, Settings, ShortcutStatus, ThemePreference } from '@shared/types'
+import { addedLine, cleanLine, parseAddUrl } from './addToToday'
+import { captureFrontTab } from './capture'
 import { openDatabase } from './db'
 import { LinkPreviews } from './links'
 import { buildMenu } from './menu'
@@ -34,6 +52,24 @@ let links: LinkPreviews
 let updates: UpdateService
 let mainWindow: BrowserWindow | null = null
 let quitting = false
+/**
+ * `cue://` links that arrive before the first screen is up wait here, so the line lands in
+ * a day the editor has already loaded. Null once it's up.
+ */
+let arriving: string[] | null = []
+
+// macOS hands over the link that opened Cue before `ready`, so the listener has to be in
+// place while launch is still finishing. Only packaged builds declare cue:// (electron-builder.yml):
+// `pnpm dev` runs inside Electron.app, and claiming the scheme for it with
+// setAsDefaultProtocolClient would outlast the session and take it from the real Cue. The
+// e2e tests emit `open-url` themselves.
+app.on('will-finish-launching', () => {
+  app.on('open-url', (event, url) => {
+    event.preventDefault()
+    if (arriving) arriving.push(url)
+    else receiveUrl(url)
+  })
+})
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
@@ -292,6 +328,81 @@ function saveItems(items: Item[]): Item[] {
   return saved
 }
 
+/**
+ * A `cue://add?text=…` link: the line goes to the end of today. Cue doesn't bring itself
+ * forward for it; the person is still in their browser.
+ */
+function receiveUrl(url: string): void {
+  try {
+    const text = parseAddUrl(url)
+    if (text) addToToday(text)
+  } catch (error) {
+    console.error('Couldn’t add a cue:// link', error)
+  }
+}
+
+/**
+ * Add a line to today (a link under its Links bullet), the same way an import does: stored first, then handed to
+ * the editor as a change from elsewhere, so it appears in a loaded day without touching what
+ * you're typing or what ⌘Z undoes, and sync sends it like any new line.
+ */
+function addToToday(text: string): void {
+  const date = todayISO()
+  const saved = saveItems(addedLine(repo.loadDates([date]), date, text))
+  if (!saved.length) return
+  broadcast('items:changed', saved)
+  tell('Added to today', 'Added to Today', text)
+}
+
+/**
+ * Say what happened without bringing Cue forward: in the toast if you're looking at Cue,
+ * otherwise as a notification.
+ */
+function tell(toast: string, title: string, body: string): void {
+  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isFocused()) {
+    mainWindow.webContents.send('notice', toast)
+    return
+  }
+  // Tests run at someone's Mac; they don't post notifications to it.
+  if (isTest || !Notification.isSupported()) return
+  new Notification({ title, body, silent: true }).show()
+}
+
+const SAVE_TAB_ACCELERATOR = toAccelerator(SAVE_TAB_SHORTCUT)!
+let shortcut: ShortcutStatus = 'off'
+
+/**
+ * Hold ⌃⌥⌘L while the setting is on. If another app already has it, the setting says so;
+ * each time Settings asks, Cue tries again, in case that app has let go.
+ */
+function applyShortcut(on: boolean): ShortcutStatus {
+  const held = globalShortcut.isRegistered(SAVE_TAB_ACCELERATOR)
+  if (!on) {
+    if (held) globalShortcut.unregister(SAVE_TAB_ACCELERATOR)
+    shortcut = 'off'
+  } else if (!held) {
+    shortcut = globalShortcut.register(SAVE_TAB_ACCELERATOR, () => void saveFrontTab()) ? 'on' : 'taken'
+  }
+  return shortcut
+}
+
+let capturing = false
+async function saveFrontTab(): Promise<void> {
+  // A second press while a browser is still answering would only add the same tab twice.
+  if (capturing) return
+  capturing = true
+  try {
+    const result = await captureFrontTab()
+    if (!result.ok) return tell(result.message, 'Nothing saved', result.message)
+    const text = cleanLine(result.url)
+    if (text) addToToday(text)
+  } catch (error) {
+    console.error('Saving the front tab failed', error)
+  } finally {
+    capturing = false
+  }
+}
+
 function registerIpc(): void {
   ipcMain.handle('items:load', (_e, dates: string[]) => repo.loadDates(dates))
   ipcMain.handle('items:save', (_e, items: Item[]) => saveItems(items).map(({ id, version }) => ({ id, version })))
@@ -312,8 +423,10 @@ function registerIpc(): void {
   ipcMain.handle('settings:set', (_e, patch: Partial<Settings>) => {
     const next = repo.setSettings(patch)
     applyTheme(next.theme)
+    applyShortcut(next.saveTabShortcut)
     return next
   })
+  ipcMain.handle('shortcut:status', () => applyShortcut(repo.getSettings().saveTabShortcut))
 
   ipcMain.handle('export:markdown', async (): Promise<ExportResult> => {
     const win = BrowserWindow.getFocusedWindow() ?? mainWindow
@@ -418,6 +531,11 @@ function registerIpc(): void {
     // with launch.
     void sync.start()
     updates.start()
+    applyShortcut(repo.getSettings().saveTabShortcut)
+    // Links that came in while Cue was opening go in now that today is on screen.
+    const queued = arriving
+    arriving = null
+    for (const url of queued ?? []) receiveUrl(url)
     // `pnpm bench` measures launch → first editable screen from this signal.
     if (!isBench) return
     process.stdout.write(`CUE_INTERACTIVE ${Date.now()}\n`)
@@ -444,6 +562,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
   links?.close()
   try {
     db?.close()
