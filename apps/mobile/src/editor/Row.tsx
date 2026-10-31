@@ -65,7 +65,7 @@ function onAccessibilityAction(id: string, action: string): void {
 }
 
 /** Links open where iOS sends them: a post in X, a video in YouTube, anything else in Safari. */
-function openLink(url: string): Promise<void> {
+export function openLink(url: string): Promise<void> {
   return Linking.openURL(url).catch(() => showToast('Couldn’t open that link'))
 }
 

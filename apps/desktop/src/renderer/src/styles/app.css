@@ -1020,6 +1020,103 @@ body.is-selecting .row .text {
   color: var(--text-2);
 }
 
+/* ⌘L: the Links list. Palette rows, two lines each: the page, then where it's from and the note. */
+.palette.is-links {
+  width: min(680px, calc(100vw - 48px));
+}
+
+.is-links .palette-list {
+  max-height: min(520px, 60vh);
+}
+
+.links-item {
+  align-items: flex-start;
+  padding: 7px 10px;
+  cursor: default;
+}
+
+.links-icon {
+  height: 19px;
+  align-items: center;
+}
+
+/* As on a line: icons are drawn for light pages. */
+.links-icon img {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: #ffffff;
+  object-fit: contain;
+}
+
+.links-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.links-title,
+.links-sub {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.links-title {
+  line-height: 19px;
+}
+
+.links-sub {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.links-item.is-done .links-title {
+  color: var(--text-3);
+  text-decoration: line-through;
+}
+
+.links-item.is-done .links-icon {
+  opacity: 0.5;
+}
+
+.links-day {
+  flex: none;
+  margin: 0 -4px 0 0;
+  padding: 1px 4px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  font: 12px/17px var(--font);
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.links-day:hover {
+  color: var(--text);
+  background: var(--bg-subtle);
+}
+
+.links-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.links-foot .keys:not(:first-child) {
+  margin-left: 10px;
+}
+
+.links-count {
+  margin-left: auto;
+}
+
 .is-done-text {
   color: var(--text-3);
   text-decoration: line-through;

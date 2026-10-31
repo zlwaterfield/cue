@@ -119,6 +119,12 @@ export const icons: Record<string, React.ReactNode> = {
       <rect x="2.5" y="4.5" width="11" height="7" rx="2" {...stroke} />
     </Svg>
   ),
+  link: (
+    <Svg>
+      <path d="M6.8 9.2a2.9 2.9 0 0 0 4.1 0l2.2-2.2a2.9 2.9 0 0 0-4.1-4.1l-.9.9" {...stroke} />
+      <path d="M9.2 6.8a2.9 2.9 0 0 0-4.1 0L2.9 9a2.9 2.9 0 0 0 4.1 4.1l.9-.9" {...stroke} />
+    </Svg>
+  ),
   sync: (
     <Svg>
       <path d="M12.8 6.6A5 5 0 0 0 3.6 5.3M3.2 9.4a5 5 0 0 0 9.2 1.3" {...stroke} />
@@ -139,6 +145,7 @@ const BY_COMMAND: Record<string, keyof typeof icons> = {
   'go.prevDay': 'prev',
   'go.nextDay': 'next',
   'go.date': 'calendar',
+  'links.open': 'link',
   'edit.undo': 'undo',
   'edit.redo': 'redo',
   'item.create': 'plus',

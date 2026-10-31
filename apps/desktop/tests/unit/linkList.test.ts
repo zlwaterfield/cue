@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { collectLinks, filterLinks } from '@shared/linkList'
+import { collectLinks, filterLinks, linkDay, linkGroup, linkNote } from '@shared/linkList'
 import { buildOutline } from '@shared/outline'
 import { memoryRepo, newItem } from './helpers'
 
@@ -71,5 +71,37 @@ describe('the Links list', () => {
     expect(filterLinks(links, 'planning', (url) => pages.get(url), 1)).toMatchObject({ total: 2, links: [{ id: 'a' }] })
     // The line's own search text isn't handed out.
     expect(filterLinks(links, '', () => undefined).links[0]).not.toHaveProperty('search')
+  })
+
+  it('lists links under this week, last week, then their month', () => {
+    // Saturday, October 31, 2026; weeks start on Monday the 26th.
+    const group = (date: string) => linkGroup(date, '2026-10-31', 1)
+    expect(group('2026-11-02')).toBe('Coming up')
+    expect(group('2026-11-01')).toBe('This week')
+    expect(group('2026-10-26')).toBe('This week')
+    expect(group('2026-10-25')).toBe('Last week')
+    expect(group('2026-10-19')).toBe('Last week')
+    expect(group('2026-10-18')).toBe('October')
+    expect(group('2025-12-31')).toBe('December 2025')
+    // Weeks starting on Sunday: the 25th is this week.
+    expect(linkGroup('2026-10-25', '2026-10-31', 0)).toBe('This week')
+  })
+
+  it('labels a link’s day briefly', () => {
+    expect(linkDay('2026-10-31', '2026-10-31')).toBe('Today')
+    expect(linkDay('2026-10-30', '2026-10-31')).toBe('Yesterday')
+    expect(linkDay('2026-11-01', '2026-10-31')).toBe('Tomorrow')
+    expect(linkDay('2026-10-26', '2026-10-31')).toBe('Mon')
+    expect(linkDay('2026-10-24', '2026-10-31')).toBe('Oct 24')
+    expect(linkDay('2025-03-03', '2026-10-31')).toBe('Mar 3')
+  })
+
+  it('keeps what was written around a link', () => {
+    expect(linkNote('https://a.com')).toBe('')
+    expect(linkNote('read https://a.com before the offsite')).toBe('read before the offsite')
+    expect(linkNote('Offsite: https://a.com')).toBe('Offsite')
+    expect(linkNote('https://a.com — via Sam')).toBe('via Sam')
+    expect(linkNote('compare https://a.com, https://b.com')).toBe('compare')
+    expect(linkNote('(see https://a.com)')).toBe('see')
   })
 })

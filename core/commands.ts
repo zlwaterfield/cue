@@ -41,6 +41,7 @@ export const COMMANDS: CommandMeta[] = [
   { id: 'go.prevDay', title: 'Previous day', group: 'Navigate', shortcut: 'Mod+[', keywords: 'back yesterday' },
   { id: 'go.nextDay', title: 'Next day', group: 'Navigate', shortcut: 'Mod+]', keywords: 'forward' },
   { id: 'go.date', title: 'Go to date…', group: 'Navigate', shortcut: 'Mod+J', keywords: 'jump calendar pick' },
+  { id: 'links.open', title: 'Links', group: 'Navigate', shortcut: 'Mod+L', keywords: 'urls pages shared saved bookmarks read later' },
   { id: 'looseEnds.toggle', title: 'Show earlier open to-dos', group: 'Navigate', keywords: 'loose ends overdue unfinished leftover carry over' },
 
   { id: 'edit.undo', title: 'Undo', group: 'Edit', shortcut: 'Mod+Z' },

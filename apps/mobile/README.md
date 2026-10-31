@@ -66,6 +66,13 @@ VoiceOver reads lines in the day's order.
   comes from the page's own header (Open Graph and `<title>`, fetched the way iMessage
   fetches previews), parsed by `../../core/links.ts`; no third-party service sees the
   link. Previews are cached on the phone (`links.sqlite`) and never synced. Until a page answers, or if it can't, the line shows the link's address.
+- **Every link, in one list.** The link button in the header lists every link written on
+  any day, in any line, newest first under This week, Last week and then the month (the
+  Mac's ⌘L). Search finds a link by the words around it and by what its page says: the
+  title, description and first couple of thousand characters of its text, which the phone
+  keeps with the preview, folded for search. Pages that no line has shown yet are read in
+  the background, behind any preview on screen. Tap a link to open it, or its day to go to
+  the line.
 - **Cue is in the share sheet.** Share a link (or text) from Safari, X, YouTube or any
   app, and it's added to today: a link goes last under the day's "Links" bullet (made at
   the end of the day if there isn't one), text goes at the end of the day. The extension
@@ -208,7 +215,7 @@ in front of the app.
 ## Layout
 
 ```
-src/app/        screens (Expo Router): day, sign-in, search, move, calendar
+src/app/        screens (Expo Router): day, sign-in, search, links, move, calendar
 src/app/settings/  the settings sheet: an index that pushes into a category
 src/core/       database adapter (expo-sqlite), optional sync lifecycle, app state, link previews, share inbox, export
 src/editor/     the day page: layout, rows, drag, swipe, toolbar, editing controller

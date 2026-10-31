@@ -53,7 +53,7 @@ export const LinkIcon = memo(function LinkIcon({ url, done }: { url: string; don
   )
 })
 
-function SiteIcon({ url, done, style }: { url: string; done: boolean; style: StyleProp<ViewStyle> }) {
+export function SiteIcon({ url, done, style }: { url: string; done: boolean; style: StyleProp<ViewStyle> }) {
   const c = useColors()
   const preview = useLinkPreview(url)
   const [broken, setBroken] = useState<string | null>(null)

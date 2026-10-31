@@ -1,3 +1,4 @@
+import { addDays, diffDays, MONTHS, parts, startOfWeek, WEEKDAYS, weekday } from './dates'
 import { findLinks } from './links'
 import { searchTerms } from './text'
 import type { ISODate, ItemType } from './types'
@@ -79,4 +80,45 @@ export function filterLinks(
     if (out.length < limit) out.push(link)
   }
   return { links: out, total }
+}
+
+/* ------------------------------------------------------------------ Labels */
+
+/**
+ * The heading a link is listed under: "This week", "Last week", then its month ("October",
+ * "October 2025" in another year). Links on days after this week are "Coming up".
+ */
+export function linkGroup(date: ISODate, today: ISODate, weekStartsOn: 0 | 1): string {
+  const week = startOfWeek(today, weekStartsOn)
+  if (date >= addDays(week, 7)) return 'Coming up'
+  if (date >= week) return 'This week'
+  if (date >= addDays(week, -7)) return 'Last week'
+  const { year, month } = parts(date)
+  return year === parts(today).year ? MONTHS[month - 1] : `${MONTHS[month - 1]} ${year}`
+}
+
+/** The day beside a link: "Today", "Yesterday", "Thu" within a week, else "Oct 22" (the heading has the year). */
+export function linkDay(date: ISODate, today: ISODate): string {
+  const delta = diffDays(today, date)
+  if (delta === 0) return 'Today'
+  if (delta === -1) return 'Yesterday'
+  if (delta === 1) return 'Tomorrow'
+  if (Math.abs(delta) < 7) return WEEKDAYS[weekday(date)].slice(0, 3)
+  const { month, day } = parts(date)
+  return `${MONTHS[month - 1].slice(0, 3)} ${day}`
+}
+
+/** What was written around a link, without the links: "read before the offsite". Empty for a line that's only links. */
+export function linkNote(text: string): string {
+  let out = ''
+  let at = 0
+  for (const link of findLinks(text)) {
+    out += `${text.slice(at, link.start)} `
+    at = link.end
+  }
+  out += text.slice(at)
+  return out
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s\-–—:|·•,;()[\]]+|[\s\-–—:|·•,;()[\]]+$/g, '')
+    .trim()
 }
