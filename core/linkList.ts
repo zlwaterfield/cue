@@ -50,26 +50,33 @@ export function collectLinks(lines: LinkLine[]): Array<LinkEntry & { search: str
   return out
 }
 
+/** A page of the Links list, and how many links match in all. */
+export interface LinkResults {
+  links: LinkEntry[]
+  total: number
+}
+
 /**
- * The links matching `query`, newest first: every term has to appear in the line or in
- * what the page says (`pageSearch`, by URL), ignoring case and accents. An empty query
- * matches every link.
+ * The first `limit` links matching `query`, newest first, and how many match in all: every
+ * term has to appear in the line or in what the page says (`pageSearch`, by URL), ignoring
+ * case and accents. An empty query matches every link.
  */
 export function filterLinks(
   links: Array<LinkEntry & { search: string }>,
   query: string,
   pageSearch: (url: string) => string | undefined,
   limit = Infinity
-): LinkEntry[] {
+): LinkResults {
   const terms = searchTerms(query)
   const out: LinkEntry[] = []
+  let total = 0
   for (const { search, ...link } of links) {
-    if (out.length >= limit) break
     if (terms.length) {
       const page = pageSearch(link.url) ?? ''
       if (!terms.every((t) => search.includes(t) || page.includes(t))) continue
     }
-    out.push(link)
+    total++
+    if (out.length < limit) out.push(link)
   }
-  return out
+  return { links: out, total }
 }

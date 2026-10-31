@@ -46,25 +46,52 @@ export class LinkPreviews {
       console.error('Couldn’t open the link preview cache', error)
       this.db = new DatabaseSync(':memory:')
     }
-    const version = (this.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version
-    if (version === 1) {
-      // Previews from before the Links list keep their icons; `fill` reads their pages again for search.
-      this.db.exec(`ALTER TABLE previews ADD COLUMN search TEXT; PRAGMA user_version = ${SCHEMA};`)
-    } else if (version !== SCHEMA) {
-      // It's only a cache: a file from any other version starts over.
-      this.db.exec(`DROP TABLE IF EXISTS previews;
-        CREATE TABLE previews (
-          url TEXT PRIMARY KEY,
-          preview TEXT,
-          fetched_at INTEGER NOT NULL,
-          failed INTEGER NOT NULL DEFAULT 0,
-          search TEXT
-        );
-        PRAGMA user_version = ${SCHEMA};`)
+    try {
+      this.migrate()
+    } catch (error) {
+      // Not even starting over worked (a locked or broken file): previews last this session.
+      console.error('Couldn’t use the link preview cache', error)
+      this.db = new DatabaseSync(':memory:')
+      this.migrate()
     }
     this.read = this.db.prepare('SELECT preview, fetched_at, failed, search FROM previews WHERE url = ?')
     this.write = this.db.prepare('INSERT OR REPLACE INTO previews (url, preview, fetched_at, failed, search) VALUES (?, ?, ?, ?, ?)')
     this.searchable = this.db.prepare('SELECT url, search FROM previews WHERE search IS NOT NULL')
+  }
+
+  /**
+   * Bring the file up to this version. Each step and its version number commit together, so
+   * a Cue that stops part-way through finds the file as it was. A file that still can't be
+   * read this way is only a cache, so it starts over.
+   */
+  private migrate(): void {
+    const create = `CREATE TABLE previews (
+        url TEXT PRIMARY KEY,
+        preview TEXT,
+        fetched_at INTEGER NOT NULL,
+        failed INTEGER NOT NULL DEFAULT 0,
+        search TEXT
+      );`
+    const step = (sql: string): void => {
+      this.db.exec('BEGIN IMMEDIATE')
+      try {
+        this.db.exec(`${sql} PRAGMA user_version = ${SCHEMA};`)
+        this.db.exec('COMMIT')
+      } catch (error) {
+        this.db.exec('ROLLBACK')
+        throw error
+      }
+    }
+    const version = (this.db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version
+    if (version === SCHEMA) return
+    try {
+      // Previews from before the Links list keep their icons; `fill` reads their pages again for search.
+      if (version === 1) step('ALTER TABLE previews ADD COLUMN search TEXT;')
+      else step(`DROP TABLE IF EXISTS previews; ${create}`)
+    } catch (error) {
+      console.error('Couldn’t update the link preview cache; starting it over', error)
+      step(`DROP TABLE IF EXISTS previews; ${create}`)
+    }
   }
 
   /** The stored preview for a link (null until its page has answered), fetching it if it's due. */

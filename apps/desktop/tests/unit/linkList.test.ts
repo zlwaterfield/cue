@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { collectLinks, filterLinks } from '@shared/linkList'
+import { buildOutline } from '@shared/outline'
 import { memoryRepo, newItem } from './helpers'
 
 describe('the Links list', () => {
@@ -14,6 +15,27 @@ describe('the Links list', () => {
     ])
     expect(repo.linkLines().map((l) => l.id)).toEqual(['first', 'second', 'old'])
     expect(repo.linkLines()[0]).toEqual({ id: 'first', date: '2026-10-20', type: 'todo', done: false, text: 'read https://c.com/x first', search: 'read https://c.com/x first' })
+  })
+
+  it('lists a day’s links in page order, nested ones under their parents', () => {
+    const repo = memoryRepo()
+    const day = '2026-10-20'
+    repo.saveItems([
+      newItem({ id: 'heading', date: day, type: 'bullet', text: 'Links', position: 'a0' }),
+      newItem({ id: 'nested-2', date: day, parentId: 'heading', text: 'https://b.com', position: 'a9' }),
+      newItem({ id: 'nested-1', date: day, parentId: 'heading', text: 'https://a.com', position: 'a5' }),
+      newItem({ id: 'top', date: day, text: 'https://c.com', position: 'a1' }),
+      // A parent that's deleted, or on another day, leaves its line at the top level.
+      newItem({ id: 'gone', date: day, type: 'bullet', text: 'gone', position: 'a2', deleted: true }),
+      newItem({ id: 'orphan', date: day, parentId: 'gone', text: 'https://d.com', position: 'a0' }),
+      newItem({ id: 'elsewhere', date: '2026-10-19', type: 'bullet', text: 'other day', position: 'a0' }),
+      newItem({ id: 'stray', date: day, parentId: 'elsewhere', text: 'https://e.com', position: 'a3' })
+    ])
+    const ids = repo.linkLines().map((l) => l.id)
+    expect(ids).toEqual(['nested-1', 'nested-2', 'orphan', 'top', 'stray'])
+    // Exactly the order the day's page draws them in.
+    const page = buildOutline(repo.loadDates([day])).map((row) => row.id)
+    expect(page.filter((id) => ids.includes(id))).toEqual(ids)
   })
 
   it('lists each link once, on the newest line it’s on, and every link on a line', () => {
@@ -35,7 +57,7 @@ describe('the Links list', () => {
       ['https://a.com', 'a talk about planning'],
       ['https://b.com', 'release planning at a small company']
     ])
-    const find = (query: string, limit?: number) => filterLinks(links, query, (url) => pages.get(url), limit).map((l) => l.id)
+    const find = (query: string, limit?: number) => filterLinks(links, query, (url) => pages.get(url), limit).links.map((l) => l.id)
     expect(find('')).toEqual(['a', 'b', 'c'])
     expect(find('planning')).toEqual(['a', 'b'])
     // One term from the line, one from the page.
@@ -43,8 +65,11 @@ describe('the Links list', () => {
     expect(find('PLANNING   release')).toEqual(['b'])
     expect(find('c.com')).toEqual(['c'])
     expect(find('nothing')).toEqual([])
+    // A page of them, with how many there are in all.
     expect(find('', 2)).toEqual(['a', 'b'])
+    expect(filterLinks(links, '', () => undefined, 2).total).toBe(3)
+    expect(filterLinks(links, 'planning', (url) => pages.get(url), 1)).toMatchObject({ total: 2, links: [{ id: 'a' }] })
     // The line's own search text isn't handed out.
-    expect(filterLinks(links, '', () => undefined)[0]).not.toHaveProperty('search')
+    expect(filterLinks(links, '', () => undefined).links[0]).not.toHaveProperty('search')
   })
 })

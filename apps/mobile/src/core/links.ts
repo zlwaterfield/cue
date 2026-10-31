@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useSyncExternalStore } from 'react'
 import { openDatabaseSync } from 'expo-sqlite'
-import { collectLinks, filterLinks, type LinkEntry } from '@shared/linkList'
+import { collectLinks, filterLinks, type LinkResults } from '@shared/linkList'
 import { fetchPage, type LinkPage, type LinkPreview } from '@shared/links'
 import { repo } from './app'
 
@@ -38,9 +38,20 @@ db.execSync(`CREATE TABLE IF NOT EXISTS previews (
 )`)
 if ((db.getFirstSync<{ user_version: number }>('PRAGMA user_version')?.user_version ?? 0) < 1) {
   // Previews from before the Links list keep their icons; `fillLinks` reads their pages again.
-  db.execSync(`ALTER TABLE previews ADD COLUMN failed INTEGER NOT NULL DEFAULT 0;
-    ALTER TABLE previews ADD COLUMN search TEXT;
-    PRAGMA user_version = 1;`)
+  // The columns and the version commit together, so an upgrade cut short is simply done again.
+  try {
+    db.withTransactionSync(() => {
+      db.execSync(`ALTER TABLE previews ADD COLUMN failed INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE previews ADD COLUMN search TEXT;
+        PRAGMA user_version = 1;`)
+    })
+  } catch (error) {
+    // It's only a cache: one that can't be brought up to date starts over.
+    console.warn('Couldn’t update the link preview cache; starting it over', error)
+    db.execSync(`DROP TABLE IF EXISTS previews;
+      CREATE TABLE previews (url TEXT PRIMARY KEY, preview TEXT, fetched_at INTEGER NOT NULL, failed INTEGER NOT NULL DEFAULT 0, search TEXT);
+      PRAGMA user_version = 1;`)
+  }
 }
 const read = db.prepareSync('SELECT preview, fetched_at, failed, search FROM previews WHERE url = ?')
 const write = db.prepareSync('INSERT OR REPLACE INTO previews (url, preview, fetched_at, failed, search) VALUES (?, ?, ?, ?, ?)')
@@ -48,6 +59,8 @@ const searchable = db.prepareSync('SELECT url, search FROM previews WHERE search
 
 const memory = new Map<string, Entry | null>()
 const listeners = new Map<string, Set<() => void>>()
+/** Told whenever any page has been read, for a search that its words could now match. */
+const readers = new Set<() => void>()
 const queue: string[] = []
 const loading = new Set<string>()
 
@@ -124,6 +137,7 @@ function save(url: string, page: LinkPage | null): void {
     console.warn('Couldn’t store a link preview', error)
   }
   for (const listener of listeners.get(url) ?? []) listener()
+  for (const reader of readers) reader()
 }
 
 function subscribe(url: string, listener: () => void): () => void {
@@ -146,6 +160,12 @@ export function useLinkPreview(url: string | null): LinkPreview | null {
   return preview
 }
 
+/** Call `listener` whenever a page has been read. Returns an unsubscribe function. */
+export function onPageRead(listener: () => void): () => void {
+  readers.add(listener)
+  return () => readers.delete(listener)
+}
+
 /**
  * Read the pages of links the Links list can't find by their page yet: never fetched, or
  * kept from before it existed. A page that didn't answer is left for a day.
@@ -159,8 +179,8 @@ function fill(urls: string[]): void {
   }
 }
 
-/** Every link written, newest first, or those matching `query` by their line or their page. */
-export function listLinks(query: string, limit = 1000): LinkEntry[] {
+/** The first `limit` links written, newest first, or of those matching `query`, and how many match. */
+export function listLinks(query: string, limit = 200): LinkResults {
   const all = collectLinks(repo.linkLines())
   // Opening the list reads, in the background, the pages it can't find links by yet.
   if (!query.trim()) fill(all.map((l) => l.url))

@@ -218,7 +218,8 @@ export function parsePreview(html: string, url: string, base = url): LinkPreview
   }
   let title = trimSiteName(raw, [site, host, ...labels])
   if (!title || [site, host, ...labels].some((n) => n && n.toLowerCase() === title.toLowerCase())) title = ''
-  const description = clean(meta['og:description'] ?? meta['twitter:description'] ?? meta.description)
+  // The first that says something: an empty og:description shouldn't hide the plain one.
+  const description = [meta['og:description'], meta['twitter:description'], meta.description].map((d) => clean(d)).find(Boolean) ?? ''
   return { url, title: title || null, byline: site || host, description: description && description !== title ? description : null, icon }
 }
 
@@ -234,32 +235,76 @@ export function placeholderPreview(url: string): LinkPreview {
 export const PAGE_TEXT_MAX = 2000
 
 /** Parts of a page that are never what it's about. */
-const CHROME_TAGS = ['script', 'style', 'noscript', 'template', 'svg', 'iframe', 'nav', 'header', 'footer', 'aside', 'button', 'select']
+const CHROME_TAGS = new Set(['script', 'style', 'noscript', 'template', 'svg', 'iframe', 'nav', 'header', 'footer', 'aside', 'button', 'select'])
+/** Whose contents are never markup, so one left open runs to the end of the page, as in a browser. */
+const RAW_TAGS = new Set(['script', 'style'])
 const BLOCK_TAG = /<\/?(?:p|div|section|article|main|li|ul|ol|h[1-6]|blockquote|pre|tr|td|th|dd|dt|figcaption|br|hr)\b[^>]*>/gi
+
+/**
+ * The page without its comments and chrome (`CHROME_TAGS`, with what's in them), in one
+ * forward pass. Each closing tag is looked for at most once per tag name and position, so
+ * markup that never closes costs no more than markup that does.
+ */
+function withoutChrome(html: string): string {
+  const lower = html.toLowerCase()
+  const opening = /<!--|<([a-z]+)(?=[\s>/])/g
+  // Where each tag next closes at or after the scan, or -1 for nowhere further on.
+  const closes = new Map<string, number>()
+  const nextClose = (tag: string, from: number): number => {
+    const known = closes.get(tag)
+    if (known !== undefined && (known === -1 || known >= from)) return known
+    const at = lower.indexOf(`</${tag}`, from)
+    closes.set(tag, at)
+    return at
+  }
+  let out = ''
+  let at = 0
+  for (let m = opening.exec(lower); m; m = opening.exec(lower)) {
+    const tag = m[1]
+    if (!tag) {
+      const close = lower.indexOf('-->', m.index + 4)
+      out += `${html.slice(at, m.index)} `
+      if (close < 0) return out
+      at = opening.lastIndex = close + 3
+      continue
+    }
+    if (!CHROME_TAGS.has(tag)) continue
+    const close = nextClose(tag, opening.lastIndex)
+    out += `${html.slice(at, m.index)} `
+    if (close < 0) {
+      if (RAW_TAGS.has(tag)) return out
+      // Another tag left open: drop just the tag, and keep what follows it.
+      at = opening.lastIndex = lower.indexOf('>', m.index) + 1 || html.length
+      continue
+    }
+    const end = lower.indexOf('>', close)
+    at = opening.lastIndex = end < 0 ? html.length : end + 1
+  }
+  return out + html.slice(at)
+}
 
 /**
  * The start of what a page says, as plain text: its paragraphs and headings, from the
  * article when it marks one. The page's menus, scripts and footer are left out, and so is
- * any line too short to be prose. Works in one pass over the markup, however it's written;
- * a page that only draws itself with JavaScript has little here, and that's fine.
+ * any line too short to be prose. Linear in the page, however its markup is written; a
+ * page that only draws itself with JavaScript has little here, and that's fine.
  */
 export function pageText(html: string, max = PAGE_TEXT_MAX): string {
   let body = html.length > 1_000_000 ? html.slice(0, 1_000_000) : html
+  const bodyStart = body.search(/<body\b/i)
+  if (bodyStart > 0) body = body.slice(bodyStart)
+  // Scripts go first, so an article written inside one (a template) is never taken for the page's.
+  body = withoutChrome(body)
   // The article, or the main content, when the page says which part that is.
+  const lower = body.toLowerCase()
   for (const tag of ['article', 'main']) {
-    const start = body.search(new RegExp(`<${tag}\\b`, 'i'))
-    const end = body.toLowerCase().lastIndexOf(`</${tag}`)
+    const start = lower.search(new RegExp(`<${tag}\\b`))
+    const end = lower.lastIndexOf(`</${tag}`)
     if (start >= 0 && end > start) {
       body = body.slice(start, end)
       break
     }
   }
-  const bodyStart = body.search(/<body\b/i)
-  if (bodyStart > 0) body = body.slice(bodyStart)
-  body = body.replace(/<!--[\s\S]*?-->/g, ' ')
-  for (const tag of CHROME_TAGS) body = body.replace(new RegExp(`<${tag}(?=[\\s>/])[\\s\\S]*?<\\/${tag}\\s*>`, 'gi'), ' ')
-  // A script or style that never closes runs to the end of the page.
-  body = body.replace(/<(?:script|style)(?=[\s>/])[\s\S]*$/i, ' ')
 
   const out: string[] = []
   let length = 0

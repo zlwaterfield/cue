@@ -144,4 +144,21 @@ describe('link preview cache', () => {
     expect(await next()).toMatchObject({ title: 'A page' })
     expect(links.searchText().get(URL_)).toContain('a page')
   })
+
+  it('starts over, rather than failing to open, when an upgrade was cut short', () => {
+    const file = join(tempDir(), 'links.sqlite')
+    // The column went in, but the version number didn't.
+    const old = new DatabaseSync(file)
+    old.exec(`CREATE TABLE previews (url TEXT PRIMARY KEY, preview TEXT, fetched_at INTEGER NOT NULL, failed INTEGER NOT NULL DEFAULT 0, search TEXT);
+      PRAGMA user_version = 1;`)
+    old.close()
+    const { fetch } = site(() => new Response(null, { status: 404 }))
+    const { links } = open(fetch, file)
+    expect(links.get(URL_)).toBeNull()
+    expect(links.searchText().size).toBe(0)
+    links.close()
+    const reopened = new DatabaseSync(file)
+    expect((reopened.prepare('PRAGMA user_version').get() as { user_version: number }).user_version).toBe(2)
+    reopened.close()
+  })
 })

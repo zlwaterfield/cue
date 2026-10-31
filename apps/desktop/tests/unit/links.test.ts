@@ -116,6 +116,9 @@ my twttr">
       'You own your data, in spite of the cloud.'
     )
     expect(parsePreview(page('Local-first software'), 'https://inkandswitch.com/lfs').description).toBeNull()
+    // An empty og:description doesn't hide the plain one.
+    const both = '<meta property="og:description" content=" "><meta name="description" content="The plain description.">'
+    expect(parsePreview(both, 'https://example.com').description).toBe('The plain description.')
   })
 
   it('finds a page by its title, description, text and address, ignoring case and accents', async () => {
@@ -164,6 +167,28 @@ describe('page text', () => {
     expect(pageText('<html><body><div id="root"></div><script>render()</script></body></html>')).toBe('')
     expect(pageText(`<body><script>${'x'.repeat(100_000)}<p>${sentence}`)).toBe('')
     expect(pageText(`<body>${'<li>'.repeat(50_000)}<p>${sentence}`)).toBe(sentence)
+    expect(pageText(`<body><p>${sentence}</p><!-- never closed <p>${sentence} and more</p>`)).toBe(sentence)
+  })
+
+  it('reads a page built to be slow in one quick pass', () => {
+    const pages = [
+      // Openings with no closing tag anywhere, each of which a lazy search would chase to the end.
+      `<body>${'<nav>'.repeat(150_000)}<p>${sentence}</p>`,
+      `<body>${'<script>'.repeat(120_000)}</script><p>${sentence}</p>`,
+      `<body>${'<!--'.repeat(200_000)}--><p>${sentence}</p>`,
+      `<body>${'<header><p>x</p>'.repeat(60_000)}<p>${sentence}</p>`
+    ]
+    for (const html of pages) {
+      const started = performance.now()
+      pageText(html)
+      expect(performance.now() - started, html.slice(0, 30)).toBeLessThan(500)
+    }
+  })
+
+  it('never takes an article written inside a script for the page’s own', () => {
+    const html = `<body><script>const card = '<article><p>${sentence} From a template.</p></article>'</script>
+      <article><p>${sentence} The real article.</p></article></body>`
+    expect(pageText(html)).toBe(`${sentence} The real article.`)
   })
 
   it('is what a link is found by, with the preview', () => {

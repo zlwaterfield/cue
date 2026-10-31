@@ -4,7 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
 import { todayISO } from '@shared/dates'
-import { collectLinks, filterLinks, type LinkEntry } from '@shared/linkList'
+import { collectLinks, filterLinks, type LinkResults } from '@shared/linkList'
 import type { ExportResult, ImportResult, Item, Settings, ThemePreference } from '@shared/types'
 import { openDatabase } from './db'
 import { LinkPreviews } from './links'
@@ -432,14 +432,15 @@ function registerIpc(): void {
 }
 
 /**
- * The Links list: every link written, matching `query`. Opening the list (an empty
- * query) also reads the pages it can't find links by yet, in the background.
+ * The Links list: the first `limit` links written, matching `query`, and how many match.
+ * Opening the list (an empty query) also reads the pages it can't find links by yet, in
+ * the background.
  */
-function listLinks(query: string, limit = 1000): LinkEntry[] {
+function listLinks(query: string, limit = 200): LinkResults {
   const all = collectLinks(repo.linkLines())
   if (!query.trim()) links.fill(all.map((l) => l.url))
   const pages = links.searchText()
-  return filterLinks(all, query, (url) => pages.get(url), Math.max(1, Math.min(Number(limit) || 1000, 5000)))
+  return filterLinks(all, query, (url) => pages.get(url), Math.max(1, Number(limit) || 200))
 }
 
 let finalSync = false
