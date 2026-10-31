@@ -3,7 +3,12 @@
  * the page's icon, its title and where it's from. Previews come from the page's own
  * header (Open Graph and <title>), never from a third-party service, and stay small on
  * purpose: one line of text, two at most.
+ *
+ * The same visit also keeps a little of what the page says (its description and the
+ * start of its text), so the Links list can find a page by more than its address.
  */
+
+import { fold } from './text'
 
 const URL_RE = /\b(?:https?:\/\/|www\.)[^\s<>"']*[^\s<>"'.,;:!?)\]}]/gi
 
@@ -40,6 +45,8 @@ export interface LinkPreview {
   title: string | null
   /** Where it's from: the site's name, its host, or the author of a post. */
   byline: string
+  /** The page's own summary of itself, if it has one besides its title. */
+  description: string | null
   /** An absolute URL of a small square icon, if the page names one we can draw. */
   icon: string | null
 }
@@ -197,7 +204,7 @@ export function parsePreview(html: string, url: string, base = url): LinkPreview
   if (author) {
     // X serves a post's text as its description, and "Name (@handle)" as its title.
     const text = clean(meta['og:description'] ?? meta['twitter:description'])
-    return { url, title: text || null, byline: `@${author}`, icon }
+    return { url, title: text || null, byline: `@${author}`, description: null, icon }
   }
 
   const siteName = clean(meta['og:site_name'] ?? meta['application-name'], 40)
@@ -211,13 +218,122 @@ export function parsePreview(html: string, url: string, base = url): LinkPreview
   }
   let title = trimSiteName(raw, [site, host, ...labels])
   if (!title || [site, host, ...labels].some((n) => n && n.toLowerCase() === title.toLowerCase())) title = ''
-  return { url, title: title || null, byline: site || host, icon }
+  // The first that says something: an empty og:description shouldn't hide the plain one.
+  const description = [meta['og:description'], meta['twitter:description'], meta.description].map((d) => clean(d)).find(Boolean) ?? ''
+  return { url, title: title || null, byline: site || host, description: description && description !== title ? description : null, icon }
 }
 
 /** What a link shows before (or without) its page. */
 export function placeholderPreview(url: string): LinkPreview {
   const author = postAuthor(url)
-  return { url, title: null, byline: author ? `@${author}` : hostOf(url), icon: null }
+  return { url, title: null, byline: author ? `@${author}` : hostOf(url), description: null, icon: null }
+}
+
+/* -------------------------------------------------------------- Page text */
+
+/** How much of a page's text is kept for finding it again: a few paragraphs, not the page. */
+export const PAGE_TEXT_MAX = 2000
+
+/** Parts of a page that are never what it's about. */
+const CHROME_TAGS = new Set(['script', 'style', 'noscript', 'template', 'svg', 'iframe', 'nav', 'header', 'footer', 'aside', 'button', 'select'])
+/** Whose contents are never markup, so one left open runs to the end of the page, as in a browser. */
+const RAW_TAGS = new Set(['script', 'style'])
+const BLOCK_TAG = /<\/?(?:p|div|section|article|main|li|ul|ol|h[1-6]|blockquote|pre|tr|td|th|dd|dt|figcaption|br|hr)\b[^>]*>/gi
+
+/**
+ * The page without its comments and chrome (`CHROME_TAGS`, with what's in them), in one
+ * forward pass. Each closing tag is looked for at most once per tag name and position, so
+ * markup that never closes costs no more than markup that does.
+ */
+function withoutChrome(html: string): string {
+  const lower = html.toLowerCase()
+  const opening = /<!--|<([a-z]+)(?=[\s>/])/g
+  // Where each tag next closes at or after the scan, or -1 for nowhere further on.
+  const closes = new Map<string, number>()
+  const nextClose = (tag: string, from: number): number => {
+    const known = closes.get(tag)
+    if (known !== undefined && (known === -1 || known >= from)) return known
+    const at = lower.indexOf(`</${tag}`, from)
+    closes.set(tag, at)
+    return at
+  }
+  let out = ''
+  let at = 0
+  for (let m = opening.exec(lower); m; m = opening.exec(lower)) {
+    const tag = m[1]
+    if (!tag) {
+      const close = lower.indexOf('-->', m.index + 4)
+      out += `${html.slice(at, m.index)} `
+      if (close < 0) return out
+      at = opening.lastIndex = close + 3
+      continue
+    }
+    if (!CHROME_TAGS.has(tag)) continue
+    const close = nextClose(tag, opening.lastIndex)
+    out += `${html.slice(at, m.index)} `
+    if (close < 0) {
+      if (RAW_TAGS.has(tag)) return out
+      // Another tag left open: drop just the tag, and keep what follows it.
+      at = opening.lastIndex = lower.indexOf('>', m.index) + 1 || html.length
+      continue
+    }
+    const end = lower.indexOf('>', close)
+    at = opening.lastIndex = end < 0 ? html.length : end + 1
+  }
+  return out + html.slice(at)
+}
+
+/**
+ * The start of what a page says, as plain text: its paragraphs and headings, from the
+ * article when it marks one. The page's menus, scripts and footer are left out, and so is
+ * any line too short to be prose. Linear in the page, however its markup is written; a
+ * page that only draws itself with JavaScript has little here, and that's fine.
+ */
+export function pageText(html: string, max = PAGE_TEXT_MAX): string {
+  let body = html.length > 1_000_000 ? html.slice(0, 1_000_000) : html
+  const bodyStart = body.search(/<body\b/i)
+  if (bodyStart > 0) body = body.slice(bodyStart)
+  // Scripts go first, so an article written inside one (a template) is never taken for the page's.
+  body = withoutChrome(body)
+  // The article, or the main content, when the page says which part that is.
+  const lower = body.toLowerCase()
+  for (const tag of ['article', 'main']) {
+    const start = lower.search(new RegExp(`<${tag}\\b`))
+    const end = lower.lastIndexOf(`</${tag}`)
+    if (start >= 0 && end > start) {
+      body = body.slice(start, end)
+      break
+    }
+  }
+
+  const out: string[] = []
+  let length = 0
+  // Blocks split where the markup breaks them, not where its source wraps.
+  for (const block of body.replace(BLOCK_TAG, '\u0000').split('\u0000')) {
+    const text = decodeEntities(block.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim()
+    // Menus, buttons and bylines are short; what the page says comes in sentences.
+    if (text.length < 40 || !/[a-z\u00C0-\uFFFF]/i.test(text)) continue
+    out.push(text)
+    length += text.length + 1
+    if (length >= max) break
+  }
+  const joined = out.join(' ')
+  return joined.length > max ? joined.slice(0, max).replace(/\s\S*$/, '') : joined
+}
+
+/**
+ * What a link is found by, folded for search (case and accents don't matter): its
+ * title, where it's from, its description, the start of its text and its address.
+ */
+export function linkSearchText(url: string, preview: LinkPreview | null, text = ''): string {
+  return fold([preview?.title, preview?.byline, preview?.description, text, bareLabel(url)].filter(Boolean).join(' '))
+}
+
+/** A link's page, as one visit reads it: its preview, and what it's found by. */
+export interface LinkPage {
+  preview: LinkPreview
+  /** `linkSearchText` for the page. */
+  search: string
 }
 
 /* ----------------------------------------------------------------- Fetching */
@@ -237,8 +353,8 @@ type Fetch = (url: string, init: { headers: Record<string, string>; signal: Abor
   text(): Promise<string>
 }>
 
-/** Fetch a link's preview. Rejects when the page can't be reached; a page without a header still resolves. */
-export async function fetchPreview(url: string, fetchImpl: Fetch, timeout = 8000): Promise<LinkPreview> {
+/** Fetch a link's page. Rejects when the page can't be reached; a page without a header still resolves. */
+export async function fetchPage(url: string, fetchImpl: Fetch, timeout = 8000): Promise<LinkPage> {
   try {
     return await fetchAs(CRAWLER, url, fetchImpl, timeout)
   } catch (error) {
@@ -249,7 +365,7 @@ export async function fetchPreview(url: string, fetchImpl: Fetch, timeout = 8000
 
 class RefusedError extends Error {}
 
-async function fetchAs(agent: string, url: string, fetchImpl: Fetch, timeout: number): Promise<LinkPreview> {
+async function fetchAs(agent: string, url: string, fetchImpl: Fetch, timeout: number): Promise<LinkPage> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeout)
   try {
@@ -260,8 +376,10 @@ async function fetchAs(agent: string, url: string, fetchImpl: Fetch, timeout: nu
     })
     if (!res.ok) throw new RefusedError('The page refused a link preview')
     const type = res.headers.get('content-type') ?? ''
-    if (type && !/html|xml/i.test(type)) return placeholderPreview(url)
-    return parsePreview(await res.text(), url, res.url || url)
+    if (type && !/html|xml/i.test(type)) return { preview: placeholderPreview(url), search: linkSearchText(url, null) }
+    const html = await res.text()
+    const preview = parsePreview(html, url, res.url || url)
+    return { preview, search: linkSearchText(url, preview, pageText(html)) }
   } finally {
     clearTimeout(timer)
   }

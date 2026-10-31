@@ -110,6 +110,7 @@ export function buildMenu(options: { isDev: boolean; syncAvailable: boolean; upd
         command('go.today', 'Today'),
         command('go.tomorrow', 'Tomorrow'),
         command('go.week', 'This Week'),
+        command('links.open', 'Links…'),
         command('looseEnds.toggle', 'Earlier Open To-dos'),
         command('looseEnds.moveAll', 'Move Earlier Open To-dos to Today'),
         separator,

@@ -7,6 +7,7 @@
  * can never produce duplicate pages.
  */
 
+import type { LinkResults } from './linkList'
 import type { LinkPreview } from './links'
 
 export type ItemType = 'text' | 'bullet' | 'todo'
@@ -201,6 +202,11 @@ export interface CueBridge {
   linkPreview(url: string): Promise<LinkPreview | null>
   /** A link's preview arrived or changed. Returns an unsubscribe function. */
   onLinkPreview(callback: (update: { url: string; preview: LinkPreview | null }) => void): () => void
+  /**
+   * The first `limit` links written, newest first, or of those matching `query` by their
+   * line or their page, and how many there are in all.
+   */
+  links(query: string, limit?: number): Promise<LinkResults>
   /** Signals that the first screen is ready for typing (used for startup timing). */
   markInteractive(): void
   /** Commands invoked from the native menu. Returns an unsubscribe function. */

@@ -63,7 +63,7 @@ export function TypeGlyph({ type, done }: { type: ItemType; done: boolean }) {
   return <span className="glyph glyph-text" aria-label="Text" />
 }
 
-function Highlight({ text, terms }: { text: string; terms: string[] }) {
+export function Highlight({ text, terms }: { text: string; terms: string[] }) {
   const ranges = matchRanges(text, terms)
   if (!ranges.length) return <>{text}</>
   const out: React.ReactNode[] = []

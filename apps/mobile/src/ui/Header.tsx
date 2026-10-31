@@ -35,7 +35,7 @@ const shiftWeek = (weeks: number): void => {
 }
 
 /**
- * The top of the screen: the month (tap for a calendar), search and settings, and a week
+ * The top of the screen: the month (tap for a calendar), links, search and settings, and a week
  * strip. Tap a day to open it; swipe the strip for the previous or next week. Sync stays
  * out of sight unless it needs attention, as on the Mac.
  */
@@ -57,7 +57,7 @@ export function Header() {
           style={styles.month}
           hitSlop={8}
         >
-          {/* At the largest text sizes the month gives way, so search and settings stay on screen. */}
+          {/* At the largest text sizes the month gives way, so links, search and settings stay on screen. */}
           <Text style={[styles.monthText, { color: c.text }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
             {MONTHS[month - 1]} <Text style={{ color: c.text3 }}>{year}</Text>
           </Text>
@@ -77,6 +77,7 @@ export function Header() {
               </Text>
             </Pressable>
           )}
+          <IconButton icon="link" label="Links" onPress={() => router.push('/links')} />
           <IconButton icon="magnifyingglass" label="Search" onPress={() => router.push('/search')} />
           <IconButton icon="person.crop.circle" label="Settings" onPress={() => router.push('/settings')} />
         </View>

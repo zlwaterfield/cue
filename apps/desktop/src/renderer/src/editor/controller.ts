@@ -534,7 +534,7 @@ class EditorController {
       if (e.key === 'Escape') {
         e.preventDefault()
         this.closeOverlay()
-      } else if (command === 'palette.open' || command === 'search.open' || command === 'help.shortcuts') {
+      } else if (command === 'palette.open' || command === 'search.open' || command === 'links.open' || command === 'help.shortcuts') {
         e.preventDefault()
         this.execute(command, 'key')
       }
@@ -821,7 +821,7 @@ class EditorController {
     this.lastExecuted = { id, at: now, source }
 
     // Menu commands act on the document, so an open overlay steps aside first.
-    const overlayCommands = ['palette.open', 'search.open', 'help.shortcuts', 'app.settings', 'app.about', 'edit.undo', 'edit.redo']
+    const overlayCommands = ['palette.open', 'search.open', 'links.open', 'help.shortcuts', 'app.settings', 'app.about', 'edit.undo', 'edit.redo']
     if (source === 'menu' && ui.get().overlay && COMMANDS_BY_ID[id] && !overlayCommands.includes(id)) this.closeOverlay()
 
     const { today } = ui.get()
@@ -834,6 +834,9 @@ class EditorController {
         return
       case 'help.shortcuts':
         this.toggleOverlay({ kind: 'shortcuts' })
+        return
+      case 'links.open':
+        this.toggleOverlay({ kind: 'links' })
         return
       case 'app.settings':
         this.openOverlay({ kind: 'settings' })

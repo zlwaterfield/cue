@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
 import { todayISO } from '@shared/dates'
+import { collectLinks, filterLinks, type LinkResults } from '@shared/linkList'
 import type { ExportResult, ImportResult, Item, Settings, ThemePreference } from '@shared/types'
 import { openDatabase } from './db'
 import { LinkPreviews } from './links'
@@ -410,6 +411,7 @@ function registerIpc(): void {
   ipcMain.handle('clipboard:write', (_e, text: string) => clipboard.writeText(String(text)))
   ipcMain.handle('clipboard:read', () => clipboard.readText())
   ipcMain.handle('links:preview', (_e, url: string) => links.get(String(url)))
+  ipcMain.handle('links:list', (_e, query: string, limit?: number) => listLinks(String(query ?? ''), limit))
   ipcMain.handle('shell:openExternal', (_e, url: string) => {
     if (/^(https?|mailto):/i.test(url)) return shell.openExternal(url)
   })
@@ -418,12 +420,27 @@ function registerIpc(): void {
     // with launch.
     void sync.start()
     updates.start()
+    // Links written on other devices, or before the Links list, are read for it a while
+    // after launch, so searching them works before the list is ever opened.
+    if (!isTest && !isBench) setTimeout(() => links.fill(collectLinks(repo.linkLines()).map((l) => l.url)), 30_000).unref?.()
     // `pnpm bench` measures launch → first editable screen from this signal.
     if (!isBench) return
     process.stdout.write(`CUE_INTERACTIVE ${Date.now()}\n`)
     // Cue's processes a few seconds after launch; the bench reads their settled memory.
     setTimeout(() => process.stdout.write(`CUE_PIDS ${app.getAppMetrics().map((m) => m.pid).join(',')}\n`), 3000)
   })
+}
+
+/**
+ * The Links list: the first `limit` links written, matching `query`, and how many match.
+ * Opening the list (an empty query) also reads the pages it can't find links by yet, in
+ * the background.
+ */
+function listLinks(query: string, limit = 200): LinkResults {
+  const all = collectLinks(repo.linkLines())
+  if (!query.trim()) links.fill(all.map((l) => l.url))
+  const pages = links.searchText()
+  return filterLinks(all, query, (url) => pages.get(url), Math.max(1, Number(limit) || 200))
 }
 
 let finalSync = false

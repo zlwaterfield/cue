@@ -1,6 +1,8 @@
 import { isISODate } from './dates'
 import { HybridLogicalClock, parseVersion } from './hlc'
 import { transaction, type SqlDatabase, type SqlStatement } from './sqlite'
+import type { LinkLine } from './linkList'
+import { compareItems } from './outline'
 import { fold, searchTerms } from './text'
 import { DEFAULT_SETTINGS, ITEM_TYPES, type ISODate, type Item, type SearchResult, type Settings } from './types'
 
@@ -229,6 +231,48 @@ export class Repository {
   /** Days in the range with an unfinished to-do, oldest first. */
   datesWithOpenTodos(from: ISODate, to: ISODate): ISODate[] {
     return (this.stmts.openTodoDates.all(from, to) as Array<{ date: string }>).map((r) => r.date)
+  }
+
+  /**
+   * Every line with a link in it, for the Links list (`core/linkList.ts`): newest day first,
+   * and in page order within a day, as `buildOutline` lays it out. A nested line is placed
+   * by its parents' positions, so a link under a bullet sits where it does on the page.
+   */
+  linkLines(): LinkLine[] {
+    const rows = this.db
+      .prepare(
+        `SELECT id, date, parent_id, position, type, done, text, search_text FROM items
+         WHERE deleted = 0 AND (instr(search_text, 'http') > 0 OR instr(search_text, 'www.') > 0)`
+      )
+      .all() as Array<{ id: string; date: string; parent_id: string | null; position: string; type: string; done: number; text: string; search_text: string }>
+
+    // Where each line sits: its ancestors' places from the top, then its own. A parent
+    // that's missing, deleted or on another day makes the line below it top-level, as on the page.
+    const parentOf = this.db.prepare('SELECT id, date, parent_id, position, deleted FROM items WHERE id = ?')
+    const ancestors = new Map<string, { id: string; date: string; parent_id: string | null; position: string; deleted: number } | null>()
+    const place = (row: (typeof rows)[number]): Array<{ position: string; id: string }> => {
+      const out = [{ position: row.position, id: row.id }]
+      const seen = new Set([row.id])
+      for (let parent = row.parent_id; parent && !seen.has(parent); ) {
+        if (!ancestors.has(parent)) ancestors.set(parent, (parentOf.get(parent) as never) ?? null)
+        const p = ancestors.get(parent)
+        if (!p || p.deleted || p.date !== row.date) break
+        out.unshift({ position: p.position, id: p.id })
+        seen.add(p.id)
+        parent = p.parent_id
+      }
+      return out
+    }
+    const placed = rows.map((row) => ({ row, at: row.parent_id ? place(row) : [{ position: row.position, id: row.id }] }))
+    placed.sort((a, b) => {
+      if (a.row.date !== b.row.date) return a.row.date < b.row.date ? 1 : -1
+      for (let i = 0; i < Math.min(a.at.length, b.at.length); i++) {
+        const order = compareItems(a.at[i], b.at[i])
+        if (order) return order
+      }
+      return a.at.length - b.at.length
+    })
+    return placed.map(({ row: r }) => ({ id: r.id, date: r.date, type: r.type as Item['type'], done: r.done === 1, text: r.text, search: r.search_text }))
   }
 
   /** All rows, optionally including tombstones, ordered for export. */

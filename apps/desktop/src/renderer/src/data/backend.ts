@@ -1,3 +1,5 @@
+import { collectLinks, filterLinks, type LinkResults } from '@shared/linkList'
+import { buildOutline } from '@shared/outline'
 import { fold, searchTerms } from '@shared/text'
 import { DEFAULT_SETTINGS, SYNC_OFF, UPDATES_OFF, type CueBridge, type Item, type SearchResult, type Settings, type SyncBridge, type UpdateBridge } from '@shared/types'
 
@@ -118,6 +120,17 @@ class MemoryBackend implements Backend {
 
   onLinkPreview(): () => void {
     return () => {}
+  }
+
+  async links(query: string, limit = 200): Promise<LinkResults> {
+    const days = [...new Set([...this.items.values()].filter((i) => !i.deleted).map((i) => i.date))].sort().reverse()
+    const lines = days.flatMap((date) =>
+      buildOutline([...this.items.values()].filter((i) => i.date === date)).map((row) => {
+        const { id, type, done, text } = this.items.get(row.id)!
+        return { id, date, type, done, text, search: fold(text) }
+      })
+    )
+    return filterLinks(collectLinks(lines), query, () => undefined, limit)
   }
 
   markInteractive(): void {}
