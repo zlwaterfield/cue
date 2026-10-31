@@ -10,7 +10,7 @@ import type { DayGeometry } from './layout'
  * themselves carry no swipe chrome, which keeps a day quick to open.
  *
  *  right: to-do (text, bullet) → done → reopened
- *  left: tomorrow; past 3/4 of the width, delete (the underlay turns red)
+ *  left: tomorrow; past 2/3 of the width, delete (the underlay turns red)
  */
 
 /** What a right swipe does to the line: 0 makes a to-do, 1 completes, 2 reopens. */
@@ -32,7 +32,7 @@ export const swipe = {
 
 export const SWIPE_ACT = 72
 /** Deleting takes a deliberate, long swipe, well past where tomorrow arms. */
-export const SWIPE_DELETE_FRACTION = 0.75
+export const SWIPE_DELETE_FRACTION = 2 / 3
 /**
  * iOS's own destructive red, the one hue outside the graphite brand: an armed delete
  * should be impossible to mistake for tomorrow.

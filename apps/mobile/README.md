@@ -48,7 +48,7 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 | Tap a bullet | Make it a to-do |
 | Tap a box | Complete or reopen (the whole marker column takes the tap, the margin beside it too) |
 | Swipe right | Text or bullet → to-do → done (and back) |
-| Swipe left | Move to tomorrow (Undo in the toast); keep going past 3/4 of the width to delete (it turns red) |
+| Swipe left | Move to tomorrow (Undo in the toast); keep going past 2/3 of the width to delete (it turns red) |
 | Swipe the page, off the lines | Left for the next day, right for the previous one |
 | Long-press, then drag | Reorder, taking children along. Drag sideways to nest or un-nest, one level at a time, within what the outline allows. A finger already moving sideways is a swipe, not a lift |
 | Toolbar floating above the keyboard | ☐ to-do and • bullet (tap the lit one for plain text), outdent, indent, undo, move to another day, hide the keyboard |
