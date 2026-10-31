@@ -13,4 +13,4 @@ body:
     attributes:
       label: App and version
       description: Filled in for you when you report from Cue’s Settings.
-      placeholder: Mac, version 1.0.0-beta.2
+      placeholder: Mac, version 1.0.0-beta.3

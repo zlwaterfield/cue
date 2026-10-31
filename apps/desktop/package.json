@@ -1,7 +1,7 @@
 {
   "name": "cue",
   "productName": "Cue",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.3",
   "packageManager": "pnpm@11.20.0",
   "private": true,
   "description": "A calm, keyboard-first daily notes and to-do app.",
