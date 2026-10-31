@@ -77,6 +77,16 @@ function Highlight({ text, terms }: { text: string; terms: string[] }) {
   return <>{out}</>
 }
 
+/** The days Move to offers by name. */
+function namedMoveDays(today: ISODate, weekStartsOn: 0 | 1): Array<[string, ISODate]> {
+  return [
+    ['Today', today],
+    ['Tomorrow', addDays(today, 1)],
+    ['Next weekday', nextWeekday(today)],
+    ['Next week', addDays(startOfWeek(today, weekStartsOn), 7)]
+  ]
+}
+
 const SearchIcon = () => <>{icons.search}</>
 const CalendarIcon = () => <>{icons.calendar}</>
 const CommandIcon = () => <>{icons.next}</>
@@ -84,6 +94,7 @@ const CommandIcon = () => <>{icons.next}</>
 function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
   const today = useStore(ui, (s) => s.today)
   const settings = useStore(ui, (s) => s.settings)
+  const lastMoveDate = useStore(ui, (s) => s.lastMoveDate)
   const [query, setQuery] = useState(overlay.query ?? '')
   const [index, setIndex] = useState(0)
   // Results remember their query, so a query still in flight never reads as "No matches".
@@ -134,8 +145,10 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
 
   const pickDate = (date: ISODate, action: 'go' | 'move'): void => {
     controller.closeOverlay()
-    if (action === 'go') void controller.navigate({ mode: 'day', date })
-    else void controller.moveTargets(date)
+    if (action === 'go') return void controller.navigate({ mode: 'day', date })
+    // A day the named ones don't reach is offered again next time.
+    if (date !== source && !namedMoveDays(today, settings.weekStartsOn).some(([, named]) => named === date)) ui.set({ lastMoveDate: date })
+    void controller.moveTargets(date)
   }
 
   const entries: Entry[] = useMemo(() => {
@@ -181,13 +194,10 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
         hint: distance(date, label ?? '', today),
         run: () => pickDate(date, action)
       })
-      const quick: Array<[string, ISODate]> = [
-        ['Today', today],
-        ['Tomorrow', addDays(today, 1)],
-        ['Next weekday', nextWeekday(today)],
-        ['Next week', addDays(startOfWeek(today, settings.weekStartsOn), 7)]
-      ]
+      const quick = namedMoveDays(today, settings.weekStartsOn)
       if (action === 'go') quick.splice(2, 0, ['Yesterday', addDays(today, -1)])
+      // The day picked last time comes first, so a run of lines can follow it, until it passes.
+      else if (lastMoveDate && lastMoveDate > today && !quick.some(([, date]) => date === lastMoveDate)) quick.unshift(['Last used', lastMoveDate])
       const list: Entry[] = []
       if (parsed) list.push(entry(parsed))
       // Each date once ("Next weekday" is often "Next week"), and never the day the lines are on.
@@ -277,7 +287,7 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
       run: () => switchMode({ kind: 'palette', mode: 'search', query: q })
     })
     return list
-  }, [mode, query, found, today, settings.weekStartsOn, hasTarget, source, overlay.dateAction])
+  }, [mode, query, found, today, settings.weekStartsOn, hasTarget, source, overlay.dateAction, lastMoveDate])
 
   const clamped = Math.min(index, Math.max(0, entries.length - 1))
 

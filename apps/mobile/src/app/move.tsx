@@ -18,18 +18,24 @@ export default function MoveSheet() {
   const item = useItem(id ?? '')
   const today = useStore(ui, (s) => s.today)
   const weekStartsOn = useStore(ui, (s) => s.settings.weekStartsOn)
+  const lastMoveDate = useStore(ui, (s) => s.lastMoveDate)
   if (!item) return null
 
-  const move = (date: ISODate): void => {
-    router.back()
-    void editor.moveTo(item.id, date)
-  }
-  const options: Array<{ icon: SFSymbol; label: string; date: ISODate }> = [
+  const named: Array<{ icon: SFSymbol; label: string; date: ISODate }> = [
     { icon: 'sun.max', label: 'Today', date: today },
     { icon: 'sunrise', label: 'Tomorrow', date: addDays(today, 1) },
     { icon: 'briefcase', label: 'Next weekday', date: nextWeekday(today) },
     { icon: 'calendar.badge.plus', label: 'Next week', date: addDays(startOfWeek(today, weekStartsOn), 7) }
   ]
+  const move = (date: ISODate): void => {
+    router.back()
+    // A day the named ones don't reach is offered again next time.
+    if (date !== item.date && !named.some((option) => option.date === date)) ui.set({ lastMoveDate: date })
+    void editor.moveTo(item.id, date)
+  }
+  // The day picked last time comes first, so a run of lines can follow it, until it passes.
+  const lastUsed = lastMoveDate && lastMoveDate > today && !named.some((option) => option.date === lastMoveDate)
+  const options = lastUsed ? [{ icon: 'clock.arrow.circlepath' as const, label: 'Last used', date: lastMoveDate }, ...named] : named
   // Each date once ("Next weekday" is often "Tomorrow"), and never the day the line is on.
   const choices = options
     .filter((choice, i) => choice.date !== item.date && options.findIndex((other) => other.date === choice.date) === i)

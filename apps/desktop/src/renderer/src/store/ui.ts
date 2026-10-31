@@ -75,6 +75,8 @@ export interface UIState {
   dragging: boolean
   /** Today's "open from earlier days" list is unfolded. For this session only. */
   looseEndsOpen: boolean
+  /** The last day picked in Move to that its named days (Today, Tomorrow…) don't cover. For this session only. */
+  lastMoveDate: ISODate | null
 }
 
 export const ui = new Store<UIState>({
@@ -85,7 +87,8 @@ export const ui = new Store<UIState>({
   overlay: null,
   toast: null,
   dragging: false,
-  looseEndsOpen: false
+  looseEndsOpen: false,
+  lastMoveDate: null
 })
 
 let toastSeq = 0
