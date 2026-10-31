@@ -56,6 +56,7 @@ export type Overlay =
   /** Opens on General unless something (the sync indicator) asks for its own category. */
   | { kind: 'settings'; category?: SettingsCategory }
   | { kind: 'about' }
+  | { kind: 'links' }
 
 export interface Toast {
   id: number

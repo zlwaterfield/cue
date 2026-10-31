@@ -1,6 +1,6 @@
 import { memo, useRef, useState } from 'react'
 import type { ISODate } from '@shared/types'
-import { bareLabel } from '@shared/links'
+import { bareLabel, type LinkPreview } from '@shared/links'
 import { backend } from '../data/backend'
 import { useLinkPreview } from '../store/links'
 import { controller } from './controller'
@@ -16,9 +16,7 @@ import { beginTextPointer } from './pointer'
  */
 export const LinkLine = memo(function LinkLine({ id, date, url }: { id: string; date: ISODate; url: string }) {
   const preview = useLinkPreview(url)
-  const [broken, setBroken] = useState<string | null>(null)
   const down = useRef<{ x: number; y: number } | null>(null)
-  const icon = preview?.icon && preview.icon !== broken ? preview.icon : null
   const title = preview?.title
 
   const onMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
@@ -44,14 +42,7 @@ export const LinkLine = memo(function LinkLine({ id, date, url }: { id: string; 
     <div className="link-line" onMouseDown={onMouseDown} onClick={onClick} data-link={url}>
       <a className="link-page" href={url} title={url} draggable={false} tabIndex={-1}>
         <span className="link-icon" aria-hidden>
-          {icon ? (
-            <img src={icon} alt="" width={16} height={16} draggable={false} onError={() => setBroken(icon)} />
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <path d="M6.8 9.2a2.9 2.9 0 0 0 4.1 0l2.2-2.2a2.9 2.9 0 0 0-4.1-4.1l-.9.9" />
-              <path d="M9.2 6.8a2.9 2.9 0 0 0-4.1 0L2.9 9a2.9 2.9 0 0 0 4.1 4.1l.9-.9" />
-            </svg>
-          )}
+          <SiteIcon preview={preview} />
         </span>
         <span className={title ? 'link-title' : 'link-title is-bare'}>
           {title ?? bareLabel(url)}
@@ -61,3 +52,17 @@ export const LinkLine = memo(function LinkLine({ id, date, url }: { id: string; 
     </div>
   )
 })
+
+/** The site's icon, or a link glyph until (or unless) the page names one that draws. */
+export function SiteIcon({ preview }: { preview: LinkPreview | null }) {
+  const [broken, setBroken] = useState<string | null>(null)
+  const icon = preview?.icon && preview.icon !== broken ? preview.icon : null
+  return icon ? (
+    <img src={icon} alt="" width={16} height={16} draggable={false} onError={() => setBroken(icon)} />
+  ) : (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M6.8 9.2a2.9 2.9 0 0 0 4.1 0l2.2-2.2a2.9 2.9 0 0 0-4.1-4.1l-.9.9" />
+      <path d="M9.2 6.8a2.9 2.9 0 0 0-4.1 0L2.9 9a2.9 2.9 0 0 0 4.1 4.1l.9-.9" />
+    </svg>
+  )
+}

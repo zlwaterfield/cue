@@ -40,7 +40,9 @@ tomorrow (⌘D) or any date (⇧⌘D), and select several lines to act on them t
 </p>
 
 **Finding.** ⌘K searches every command and understands dates ("move to fri", "go to oct 31").
-⌘F searches every day you've written, ignoring case and accents.
+⌘F searches every day you've written, ignoring case and accents. ⌘L lists every link you've
+written or shared, newest first, and finds one by what its page says (its title, description and
+the start of its text) as well as by the words around it.
 
 <p align="center">
   <img src="docs/images/command-palette.png" alt="The ⌘K command palette understanding &quot;move to fri&quot; as a date" width="49%">
@@ -63,7 +65,7 @@ and [docs/MCP.md](docs/MCP.md).
 **iPhone.** The same core as the Mac, built for touch: tap a bullet to make it a to-do, tap a
 box to check it, swipe to complete or send to tomorrow, and long-press to drag. Like the
 Mac, it needs no account; turn on sync to share notes with your Mac. Share a link from any app to add it to today, and a line
-that's only a link shows its page. See [apps/mobile/README.md](apps/mobile/README.md).
+that's only a link shows its page. The link button lists every link, like ⌘L on the Mac. See [apps/mobile/README.md](apps/mobile/README.md).
 
 **Feel.** One calm column in monochrome graphite, system typography, and light and dark
 appearance. The caret is the brand: it holds still while you type and rests after ten idle
@@ -75,6 +77,7 @@ seconds.
 | --- | --- |
 | Command palette | ⌘K |
 | Search | ⌘F |
+| Links | ⌘L |
 | Today · Tomorrow · This week | ⌘1 · ⌘2 · ⌘3 |
 | Previous / next day | ⌘[ · ⌘] |
 | Go to date | ⌘J |
