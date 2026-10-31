@@ -208,6 +208,31 @@ test('Move to date never offers the day the line is already on', async () => {
   expect(labels[0]).toMatch(/^Tomorrow · /)
 })
 
+test('Move to date offers the day picked last first, and a named day doesn’t replace it', async () => {
+  const { page } = cue
+  const date = await today(page)
+  const later = parseDateInput('in 10 days', date)!
+  const first = page.locator('.palette-item .palette-title').first()
+  await typeLines(page, 'renew passport', 'book visa', 'print tickets', 'pack')
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowUp')
+  await page.keyboard.press('Meta+Shift+D')
+  await expect(first).toHaveText(/^Tomorrow · /)
+  await page.keyboard.insertText('in 10 days')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.toast')).toContainText('Moved to')
+
+  // The next line follows it with Enter alone; picking Tomorrow doesn't forget it.
+  await page.keyboard.press('Meta+Shift+D')
+  await expect(first).toHaveText(`Last used · ${shortDate(later, date)}`)
+  await page.keyboard.insertText('tomorrow')
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Meta+Shift+D')
+  await expect(first).toHaveText(`Last used · ${shortDate(later, date)}`)
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.toast')).toContainText('Moved to')
+  expect(await outline(page)).toBe('pack')
+})
+
 test('a typed date reads short, as on the iPhone, with how far away it is', async () => {
   const { page } = cue
   const date = await today(page)
