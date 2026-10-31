@@ -35,6 +35,10 @@ const bridge: CueBridge = {
   onItemsChanged: (callback) => subscribe<Item[]>('items:changed', callback),
   shortcutStatus: () => ipcRenderer.invoke('shortcut:status'),
   onNotice: (callback) => subscribe<string>('notice', callback),
+  onSettleRequest: (callback) =>
+    subscribe<number>('items:settle', (token) => {
+      void callback().finally(() => ipcRenderer.send('items:settled', token))
+    }),
   sync: {
     getState: () => ipcRenderer.invoke('sync:state'),
     onState: (callback) => subscribe<SyncState>('sync:state', callback),

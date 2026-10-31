@@ -1203,6 +1203,7 @@ class EditorController {
     backend.onCommand((id) => this.execute(id, 'menu'))
     backend.onItemsChanged((items) => this.applyExternal(items))
     backend.onNotice((message) => showToast(message))
+    backend.onSettleRequest(() => itemStore.persistence.settle())
     setInterval(() => void this.checkToday(), 30_000)
   }
 

@@ -53,6 +53,34 @@ test('a link goes under today’s Links bullet, as a share from the iPhone does'
   await expect.poll(() => outline(page, now)).toBe(lines('Plan the week', '- Links', '  https://example.com/a', '  https://example.com/b'))
 })
 
+test('a link arriving just after the Links bullet is renamed goes under a new one', async () => {
+  const { app, page } = cue
+  const now = await today(page)
+  await typeLines(page, '- Links')
+  await expect.poll(() => stored(page, now)).toEqual(['Links'])
+  // Renamed, and the link sent while the rename is still being typed: the editor stores
+  // what it has before Cue reads the day, so the link never joins the old heading.
+  await Promise.all([
+    page.evaluate(() => {
+      const el = document.activeElement as HTMLElement
+      el.textContent = 'Reading'
+      el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }))
+    }),
+    openUrl(app, `cue://add?text=${encodeURIComponent('https://example.com/a')}`)
+  ])
+  await expect.poll(() => outline(page, now)).toBe(lines('- Reading', '- Links', '  https://example.com/a'))
+})
+
+test('two links arriving together share one new Links bullet', async () => {
+  const { app, page } = cue
+  const now = await today(page)
+  await Promise.all([
+    openUrl(app, `cue://add?text=${encodeURIComponent('https://example.com/a')}`),
+    openUrl(app, `cue://add?text=${encodeURIComponent('https://example.com/b')}`)
+  ])
+  await expect.poll(() => outline(page, now)).toBe(lines('- Links', '  https://example.com/a', '  https://example.com/b'))
+})
+
 test('says so in the toast while Cue is the window you’re in', async () => {
   const { app, page } = cue
   const focused = await app.evaluate(({ BrowserWindow }) => {

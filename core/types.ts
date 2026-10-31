@@ -220,6 +220,11 @@ export interface CueBridge {
   shortcutStatus(): Promise<ShortcutStatus>
   /** A short message from the main process for the toast. Returns an unsubscribe function. */
   onNotice(callback: (message: string) => void): () => void
+  /**
+   * The main process is about to read a day it may also write (a line saved from a browser):
+   * `callback` resolves once every edit so far is stored. Returns an unsubscribe function.
+   */
+  onSettleRequest(callback: () => Promise<void>): () => void
   sync: SyncBridge
   updates: UpdateBridge
 }

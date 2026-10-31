@@ -146,6 +146,10 @@ class MemoryBackend implements Backend {
     return 'off'
   }
 
+  onSettleRequest(): () => void {
+    return () => {}
+  }
+
   onNotice(): () => void {
     return () => {}
   }

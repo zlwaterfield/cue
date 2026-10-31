@@ -335,23 +335,59 @@ function saveItems(items: Item[]): Item[] {
 function receiveUrl(url: string): void {
   try {
     const text = parseAddUrl(url)
-    if (text) addToToday(text)
+    if (text) void addToToday(text)
   } catch (error) {
     console.error('Couldn’t add a cue:// link', error)
   }
 }
 
 /**
- * Add a line to today (a link under its Links bullet), the same way an import does: stored first, then handed to
- * the editor as a change from elsewhere, so it appears in a loaded day without touching what
- * you're typing or what ⌘Z undoes, and sync sends it like any new line.
+ * Add a line to today (a link under its Links bullet), the same way an import does: stored
+ * first, then handed to the editor as a change from elsewhere, so it appears in a loaded day
+ * without touching what you're typing or what ⌘Z undoes, and sync sends it like any new line.
+ *
+ * The day is read only once the editor has stored its own edits, so a Links bullet renamed
+ * or deleted a moment ago is seen as it is now. Lines are added one at a time, so two links
+ * arriving together can't each make a Links bullet.
  */
-function addToToday(text: string): void {
-  const date = todayISO()
-  const saved = saveItems(addedLine(repo.loadDates([date]), date, text))
-  if (!saved.length) return
-  broadcast('items:changed', saved)
-  tell('Added to today', 'Added to Today', text)
+let adding: Promise<void> = Promise.resolve()
+function addToToday(text: string): Promise<void> {
+  adding = adding.then(async () => {
+    await settleEditor()
+    const date = todayISO()
+    const saved = saveItems(addedLine(repo.loadDates([date]), date, text))
+    if (!saved.length) return
+    broadcast('items:changed', saved)
+    tell('Added to today', 'Added to Today', text)
+  }).catch((error) => console.error('Couldn’t add a line to today', error))
+  return adding
+}
+
+const SETTLE_TIMEOUT = 2000
+let settleToken = 0
+
+/**
+ * Resolve once the editor has stored every edit so far (its write-behind queue is a few
+ * milliseconds behind typing), or after two seconds if it doesn't answer.
+ */
+function settleEditor(): Promise<void> {
+  const win = mainWindow
+  if (!win || win.isDestroyed() || win.webContents.isLoading()) return Promise.resolve()
+  const token = ++settleToken
+  return new Promise((resolve) => {
+    const done = (_event: unknown, answered: number): void => {
+      if (answered !== token) return
+      finish()
+    }
+    const finish = (): void => {
+      clearTimeout(timer)
+      ipcMain.removeListener('items:settled', done)
+      resolve()
+    }
+    const timer = setTimeout(finish, SETTLE_TIMEOUT)
+    ipcMain.on('items:settled', done)
+    win.webContents.send('items:settle', token)
+  })
 }
 
 /**
@@ -395,7 +431,7 @@ async function saveFrontTab(): Promise<void> {
     const result = await captureFrontTab()
     if (!result.ok) return tell(result.message, 'Nothing saved', result.message)
     const text = cleanLine(result.url)
-    if (text) addToToday(text)
+    if (text) await addToToday(text)
   } catch (error) {
     console.error('Saving the front tab failed', error)
   } finally {
