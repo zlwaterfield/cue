@@ -30,6 +30,7 @@ const bridge: CueBridge = {
   openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
   linkPreview: (url) => ipcRenderer.invoke('links:preview', url),
   onLinkPreview: (callback) => subscribe('links:preview', callback),
+  links: (query, limit) => ipcRenderer.invoke('links:list', query, limit),
   markInteractive: () => ipcRenderer.send('app:interactive'),
   onCommand: (callback) => subscribe<string>('command', callback),
   onItemsChanged: (callback) => subscribe<Item[]>('items:changed', callback),

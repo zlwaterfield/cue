@@ -21,7 +21,10 @@ function set(url: string, preview: LinkPreview | null): void {
   for (const listener of listeners.get(url) ?? []) listener()
 }
 
-backend.onLinkPreview(({ url, preview }) => set(url, preview))
+// Pages read for the Links list arrive here too; only those a line is showing, or has shown, are kept.
+backend.onLinkPreview(({ url, preview }) => {
+  if (listeners.has(url) || previews.has(url)) set(url, preview)
+})
 
 function ask(url: string): void {
   const last = askedAt.get(url)

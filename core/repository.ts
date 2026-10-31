@@ -1,6 +1,7 @@
 import { isISODate } from './dates'
 import { HybridLogicalClock, parseVersion } from './hlc'
 import { transaction, type SqlDatabase, type SqlStatement } from './sqlite'
+import type { LinkLine } from './linkList'
 import { fold, searchTerms } from './text'
 import { DEFAULT_SETTINGS, ITEM_TYPES, type ISODate, type Item, type SearchResult, type Settings } from './types'
 
@@ -229,6 +230,18 @@ export class Repository {
   /** Days in the range with an unfinished to-do, oldest first. */
   datesWithOpenTodos(from: ISODate, to: ISODate): ISODate[] {
     return (this.stmts.openTodoDates.all(from, to) as Array<{ date: string }>).map((r) => r.date)
+  }
+
+  /** Every line with a link in it, newest day first, for the Links list (`core/linkList.ts`). */
+  linkLines(): LinkLine[] {
+    const rows = this.db
+      .prepare(
+        `SELECT id, date, type, done, text, search_text FROM items
+         WHERE deleted = 0 AND (instr(search_text, 'http') > 0 OR instr(search_text, 'www.') > 0)
+         ORDER BY date DESC, position, id`
+      )
+      .all() as Array<{ id: string; date: string; type: string; done: number; text: string; search_text: string }>
+    return rows.map((r) => ({ id: r.id, date: r.date, type: r.type as Item['type'], done: r.done === 1, text: r.text, search: r.search_text }))
   }
 
   /** All rows, optionally including tombstones, ordered for export. */
