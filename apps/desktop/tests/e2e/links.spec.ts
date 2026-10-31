@@ -133,3 +133,44 @@ test('⌘L lists every link, finds one by what its page says, opens it, and show
   await expect(list).toHaveCount(0)
 })
 
+
+test('the list reaches every link, however many, a page at a time', async () => {
+  const { page } = cue
+  // 250 links over 250 days, unreachable so nothing is fetched.
+  await page.evaluate(async () => {
+    const day = (n: number) => new Date(Date.UTC(2025, 0, 1 + n)).toISOString().slice(0, 10)
+    const items = Array.from({ length: 250 }, (_, n) => ({
+      id: `link-${n}`,
+      date: day(n),
+      parentId: null,
+      position: 'a0',
+      type: 'text',
+      text: `http://127.0.0.1:9/${n}`,
+      done: false,
+      createdAt: 0,
+      updatedAt: 0,
+      deleted: false,
+      version: ''
+    }))
+    await window.cue!.saveItems(items as never)
+  })
+  await page.keyboard.press('ControlOrMeta+l')
+  const list = page.getByRole('dialog', { name: 'Links' })
+  const items = list.locator('.links-item')
+  await expect(list.locator('.links-count')).toHaveText('250 links')
+  await expect(items).toHaveCount(100)
+
+  // Scrolling to the end asks for more, until there are no more.
+  for (const count of [200, 250]) {
+    await list.locator('.palette-list').evaluate((el) => el.scrollTo(0, el.scrollHeight))
+    await expect(items).toHaveCount(count)
+  }
+
+  // ↑ from the top wraps to the oldest link, asking for it if it isn't there yet.
+  await page.keyboard.press('ControlOrMeta+l')
+  await page.keyboard.press('ControlOrMeta+l')
+  await expect(items).toHaveCount(100)
+  await page.keyboard.press('ArrowUp')
+  await expect(items).toHaveCount(250)
+  await expect(list.locator('.links-item.is-active')).toHaveAttribute('data-link', 'http://127.0.0.1:9/0')
+})

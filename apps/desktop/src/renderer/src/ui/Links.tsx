@@ -1,5 +1,5 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { linkDay, linkGroup, linkNote, type LinkEntry } from '@shared/linkList'
+import { linkDay, linkGroup, linkNote, type LinkEntry, type LinkResults } from '@shared/linkList'
 import { bareLabel, findLinks } from '@shared/links'
 import { searchTerms } from '@shared/text'
 import type { ISODate } from '@shared/types'
@@ -19,7 +19,7 @@ import { Highlight } from './Palette'
  * link, goes to the line it's on.
  */
 
-/** Rows drawn at a time; more as the list scrolls, so a long history opens at once. */
+/** Links asked for and drawn at a time; more as the list scrolls, so a long history opens at once. */
 const PAGE = 100
 
 export function LinksPanel() {
@@ -44,7 +44,7 @@ function Links() {
   const weekStartsOn = useStore(ui, (s) => s.settings.weekStartsOn)
   const [query, setQuery] = useState('')
   // Results remember their query, so one still in flight never reads as "No matching links".
-  const [found, setFound] = useState<{ query: string; links: LinkEntry[] } | null>(null)
+  const [found, setFound] = useState<({ query: string } & LinkResults) | null>(null)
   const [index, setIndex] = useState(0)
   const [shown, setShown] = useState(PAGE)
   const [pagesRead, setPagesRead] = useState(0)
@@ -75,16 +75,17 @@ function Links() {
     const timer = setTimeout(async () => {
       // The list reads the database, so let just-made edits land first.
       await itemStore.persistence.settle()
-      const links = await backend.links(query)
-      if (!cancelled) setFound({ query: query.trim(), links })
+      const results = await backend.links(query, shown)
+      if (!cancelled) setFound({ query: query.trim(), ...results })
     }, 30)
     return () => {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [query, pagesRead])
+  }, [query, pagesRead, shown])
 
   const links = found?.links ?? []
+  const total = found?.total ?? 0
   const clamped = Math.min(index, Math.max(0, links.length - 1))
   const terms = useMemo(() => searchTerms(found?.query ?? ''), [found])
 
@@ -92,10 +93,15 @@ function Links() {
     listRef.current?.querySelector('.links-item.is-active')?.scrollIntoView({ block: 'nearest' })
   }, [clamped, found])
 
+  /** Ask for more links, up to every one there is. */
+  const more = (atLeast = 0): void => {
+    if (shown < total) setShown(Math.min(total, Math.max(shown + PAGE, atLeast)))
+  }
+
   const move = (to: number): void => {
     setIndex(to)
-    // Arrowing near the end draws more; ↑ from the top wraps to the very last link.
-    if (to >= shown - 10) setShown(Math.max(shown + PAGE, to + 1))
+    // Arrowing near the end asks for more.
+    if (to >= links.length - 10) more()
   }
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
@@ -105,7 +111,14 @@ function Links() {
     const up = e.key === 'ArrowUp' || (e.ctrlKey && e.key === 'p')
     if (down || up) {
       e.preventDefault()
-      if (links.length) move((clamped + (down ? 1 : -1) + links.length) % links.length)
+      if (!links.length) return
+      // ↑ from the top wraps to the very last link, which may not be here yet.
+      if (up && clamped === 0 && links.length < total) {
+        more(total)
+        setIndex(total - 1)
+        return
+      }
+      move((clamped + (down ? 1 : -1) + links.length) % links.length)
       return
     }
     if (e.key === 'Enter') {
@@ -147,11 +160,11 @@ function Links() {
           role="listbox"
           onScroll={(e) => {
             const el = e.currentTarget
-            if (el.scrollTop + el.clientHeight > el.scrollHeight - 400 && shown < links.length) setShown((n) => n + PAGE)
+            if (el.scrollTop + el.clientHeight > el.scrollHeight - 400 && links.length >= shown) more()
           }}
         >
           {empty && <div className="palette-empty">{empty}</div>}
-          {links.slice(0, shown).map((link, i) => {
+          {links.map((link, i) => {
             const group = linkGroup(link.date, today, weekStartsOn)
             const header = group !== lastGroup ? group : null
             lastGroup = group
@@ -175,7 +188,7 @@ function Links() {
             </span>
             Show on its day
             <span className="links-count">
-              {links.length} {links.length === 1 ? 'link' : 'links'}
+              {total.toLocaleString()} {total === 1 ? 'link' : 'links'}
             </span>
           </div>
         )}

@@ -2,12 +2,12 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native'
 import { router } from 'expo-router'
 import { SymbolView } from 'expo-symbols'
-import { linkDay, linkGroup, linkNote, type LinkEntry } from '@shared/linkList'
+import { linkDay, linkGroup, linkNote, type LinkEntry, type LinkResults } from '@shared/linkList'
 import { bareLabel } from '@shared/links'
 import { matchRanges, searchTerms } from '@shared/text'
 import type { ISODate } from '@shared/types'
 import { itemStore } from '../core/app'
-import { listLinks, useLinkPreview } from '../core/links'
+import { listLinks, onPageRead, useLinkPreview } from '../core/links'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
@@ -17,6 +17,10 @@ import { metrics, useColors } from '../ui/theme'
 
 /** After the first character, search again once typing pauses this long (as search does). */
 const SETTLE = 30
+/** Links asked for at a time; more as the list nears its end. */
+const PAGE = 100
+/** Pages read in the background arrive in bursts; a search runs again once they've settled. */
+const PAGES_SETTLE = 400
 
 /** Go to the line a link is on. */
 const showLine = (link: LinkEntry): void => {
@@ -36,15 +40,34 @@ export default function Links() {
   const [query, setQuery] = useState('')
   // Results stay with the query that found them, so "No matching links" is never said
   // about a query that's still being looked up.
-  const [found, setFound] = useState<{ query: string; links: LinkEntry[] } | null>(null)
+  const [found, setFound] = useState<({ query: string } & LinkResults) | null>(null)
+  const [limit, setLimit] = useState(PAGE)
+  const [pagesRead, setPagesRead] = useState(0)
   const first = useRef(true)
+  const searching = useRef(false)
+  searching.current = !!query.trim()
+
+  // Pages read while the list is open can make more links match a search: look again
+  // once they've settled.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const off = onPageRead(() => {
+      if (!searching.current) return
+      clearTimeout(timer)
+      timer = setTimeout(() => setPagesRead((n) => n + 1), PAGES_SETTLE)
+    })
+    return () => {
+      off()
+      clearTimeout(timer)
+    }
+  }, [])
 
   useEffect(() => {
     let live = true
     const run = (): void =>
       // Anything just typed is saved first, so its links are listed.
       void itemStore.persistence.settle().then(() => {
-        if (live) setFound({ query: query.trim(), links: listLinks(query) })
+        if (live) setFound({ query: query.trim(), ...listLinks(query, limit) })
       })
     const timer = setTimeout(run, first.current ? 0 : SETTLE)
     first.current = false
@@ -52,7 +75,7 @@ export default function Links() {
       live = false
       clearTimeout(timer)
     }
-  }, [query])
+  }, [query, limit, pagesRead])
 
   const sections = useMemo(() => {
     const out: Array<{ title: string; data: LinkEntry[] }> = []
@@ -78,7 +101,10 @@ export default function Links() {
           </View>
           <TextInput
             value={query}
-            onChangeText={setQuery}
+            onChangeText={(text) => {
+              setQuery(text)
+              setLimit(PAGE)
+            }}
             placeholder="Search links"
             placeholderTextColor={c.text3}
             autoCorrect={false}
@@ -108,6 +134,10 @@ export default function Links() {
         windowSize={7}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        onEndReachedThreshold={1}
+        onEndReached={() => {
+          if (found && found.links.length < found.total) setLimit((n) => Math.max(n, found.links.length) + PAGE)
+        }}
         ListEmptyComponent={empty ? <Text style={[styles.empty, { color: c.text2 }]}>{empty}</Text> : undefined}
       />
     </View>
