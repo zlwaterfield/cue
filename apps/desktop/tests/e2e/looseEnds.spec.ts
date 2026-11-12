@@ -119,7 +119,7 @@ test('moves everything from the palette on any page, and finds a to-do moved bac
 
   // Sent back to yesterday from Today: the list picks it up without reopening.
   await page.locator('.row', { hasText: 'From before' }).locator('.text').click()
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await page.keyboard.type('yesterday')
   await page.keyboard.press('Enter')
   await expect(toggle(page)).toHaveText('1 open from earlier day')

@@ -198,10 +198,54 @@ test('Go to date says each date once', async () => {
   expect(await page.locator('.calendar-day.is-selected').evaluate((el) => getComputedStyle(el).borderRadius)).toBe('50%')
 })
 
+test('Move to is a window of its own that names what’s moving, and ⌘K opens the same one', async () => {
+  const { page } = cue
+  const move = page.getByRole('dialog', { name: 'Move to' })
+  const subject = move.locator('.move-subject')
+  await typeLines(page, 'renew passport', 'book visa')
+  await page.keyboard.press('Meta+Shift+M')
+  await expect(move).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Command palette' })).toHaveCount(0)
+  await expect(subject.locator('.move-line')).toHaveText('book visa')
+  await expect(subject.locator('.move-from')).toHaveText('from today')
+  await expect(subject.locator('.move-more')).toHaveCount(0)
+
+  // Backspace in the empty field stays here; it isn't a mode of ⌘K to back out of.
+  await page.keyboard.press('Backspace')
+  await expect(move).toBeVisible()
+  await expect(move.locator('.palette-group')).toHaveCount(0)
+
+  // ⇧⌘M again closes it, back where the caret was.
+  await page.keyboard.press('Meta+Shift+M')
+  await expect(move).toHaveCount(0)
+  expect(await focusedText(page)).toBe('book visa')
+
+  // ⌘K's Move to date… opens this window, not a date mode of its own.
+  await page.keyboard.press('Meta+K')
+  await page.keyboard.type('move to date')
+  await page.keyboard.press('Enter')
+  await expect(move).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Command palette' })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(move).toHaveCount(0)
+
+  // Two lines selected: it says so, and both go.
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Shift+ArrowUp')
+  await expect(page.locator('.row.is-selected')).toHaveCount(2)
+  await page.keyboard.press('Meta+Shift+M')
+  await expect(subject.locator('.move-line')).toHaveText('renew passport')
+  await expect(subject.locator('.move-more')).toHaveText('and 1 more')
+  await expect(move.locator('.palette-item.is-active .palette-title')).toHaveText(/^Tomorrow · /)
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.toast')).toContainText('Moved to tomorrow')
+  expect(await outline(page)).toBe('')
+})
+
 test('Move to date never offers the day the line is already on', async () => {
   const { page } = cue
   await page.keyboard.type('renew passport')
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await expect(page.locator('.palette-item').first()).toBeVisible()
   const labels = await page.locator('.palette-item .palette-title').allTextContents()
   expect(labels.some((label) => label.startsWith('Today'))).toBe(false)
@@ -215,18 +259,18 @@ test('Move to date offers the day picked last first, and a named day doesn’t r
   const first = page.locator('.palette-item .palette-title').first()
   await typeLines(page, 'renew passport', 'book visa', 'print tickets', 'pack')
   for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowUp')
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await expect(first).toHaveText(/^Tomorrow · /)
   await page.keyboard.insertText('in 10 days')
   await page.keyboard.press('Enter')
   await expect(page.locator('.toast')).toContainText('Moved to')
 
   // The next line follows it with Enter alone; picking Tomorrow doesn't forget it.
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await expect(first).toHaveText(`Last used · ${shortDate(later, date)}`)
   await page.keyboard.insertText('tomorrow')
   await page.keyboard.press('Enter')
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await expect(first).toHaveText(`Last used · ${shortDate(later, date)}`)
   await page.keyboard.press('Enter')
   await expect(page.locator('.toast')).toContainText('Moved to')
@@ -237,7 +281,7 @@ test('a typed date reads short, as on the iPhone, with how far away it is', asyn
   const { page } = cue
   const date = await today(page)
   await page.keyboard.type('renew passport')
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await page.keyboard.insertText('fri')
   const friday = parseDateInput('fri', date)!
   const match = page.locator('.palette-item').first()

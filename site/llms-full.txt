@@ -179,7 +179,7 @@ attachments, collaboration, dashboards or AI writing your notes. That’s on pur
 **What are the shortcuts?** ⌘K command palette, ⌘F search, ⌘1/⌘2/⌘3 today/tomorrow/this
 week, ⌘[ and ⌘] previous and next day, ⌘J go to date, ⌘N new item, ⌘↩ complete, ⇧⌘↩ toggle
 bullet and to-do, Tab and ⇧Tab indent and outdent, ⌥↑ and ⌥↓ move, ⌘D move to tomorrow,
-⇧⌘D move to a date, ⌘Z undo, and ⌘/ for the whole list.
+⇧⌘M move to a date, ⌘Z undo, and ⌘/ for the whole list.
 
 ---
 

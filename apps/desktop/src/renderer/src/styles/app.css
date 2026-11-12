@@ -1117,6 +1117,55 @@ body.is-selecting .row .text {
   margin-left: auto;
 }
 
+/* ⇧⌘M: Move to. The palette's rows and a calendar, under the line that's moving. */
+.move-subject {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px 18px 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.move-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  max-width: 70%;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 7px;
+  background: var(--bg-subtle);
+  box-shadow: inset 0 0 0 0.5px var(--line);
+  color: var(--text);
+}
+
+.move-line .glyph {
+  flex: none;
+}
+
+.move-line-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.move-more,
+.move-from {
+  flex: none;
+  white-space: nowrap;
+}
+
+.move-from {
+  margin-left: auto;
+}
+
+.palette.is-move .palette-input {
+  height: 50px;
+}
+
 .is-done-text {
   color: var(--text-3);
   text-decoration: line-through;
