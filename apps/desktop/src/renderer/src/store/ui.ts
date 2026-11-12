@@ -51,7 +51,9 @@ export type SettingsCategory = (typeof SETTINGS_CATEGORIES)[number]
 
 export type Overlay =
   | null
-  | { kind: 'palette'; mode: PaletteMode; dateAction?: 'go' | 'move'; query?: string }
+  /** In `date` mode the palette is Go to (⌘J); Move to (⇧⌘D) is its own window, below. */
+  | { kind: 'palette'; mode: PaletteMode; query?: string }
+  | { kind: 'move' }
   | { kind: 'shortcuts' }
   /** Opens on General unless something (the sync indicator) asks for its own category. */
   | { kind: 'settings'; category?: SettingsCategory }
@@ -76,7 +78,7 @@ export interface UIState {
   dragging: boolean
   /** Today's "open from earlier days" list is unfolded. For this session only. */
   looseEndsOpen: boolean
-  /** The last day picked in Move to that its named days (Today, Tomorrow…) don't cover. For this session only. */
+  /** The last day picked in Move to (or ⌘K's "move to …") that its named days (Today, Tomorrow…) don't cover. For this session only. */
   lastMoveDate: ISODate | null
 }
 

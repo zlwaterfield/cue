@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test'
+import { parseDateInput } from '@shared/dateParse'
+import { relativeDayName } from '@shared/dates'
 import { addDays, caret, focusedId, focusedText, launch, lines, outline, paste, today, typeLines, type Cue } from './app'
 
 let cue: Cue
@@ -11,6 +13,7 @@ test.afterEach(async () => {
 
 test('north star: capture, convert, nest, complete, and move to Friday without the mouse', async () => {
   const { page } = cue
+  const date = await today(page)
   await typeLines(page, 'Book flights', 'Email Dana the deck', 'Draft the proposal', 'Pick up dry cleaning')
   // Turn two into tasks.
   await page.keyboard.press('ArrowUp')
@@ -34,7 +37,8 @@ test('north star: capture, convert, nest, complete, and move to Friday without t
   await page.keyboard.press('Meta+J')
   await page.keyboard.type('friday')
   await page.keyboard.press('Enter')
-  await expect(page.locator('.day-title')).toHaveText('Friday')
+  // On a Thursday, Friday is "Tomorrow".
+  await expect(page.locator('.day-title')).toHaveText(relativeDayName(parseDateInput('fri', date, { prefer: 'future' })!, date))
   expect(await outline(page)).toBe('Pick up dry cleaning')
 })
 

@@ -107,6 +107,16 @@ export function nextWeekday(date: ISODate): ISODate {
   return d
 }
 
+/** The days Move to offers by name, in the order it lists them. */
+export function namedMoveDays(today: ISODate, weekStartsOn: 0 | 1): Array<{ label: string; date: ISODate }> {
+  return [
+    { label: 'Today', date: today },
+    { label: 'Tomorrow', date: addDays(today, 1) },
+    { label: 'Next weekday', date: nextWeekday(today) },
+    { label: 'Next week', date: addDays(startOfWeek(today, weekStartsOn), 7) }
+  ]
+}
+
 export function dateRange(from: ISODate, to: ISODate): ISODate[] {
   const out: ISODate[] = []
   for (let d = from; d <= to; d = addDays(d, 1)) out.push(d)

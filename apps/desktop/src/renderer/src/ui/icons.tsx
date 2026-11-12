@@ -70,6 +70,20 @@ export const icons: Record<string, React.ReactNode> = {
     </Svg>
   ),
   calendar: <Svg>{calendar}</Svg>,
+  /** Move to's "Next weekday", as on the iPhone. */
+  weekday: (
+    <Svg>
+      <rect x="2.5" y="5" width="11" height="8" rx="2" {...stroke} />
+      <path d="M6 5V3.8a.8.8 0 0 1 .8-.8h2.4a.8.8 0 0 1 .8.8V5M2.5 8.5h11" {...stroke} />
+    </Svg>
+  ),
+  /** Move to's "Last used": a clock turned back. */
+  recent: (
+    <Svg>
+      <path d="M3.1 9.2A5 5 0 1 0 3.6 5.5" {...stroke} />
+      <path d="M3.3 2.9v2.8h2.8M8 5.5V8l1.8 1.3" {...stroke} />
+    </Svg>
+  ),
   moveDate: (
     <Svg>
       <path d="M13.5 7V5.5a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2H7M2.5 6.5h11M5.5 2v3M10.5 2v3" {...stroke} />

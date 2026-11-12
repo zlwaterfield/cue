@@ -1,7 +1,7 @@
 import { flushSync } from 'react-dom'
 import { COMMANDS_BY_ID } from '@shared/commands'
 import { uuidv7 } from '@shared/ids'
-import { addDays, friendlyDate, nextWeekday, startOfWeek, todayISO, weekViewDates } from '@shared/dates'
+import { addDays, friendlyDate, namedMoveDays, nextWeekday, startOfWeek, todayISO, weekViewDates } from '@shared/dates'
 import { collectLooseEnds, looseEndsRange, movedToTodayLabel } from '@shared/looseEnds'
 import { linesToMarkdown, parseMarkdownLines, type LineSpec } from '@shared/markdown'
 import type { ISODate, Item, ItemType, Settings } from '@shared/types'
@@ -534,7 +534,7 @@ class EditorController {
       if (e.key === 'Escape') {
         e.preventDefault()
         this.closeOverlay()
-      } else if (command === 'palette.open' || command === 'search.open' || command === 'links.open' || command === 'help.shortcuts') {
+      } else if (command === 'palette.open' || command === 'search.open' || command === 'links.open' || command === 'move.date' || command === 'help.shortcuts') {
         e.preventDefault()
         this.execute(command, 'key')
       }
@@ -814,14 +814,15 @@ class EditorController {
 
   execute(id: string, source: 'key' | 'menu' | 'palette' = 'palette'): void {
     // A menu key equivalent and the page's own key handler can both fire for one
-    // press, in either order. Ignore the echo from the other source.
+    // press, in either order. Ignore the echo from the other source. A run from ⌘K has
+    // no echo, so a key straight after it (⌘K's Move to date…, then ⇧⌘D) still counts.
     const now = performance.now()
     const last = this.lastExecuted
-    if (source !== 'palette' && last.id === id && last.source !== source && now - last.at < 200) return
+    if (source !== 'palette' && last.source !== 'palette' && last.id === id && last.source !== source && now - last.at < 200) return
     this.lastExecuted = { id, at: now, source }
 
     // Menu commands act on the document, so an open overlay steps aside first.
-    const overlayCommands = ['palette.open', 'search.open', 'links.open', 'help.shortcuts', 'app.settings', 'app.about', 'edit.undo', 'edit.redo']
+    const overlayCommands = ['palette.open', 'search.open', 'links.open', 'move.date', 'help.shortcuts', 'app.settings', 'app.about', 'edit.undo', 'edit.redo']
     if (source === 'menu' && ui.get().overlay && COMMANDS_BY_ID[id] && !overlayCommands.includes(id)) this.closeOverlay()
 
     const { today } = ui.get()
@@ -865,7 +866,7 @@ class EditorController {
         return
       }
       case 'go.date':
-        this.openOverlay({ kind: 'palette', mode: 'date', dateAction: 'go' })
+        this.openOverlay({ kind: 'palette', mode: 'date' })
         return
       case 'looseEnds.toggle':
         void this.toggleLooseEnds()
@@ -887,7 +888,7 @@ class EditorController {
         return
       case 'move.date':
         if (!this.targets().length) return
-        this.openOverlay({ kind: 'palette', mode: 'date', dateAction: 'move' })
+        this.toggleOverlay({ kind: 'move' })
         return
       case 'export.markdown':
         void backend.exportMarkdown().then((r) => {
@@ -1019,6 +1020,18 @@ class EditorController {
       ops.remove(tx, ids)
       return focus
     })
+  }
+
+  /**
+   * Move to a day picked by hand: in Move to (⇧⌘D), or with "move to fri" in ⌘K. A day
+   * the named ones (Today, Tomorrow…) don't offer comes first in Move to next time.
+   */
+  moveToPicked(date: ISODate): void {
+    const source = itemStore.get(this.targets()[0] ?? '')?.date
+    const { today, settings } = ui.get()
+    this.closeOverlay()
+    if (date !== source && !namedMoveDays(today, settings.weekStartsOn).some((day) => day.date === date)) ui.set({ lastMoveDate: date })
+    void this.moveTargets(date)
   }
 
   async moveTargets(date: ISODate): Promise<void> {

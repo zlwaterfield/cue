@@ -11,7 +11,7 @@ E2E tests drive the real Electron app (`pnpm test:e2e`); unit tests run under Vi
 | 3 | Reorder and indent using only the keyboard | ⌥↑/⌥↓, Tab/⇧Tab, block selection (Esc, ⇧↑/⇧↓) | *reorder and indent with only the keyboard*, `ops.test.ts` |
 | 4 | Complete and reopen a task | ⌘↩, or click the checkbox | *north star*, *undo and redo…*, *shift-click…checkbox* |
 | 5 | Move an item and its children to tomorrow with one command | ⌘D | *undo and redo…* (move step), `ops.test.ts` "moves the item and its children" |
-| 6 | Move an item to an arbitrary date through ⌘K | ⌘K "move to fri", or ⇧⌘D with natural-language dates | *north star*, *search finds text…* (`in 10 days`), `dateParse.test.ts` |
+| 6 | Move an item to an arbitrary date through ⌘K | ⌘K "move to fri", or ⇧⌘D: Move to, a window of its own with natural-language dates, the day picked last first, and a calendar | *north star*, *search finds text…* (`in 10 days`), *Move to is a window of its own…*, *Move to date offers the day picked last first…*, `dateParse.test.ts` |
 | 7 | View and edit today, tomorrow, and the rest of the week | Week view (⌘3), every day directly editable; arrows move across days | *the week view shows…*, *arrow keys move…across days* |
 | 8 | Navigate to any daily page | ⌘[ / ⌘], ⌘J (natural language + calendar), clicking a day title | *north star* (⌘J friday), *clicking a day title…* |
 | 9 | Search all stored text and open a result | ⌘F: case- and accent-insensitive, newest first; Enter opens the day with the caret on the match | *search finds text on any day*, `repository.test.ts` search |
