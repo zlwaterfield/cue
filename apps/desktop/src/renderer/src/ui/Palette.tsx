@@ -17,7 +17,7 @@ import { commandIcon, icons } from './icons'
 /**
  * ⌘K. One surface, three modes: commands (fuzzy), search (all notes), and date
  * (natural-language "go to", ⌘J). Everything is keyboard-driven; the mouse works too.
- * Move to (⇧⌘D) is its own window, in MoveTo.tsx; ⌘K still moves with "move to fri".
+ * Move to (⇧⌘M) is its own window, in MoveTo.tsx; ⌘K still moves with "move to fri".
  */
 
 interface Entry {

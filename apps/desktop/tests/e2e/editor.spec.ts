@@ -28,7 +28,7 @@ test('north star: capture, convert, nest, complete, and move to Friday without t
 
   // Move another to Friday.
   await page.keyboard.press('ArrowDown')
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await page.keyboard.type('fri')
   await page.keyboard.press('Enter')
   await expect(page.locator('.toast')).toContainText('Moved to')
@@ -191,7 +191,7 @@ test('search finds text on any day and opens the item', async () => {
   const { page } = cue
   await typeLines(page, 'Quarterly review prep', 'something else')
   await page.keyboard.press('ArrowUp')
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await page.keyboard.type('in 10 days')
   await page.keyboard.press('Enter')
   await page.keyboard.press('Meta+F')

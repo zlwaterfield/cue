@@ -94,7 +94,7 @@ const shoot = async (name, scheme) => {
 await shoot('week-light', 'light')
 await shoot('week-dark', 'dark')
 
-await press('Meta+Shift+D')
+await press('Meta+Shift+M')
 await type('fri')
 await shoot('move-to-date', 'light')
 await press('Escape')

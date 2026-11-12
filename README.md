@@ -33,11 +33,11 @@ type (`- `, `[] `, `[x] `), and pasted Markdown lists become real nested items.
 
 **Organizing.** A week view with today on top, a day view for any date, and ⌘[ / ⌘] to step
 between them. Reorder with ⌥↑/⌥↓ or drag and drop, even onto another day. Move anything to
-tomorrow (⌘D) or any date (⇧⌘D, which offers the day you picked last first), and select several
+tomorrow (⌘D) or any date (⇧⌘M, which offers the day you picked last first), and select several
 lines to act on them together.
 
 <p align="center">
-  <img src="docs/images/move-to-date.png" alt="Move to, opened with ⇧⌘D: the to-do being moved at the top, &quot;fri&quot; read as Fri, Nov 13 (tomorrow), and a calendar alongside" width="80%">
+  <img src="docs/images/move-to-date.png" alt="Move to, opened with ⇧⌘M: the to-do being moved at the top, &quot;fri&quot; read as Fri, Nov 13 (tomorrow), and a calendar alongside" width="80%">
 </p>
 
 **Finding.** ⌘K searches every command and understands dates ("move to fri", "go to oct 31").
@@ -88,7 +88,7 @@ seconds.
 | Indent / outdent | Tab · ⇧Tab |
 | Move up / down | ⌥↑ · ⌥↓ |
 | Move to tomorrow | ⌘D |
-| Move to date | ⇧⌘D |
+| Move to date | ⇧⌘M |
 | Delete item | ⇧⌘⌫ |
 | Select lines | Esc, then ⇧↑ / ⇧↓ (⌘A twice for the whole day) |
 | Undo / redo | ⌘Z · ⇧⌘Z |

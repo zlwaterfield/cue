@@ -64,7 +64,7 @@ export const COMMANDS: CommandMeta[] = [
   { id: 'move.tomorrow', title: 'Move to tomorrow', group: 'Move', shortcut: 'Mod+D', keywords: 'defer reschedule postpone', needsItem: true },
   { id: 'move.nextWeekday', title: 'Move to next weekday', group: 'Move', keywords: 'defer reschedule business day', needsItem: true },
   { id: 'move.nextWeek', title: 'Move to next week', group: 'Move', keywords: 'defer reschedule monday', needsItem: true },
-  { id: 'move.date', title: 'Move to date…', group: 'Move', shortcut: 'Mod+Shift+D', keywords: 'defer reschedule pick', needsItem: true },
+  { id: 'move.date', title: 'Move to date…', group: 'Move', shortcut: 'Mod+Shift+M', keywords: 'defer reschedule pick', needsItem: true },
   { id: 'looseEnds.moveAll', title: 'Move earlier open to-dos to today', group: 'Move', keywords: 'loose ends overdue unfinished carry over reschedule' },
 
   { id: 'export.markdown', title: 'Export as Markdown…', group: 'Data', keywords: 'backup save files' },

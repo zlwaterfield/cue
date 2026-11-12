@@ -815,7 +815,7 @@ class EditorController {
   execute(id: string, source: 'key' | 'menu' | 'palette' = 'palette'): void {
     // A menu key equivalent and the page's own key handler can both fire for one
     // press, in either order. Ignore the echo from the other source. A run from ⌘K has
-    // no echo, so a key straight after it (⌘K's Move to date…, then ⇧⌘D) still counts.
+    // no echo, so a key straight after it (⌘K's Move to date…, then ⇧⌘M) still counts.
     const now = performance.now()
     const last = this.lastExecuted
     if (source !== 'palette' && last.source !== 'palette' && last.id === id && last.source !== source && now - last.at < 200) return
@@ -1023,7 +1023,7 @@ class EditorController {
   }
 
   /**
-   * Move to a day picked by hand: in Move to (⇧⌘D), or with "move to fri" in ⌘K. A day
+   * Move to a day picked by hand: in Move to (⇧⌘M), or with "move to fri" in ⌘K. A day
    * the named ones (Today, Tomorrow…) don't offer comes first in Move to next time.
    */
   moveToPicked(date: ISODate): void {

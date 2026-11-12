@@ -203,7 +203,7 @@ test('Move to is a window of its own that names what’s moving, and ⌘K opens 
   const move = page.getByRole('dialog', { name: 'Move to' })
   const subject = move.locator('.move-subject')
   await typeLines(page, 'renew passport', 'book visa')
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await expect(move).toBeVisible()
   await expect(page.getByRole('dialog', { name: 'Command palette' })).toHaveCount(0)
   await expect(subject.locator('.move-line')).toHaveText('book visa')
@@ -215,8 +215,8 @@ test('Move to is a window of its own that names what’s moving, and ⌘K opens 
   await expect(move).toBeVisible()
   await expect(move.locator('.palette-group')).toHaveCount(0)
 
-  // ⇧⌘D again closes it, back where the caret was.
-  await page.keyboard.press('Meta+Shift+D')
+  // ⇧⌘M again closes it, back where the caret was.
+  await page.keyboard.press('Meta+Shift+M')
   await expect(move).toHaveCount(0)
   expect(await focusedText(page)).toBe('book visa')
 
@@ -233,7 +233,7 @@ test('Move to is a window of its own that names what’s moving, and ⌘K opens 
   await page.keyboard.press('Escape')
   await page.keyboard.press('Shift+ArrowUp')
   await expect(page.locator('.row.is-selected')).toHaveCount(2)
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await expect(subject.locator('.move-line')).toHaveText('renew passport')
   await expect(subject.locator('.move-more')).toHaveText('and 1 more')
   await expect(move.locator('.palette-item.is-active .palette-title')).toHaveText(/^Tomorrow · /)
@@ -245,7 +245,7 @@ test('Move to is a window of its own that names what’s moving, and ⌘K opens 
 test('Move to date never offers the day the line is already on', async () => {
   const { page } = cue
   await page.keyboard.type('renew passport')
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await expect(page.locator('.palette-item').first()).toBeVisible()
   const labels = await page.locator('.palette-item .palette-title').allTextContents()
   expect(labels.some((label) => label.startsWith('Today'))).toBe(false)
@@ -259,18 +259,18 @@ test('Move to date offers the day picked last first, and a named day doesn’t r
   const first = page.locator('.palette-item .palette-title').first()
   await typeLines(page, 'renew passport', 'book visa', 'print tickets', 'pack')
   for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowUp')
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await expect(first).toHaveText(/^Tomorrow · /)
   await page.keyboard.insertText('in 10 days')
   await page.keyboard.press('Enter')
   await expect(page.locator('.toast')).toContainText('Moved to')
 
   // The next line follows it with Enter alone; picking Tomorrow doesn't forget it.
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await expect(first).toHaveText(`Last used · ${shortDate(later, date)}`)
   await page.keyboard.insertText('tomorrow')
   await page.keyboard.press('Enter')
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await expect(first).toHaveText(`Last used · ${shortDate(later, date)}`)
   await page.keyboard.press('Enter')
   await expect(page.locator('.toast')).toContainText('Moved to')
@@ -281,7 +281,7 @@ test('a typed date reads short, as on the iPhone, with how far away it is', asyn
   const { page } = cue
   const date = await today(page)
   await page.keyboard.type('renew passport')
-  await page.keyboard.press('Meta+Shift+D')
+  await page.keyboard.press('Meta+Shift+M')
   await page.keyboard.insertText('fri')
   const friday = parseDateInput('fri', date)!
   const match = page.locator('.palette-item').first()

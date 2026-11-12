@@ -11,9 +11,9 @@ import { icons } from './icons'
 import { distance, TypeGlyph } from './Palette'
 
 /**
- * ⇧⌘D. Move to, in a window of its own rather than a mode of ⌘K: what's moving, a field
+ * ⇧⌘M. Move to, in a window of its own rather than a mode of ⌘K: what's moving, a field
  * that reads dates as you type ("fri", "next mon", "oct 31"), the named days, and a
- * calendar. The day picked last comes first, so a run of lines follows it with ⇧⌘D ↩,
+ * calendar. The day picked last comes first, so a run of lines follows it with ⇧⌘M ↩,
  * as on the iPhone.
  */
 

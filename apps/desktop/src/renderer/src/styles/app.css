@@ -1117,7 +1117,7 @@ body.is-selecting .row .text {
   margin-left: auto;
 }
 
-/* ⇧⌘D: Move to. The palette's rows and a calendar, under the line that's moving. */
+/* ⇧⌘M: Move to. The palette's rows and a calendar, under the line that's moving. */
 .move-subject {
   display: flex;
   align-items: center;

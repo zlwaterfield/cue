@@ -51,7 +51,7 @@ export type SettingsCategory = (typeof SETTINGS_CATEGORIES)[number]
 
 export type Overlay =
   | null
-  /** In `date` mode the palette is Go to (⌘J); Move to (⇧⌘D) is its own window, below. */
+  /** In `date` mode the palette is Go to (⌘J); Move to (⇧⌘M) is its own window, below. */
   | { kind: 'palette'; mode: PaletteMode; query?: string }
   | { kind: 'move' }
   | { kind: 'shortcuts' }
