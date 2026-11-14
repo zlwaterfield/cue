@@ -6,7 +6,7 @@
 > kind. Sync between your Mac and iPhone is optional and also free.
 
 Cue is made by one person, Zach Waterfield, as a personal project, and it is his daily
-driver. It is in beta and deliberately small.
+driver. It is deliberately small.
 
 ## What it is
 
@@ -66,7 +66,7 @@ no ad network and no third party watching.
   what the five tools do, and what they can’t.
 - [Privacy Policy](https://www.usecue.today/privacy): what Cue stores, who else is involved,
   and how to delete it.
-- [Terms of Service](https://www.usecue.today/terms): free, in beta, your notes are yours.
+- [Terms of Service](https://www.usecue.today/terms): free, your notes are yours.
 
 ## Elsewhere
 

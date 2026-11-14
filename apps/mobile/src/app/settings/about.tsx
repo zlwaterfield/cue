@@ -24,7 +24,7 @@ export default function About() {
       </Section>
 
       <Section>
-        <Row label="Version" value={`${version} · beta`} />
+        <Row label="Version" value={version} />
       </Section>
     </SettingsScreen>
   )

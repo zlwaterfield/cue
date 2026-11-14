@@ -9,9 +9,6 @@ drop, undo) are the files in [`../../core`](../../core). There's one implementat
 of how a line behaves and how a change merges, and the Mac's unit tests cover it. This
 folder holds what's specific to a phone: touch, the keyboard, and the app lifecycle.
 
-> [!NOTE]
-> Like the Mac app, this is in beta.
-
 ## How it differs from the Mac
 
 - **Sync works the Mac's way.** It's off by default, the notes live in SQLite on the phone,

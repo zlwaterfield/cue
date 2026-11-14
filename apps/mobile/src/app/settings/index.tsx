@@ -66,7 +66,7 @@ export default function Settings() {
 
       <View style={styles.about}>
         <SvgXml xml={lockup(c.text3)} width={56} height={28} />
-        <Text style={[styles.version, { color: c.text2 }]}>Version {version} · beta</Text>
+        <Text style={[styles.version, { color: c.text2 }]}>Version {version}</Text>
       </View>
     </ScrollView>
   )

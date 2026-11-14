@@ -16,7 +16,7 @@
   // Tooltips
   const tipEl = $('.tip')
   const TIPS = {
-    beta: () => `Used every day since ${fmt(SINCE, { month: 'short', day: 'numeric', year: 'numeric' })} · day ${dayNumber()}`,
+    since: () => `Used every day since ${fmt(SINCE, { month: 'short', day: 'numeric', year: 'numeric' })} · day ${dayNumber()}`,
     speed: () => {
       const nav = performance.getEntriesByType('navigation')[0]
       const ms = Math.round(nav && nav.domContentLoadedEventEnd ? nav.domContentLoadedEventEnd : performance.now())
@@ -54,11 +54,11 @@
   document.addEventListener('pointerdown', (e) => { if (!e.target.closest('[data-egg]')) hideTip() })
   addEventListener('scroll', hideTip, { passive: true })
 
-  // The beta badge gives in after five clicks.
+  // The badge gives in after five clicks.
   let badgeClicks = 0
   $('.status').addEventListener('click', () => {
     if (++badgeClicks !== 5) return
-    $('.status-text').textContent = 'Beta · okay, fine, it’s pretty stable'
+    $('.status-text').textContent = '1.0 · okay, fine, it took a while'
     hideTip()
   })
 
