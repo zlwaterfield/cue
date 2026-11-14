@@ -150,6 +150,16 @@ describe('MCP tools', () => {
     expect((await call('search', { query: 'dentist flights' })).text).toBe('Nothing matches “dentist flights”.')
   })
 
+  it('names scratch and a starred note rather than dating them', async () => {
+    notes.rows.set('s', newItem({ id: 's', date: '1000-01-01', type: 'text', text: 'a draft about zebras', version: ver(1000) }))
+    notes.rows.set('n', newItem({ id: 'n', date: '1042-07-15', type: 'text', text: 'Zebras to read about', version: ver(1000) }))
+    const { text } = await call('search', { query: 'zebras' })
+    expect(text).toContain('Scratch (a note, not a day)')
+    expect(text).toContain('A starred note (not a day; its page is 1042-07-15)')
+    expect(text).not.toMatch(/January 1, 1000|July 15, 1042/)
+    expect((await call('get_day', { date: '1042-07-15' })).text).toMatch(/^# A starred note/)
+  })
+
   it('adds Markdown lines at the end of the day, nested as written', async () => {
     const { text } = await call('add_lines', { date: DAY, markdown: '- [ ] Book flights\n  - window seat\nPack' })
     expect(text).toMatch(/^Added 3 lines to Wednesday, October 21, 2026:\n\n- \[ \] Book flights \{#[0-9a-f-]{36}\}\n {2}- window seat/)

@@ -35,7 +35,7 @@ interface Entry {
 
 type PaletteOverlay = Extract<NonNullable<Overlay>, { kind: 'palette' }>
 
-const GROUP_ORDER: CommandGroup[] = ['Item', 'Move', 'Navigate', 'General', 'Edit', 'Data']
+const GROUP_ORDER: CommandGroup[] = ['Item', 'Move', 'Navigate', 'Notes', 'General', 'Edit', 'Data']
 
 export function Palette() {
   const overlay = useStore(ui, (s) => s.overlay)

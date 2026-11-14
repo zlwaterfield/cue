@@ -1341,7 +1341,7 @@ kbd.is-text {
 }
 
 .sheet.is-wide {
-  width: min(780px, calc(100vw - 48px));
+  width: min(860px, calc(100vw - 48px));
 }
 
 .sheet.is-bare {
@@ -1371,9 +1371,16 @@ kbd.is-text {
   overflow-y: auto;
 }
 
+/* Three columns at the window's default width, so every shortcut shows without scrolling. */
 .shortcut-columns {
-  columns: 2;
-  column-gap: 36px;
+  columns: 3;
+  column-gap: 30px;
+}
+
+@media (max-width: 800px) {
+  .shortcut-columns {
+    columns: 2;
+  }
 }
 
 .shortcut-group {

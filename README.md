@@ -46,6 +46,11 @@ Today and Week (⌘4), one page at a time, and are pages like any day, with the 
 shortcuts. ⌘E opens scratch from anywhere and takes you back to the line you left; ⇧⌘S stars
 it, and its first line becomes its name. This is for a handful of notes, not a notebook.
 
+<p align="center">
+  <img src="docs/images/notes.png" alt="Notes, beside Today and Week: a starred note called Books to read, with Scratch and Gift ideas named above it" width="49%">
+  <img src="docs/images/notes-scratch.png" alt="Scratch, holding a draft email, with Copy, Clear and Star beside its title" width="49%">
+</p>
+
 **Finding.** ⌘K searches every command, understands dates ("move to fri", "go to oct 31") and
 opens a starred note by its name.
 ⌘F searches every day you've written, ignoring case and accents. ⌘L lists every link you've

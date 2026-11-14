@@ -121,7 +121,7 @@ export function buildMenu(options: { isDev: boolean; syncAvailable: boolean; upd
         command('go.date', 'Go to Date…'),
         separator,
         command('notes.star', 'Star Scratch'),
-        command('notes.discard', 'Clear Scratch or Delete Note'),
+        command('notes.discard', 'Clear or Delete Note'),
         command('notes.copy', 'Copy Page')
       ]
     },
