@@ -19,7 +19,7 @@ const config: ExpoConfig = {
   name: 'Cue',
   slug: 'cue',
   scheme: 'cue',
-  // The App Store only takes numbers here, so the iPhone is 1.0.0 while the Mac is 1.0.0-beta.3.
+  // The same version as the Mac app. The App Store only takes numbers here.
   version: '1.0.0',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',

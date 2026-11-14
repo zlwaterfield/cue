@@ -10,7 +10,7 @@ source, and no tracking.
 
 Site: https://www.usecue.today
 Source: https://github.com/zlwaterfield/cue
-Made by Zach Waterfield, Toronto, Canada. A personal project, in beta, used every day since
+Made by Zach Waterfield, Toronto, Canada. A personal project, used every day since
 October 17, 2026.
 
 ---
@@ -49,9 +49,9 @@ Cue stays small on purpose: no reminders, recurring tasks, collaboration or AI i
 
 ## Where it’s at
 
-It’s in beta, and it’s free. Cue is my daily driver on my Mac and my iPhone, and it runs
+It’s 1.0, and it’s free. Cue is my daily driver on my Mac and my iPhone, and it runs
 without any issues. The Mac app is a free download that works offline with no account, and
-the iPhone app is in beta on TestFlight.
+the iPhone app is on TestFlight.
 
 Want the same notes on both? Sign in with Apple or your email and they sync, free as well.
 That’s the only part with a server in it: a Postgres database at Supabase, and the MCP
@@ -67,13 +67,13 @@ Free on your Mac and iPhone, with no account. Turn on sync whenever you like.
 ## Cue for Mac
 
 Works offline, totally free. No account, no sign-up: open it and start typing. Apple silicon
-Mac, signed and notarized. The download is 1.0.0-beta.3, a 122 MB .dmg, from
+Mac, signed and notarized. The download is 1.0.0, a 122 MB .dmg, from
 https://github.com/zlwaterfield/cue/releases
 
 ## Cue for iPhone
 
 Today’s page in your pocket, on its own or synced with your Mac. The same core as the Mac
-app, built for touch. Free, no account needed, and in beta on TestFlight:
+app, built for touch. Free, no account needed, and on TestFlight:
 https://testflight.apple.com/join/KyVXdDgz
 
 ## Accounts and privacy
@@ -192,7 +192,7 @@ tomorrow, ⇧⌘M move to a date, ⌘Z undo, and ⌘/ for the whole list.
 
 # Terms of Service — https://www.usecue.today/terms
 
-In short: Cue is free, in beta, and provided as it is. What you write belongs to you. Don’t
+In short: Cue is free and provided as it is. What you write belongs to you. Don’t
 misuse the service or other people’s accounts. You can export your notes and delete your
 account at any time.
 

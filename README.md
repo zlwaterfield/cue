@@ -8,10 +8,6 @@
   Fast, quiet and keyboard-first.
 </p>
 
-> [!NOTE]
-> **Cue is in beta.** I use it every day on my Mac and iPhone as my daily driver, without
-> any issues. It's still young, so export now and then (File ▸ Export as Markdown).
-
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/week-dark.png">
   <img src="docs/images/week-light.png" alt="Cue's week view: today's notes, to-dos and nested bullets, with tomorrow below">
@@ -149,7 +145,7 @@ pnpm bench --check    # exits non-zero if anything misses its budget
 ## Getting started
 
 Download Cue from [usecue.today/download](https://www.usecue.today/download): the Mac app for
-Apple silicon, signed and notarized, and the iPhone beta on TestFlight. Both are free and work
+Apple silicon, signed and notarized, and the iPhone app on TestFlight. Both are free and work
 offline with no account. Syncing them together needs an account (Sign in with Apple, or an
 emailed code), and that’s free as well.
 
