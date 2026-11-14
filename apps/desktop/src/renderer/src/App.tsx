@@ -7,9 +7,7 @@ import { LinksPanel } from './ui/Links'
 import { MovePanel } from './ui/MoveTo'
 import { Palette } from './ui/Palette'
 import { AboutSheet, SettingsSheet, ShortcutsSheet } from './ui/Sheets'
-import { phoneSketch } from './notes/model'
 import { NoteStrip } from './notes/NoteStrip'
-import { PhoneHeader } from './notes/PhoneSketch'
 
 export function App() {
   const view = useStore(ui, (s) => s.view)
@@ -26,15 +24,15 @@ export function App() {
   }
 
   return (
-    <div className={phoneSketch ? 'app is-phone' : 'app'}>
-      {phoneSketch ? <PhoneHeader /> : <Header />}
+    <div className="app">
+      <Header />
       <main
         className="scroller"
         onMouseDown={onBackgroundMouseDown}
         onScroll={(e) => document.querySelector('.titlebar')?.classList.toggle('is-scrolled', e.currentTarget.scrollTop > 4)}
       >
         <div className={`column is-${view.mode}`}>
-          {view.mode === 'notes' && !phoneSketch && <NoteStrip current={view.date} />}
+          {view.mode === 'notes' && <NoteStrip current={view.date} />}
           {dates.map((date) => (
             <DaySection key={date} date={date} today={today} variant={view.mode === 'week' ? 'week' : 'day'} />
           ))}

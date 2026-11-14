@@ -880,7 +880,7 @@ class EditorController {
       case 'go.prevDay':
       case 'go.nextDay': {
         const view = ui.get().view
-        // PROTOTYPE (notes/): on a note, the pair steps to the note before or after, as it does for days.
+        // On a note, the pair steps to the note before or after, as it does for days.
         if (view.mode === 'notes') {
           stepNote(id === 'go.prevDay' ? -1 : 1)
           return

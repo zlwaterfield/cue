@@ -134,7 +134,7 @@ const TOOLS: Tool[] = [
       const created = insertLinesAfter(tx, date, after, lines)
       await commit(notes, tx)
       const added = created.map((id, i) => line(tx.get(id)!, lines[i].depth))
-      return `Added ${plural(created.length, 'line')} to ${longDate(date)}:\n\n${added.join('\n')}`
+      return `Added ${plural(created.length, 'line')} to ${pageName(date)}:\n\n${added.join('\n')}`
     }
   },
   {
@@ -292,6 +292,15 @@ function line(item: Item, depth = 0): string {
   return `${'  '.repeat(depth)}${lineToMarkdown(item)} {#${item.id}}`
 }
 
+/**
+ * A page's heading. Scratch and the starred notes (`../notes.ts`) are pages filed under days
+ * in the years 1000 to 1099, which would read as nonsense dates.
+ */
+function pageName(date: ISODate): string {
+  if (date < '1000-01-01' || date > '1099-12-31') return longDate(date)
+  return date === '1000-01-01' ? 'Scratch (a note, not a day)' : `A starred note (not a day; its page is ${date})`
+}
+
 export function renderDay(date: ISODate, items: Item[]): string {
   const byId = new Map(items.map((i) => [i.id, i]))
   const lines = buildOutline(items)
@@ -299,7 +308,7 @@ export function renderDay(date: ISODate, items: Item[]): string {
     // Empty paragraphs are spacing, not content.
     .filter(({ item }) => item.type !== 'text' || item.text.trim() !== '')
     .map(({ item, depth }) => line(item, depth))
-  return `# ${longDate(date)}\n\n${lines.length ? lines.join('\n') : 'Nothing written on this day yet.'}`
+  return `# ${pageName(date)}\n\n${lines.length ? lines.join('\n') : 'Nothing written on this day yet.'}`
 }
 
 function renderByDay(items: Item[], order: 'asc' | 'desc' = 'asc'): string {
@@ -307,7 +316,7 @@ function renderByDay(items: Item[], order: 'asc' | 'desc' = 'asc'): string {
   for (const item of items) days.set(item.date, [...(days.get(item.date) ?? []), item])
   const dates = [...days.keys()].sort()
   if (order === 'desc') dates.reverse()
-  return dates.map((date) => `## ${longDate(date)}\n\n${days.get(date)!.map((i) => line(i)).join('\n')}`).join('\n\n')
+  return dates.map((date) => `## ${pageName(date)}\n\n${days.get(date)!.map((i) => line(i)).join('\n')}`).join('\n\n')
 }
 
 function plural(n: number, word: string): string {

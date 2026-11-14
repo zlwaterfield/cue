@@ -75,7 +75,7 @@ export const DaySection = memo(function DaySection({
   if (delta === 0) classes.push('is-today')
   if (delta < 0) classes.push('is-past')
 
-  // PROTOTYPE (notes/): scratch and a starred note are pages too, without a date to show.
+  // Scratch and a starred note are pages too, with a name where a day has its date.
   if (isNotePage(date)) {
     const scratch = date === SCRATCH
     const keep = (e: React.MouseEvent): void => e.preventDefault()

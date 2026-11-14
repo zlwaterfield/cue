@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { COMMANDS, shortcutKeys, type CommandGroup } from '@shared/commands'
 import { parseDateInput } from '@shared/dateParse'
-import { isNotePage, notePages, noteTitle, pageLabel } from '../notes/model'
+import { isNotePage, notePages, noteTitle } from '../notes/model'
 import { openNote } from '../notes/actions'
 import { addDays, friendlyDate, namedMoveDays, nextWeekday, relativeLabel, shortDate, startOfWeek } from '@shared/dates'
 import { matchRanges, searchTerms } from '@shared/text'
@@ -149,7 +149,8 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
             <Highlight text={r.text} terms={terms} />
           </span>
         ),
-        hint: isNotePage(r.date) ? pageLabel(r.date) : friendlyDate(r.date, today),
+        // A line in a note says which note.
+        hint: isNotePage(r.date) ? noteTitle(r.date) : friendlyDate(r.date, today),
         run: () => {
           const match = matchRanges(r.text, terms)[0] ?? [0, 0]
           ui.set({ overlay: null })
@@ -259,7 +260,7 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
       else if (/^(move|mv|defer|push)\b/i.test(q)) list.push(move, go)
       else list.push(go, move)
     }
-    // PROTOTYPE (notes/): a note opens by its name, the way "fri" opens Friday. "go to books" works too.
+    // A starred note opens by its name, the way "fri" opens Friday. "go to books" works too.
     const name = q.replace(/^(go to|goto|open)\s+/i, '')
     const named = notePages()
       .slice(1) // scratch has its own command

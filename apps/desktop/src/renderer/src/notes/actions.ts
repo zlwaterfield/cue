@@ -8,7 +8,7 @@ import { itemStore } from '../store/items'
 import { showToast, ui } from '../store/ui'
 import { isNotePage, newNotePage, notePages, notes, noteTitle, SCRATCH } from './model'
 
-/** PROTOTYPE — what the Notes commands do. */
+/** What the Notes commands do on the Mac. */
 
 /** The page the caret is on, else the first one on screen. */
 export function currentPage(): ISODate {

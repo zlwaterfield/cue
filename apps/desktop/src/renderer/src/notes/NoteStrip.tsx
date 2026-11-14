@@ -3,13 +3,13 @@ import { openNote } from './actions'
 import { useNotePages, useNoteTitle } from './model'
 
 /**
- * PROTOTYPE — the notes there are, in a row above the one that's open: scratch first, then
- * the starred notes, newest first. It is to notes what the iPhone's week strip is to days.
+ * The notes there are, in a row above the one that's open: scratch first, then the starred
+ * notes, newest first. It is to notes what the iPhone's week strip is to days.
  */
-export function NoteStrip({ current, className = 'note-strip' }: { current: ISODate; className?: string }) {
+export function NoteStrip({ current }: { current: ISODate }) {
   const pages = useNotePages()
   return (
-    <nav className={className} aria-label="Notes">
+    <nav className="note-strip" aria-label="Notes">
       {pages.map((date) => (
         <NoteTab key={date} date={date} active={date === current} />
       ))}

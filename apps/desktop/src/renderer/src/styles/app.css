@@ -1869,9 +1869,7 @@ kbd.is-text {
   }
 }
 
-/* =====================================================================
-   PROTOTYPE — Notes (src/notes): scratch and the starred notes on one page.
-   ===================================================================== */
+/* ---------------------------------------------------------------- Notes */
 
 /* The notes there are, above the one that's open. */
 .note-strip {
@@ -1882,8 +1880,7 @@ kbd.is-text {
   margin-bottom: -6px;
 }
 
-.note-strip button,
-.phone-notes button {
+.note-strip button {
   border: 0;
   background: none;
   padding: 2px 0;
@@ -1901,8 +1898,7 @@ kbd.is-text {
   color: var(--text);
 }
 
-.note-strip button.is-active,
-.phone-notes button.is-active {
+.note-strip button.is-active {
   color: var(--text);
   font-weight: 600;
 }
@@ -1976,170 +1972,4 @@ kbd.is-text {
   font-size: 12px;
   margin-left: 2px;
   color: var(--text-3);
-}
-
-/* --------------------------------------------- ?phone=1: the iPhone header, sketched */
-.phone-head {
-  flex: none;
-  background: var(--bg);
-  position: relative;
-  z-index: 5;
-}
-
-.phone-status {
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 30px 0 38px;
-  font: 600 15px var(--font);
-}
-
-.phone-island {
-  width: 104px;
-  height: 30px;
-  border-radius: 16px;
-  background: #000;
-}
-
-.phone-battery {
-  width: 25px;
-  height: 12px;
-  border-radius: 4px;
-  background: var(--text);
-  opacity: 0.9;
-}
-
-.phone-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 12px 2px 20px;
-}
-
-.phone-head button {
-  border: 0;
-  background: none;
-  padding: 0;
-}
-
-.phone-month {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font: 650 20px var(--font-display);
-  letter-spacing: -0.02em;
-  color: var(--text);
-}
-
-.phone-month span,
-.phone-month svg {
-  color: var(--text-3);
-}
-
-.phone-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.phone-actions button {
-  width: 36px;
-  height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-2);
-}
-
-.phone-actions button.is-on {
-  color: var(--text);
-}
-
-.phone-week {
-  display: flex;
-  padding: 6px 8px 6px;
-  border-bottom: 1px solid var(--line);
-}
-
-.phone-week button {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-}
-
-.phone-weekday {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-3);
-}
-
-.phone-day {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--text);
-}
-
-.phone-day.is-today {
-  font-weight: 700;
-}
-
-.phone-day.is-selected {
-  background: var(--accent);
-  color: var(--on-accent);
-}
-
-.phone-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-}
-
-.phone-dot.is-marked {
-  background: var(--text-3);
-}
-
-.app.is-phone .column {
-  padding: 4px 20px 45vh calc(20px + var(--marker));
-}
-
-.app.is-phone .row {
-  --row-font: 17px;
-  --row-line: 26px;
-  --row-pad: 5px;
-}
-
-.app.is-phone .note-actions button {
-  opacity: 1;
-  font-size: 14px;
-}
-
-.phone-notes {
-  display: flex;
-  gap: 8px;
-  padding: 10px 20px 12px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  border-bottom: 1px solid var(--line);
-}
-
-.phone-notes button {
-  flex: none;
-  max-width: 170px;
-  font-size: 15px;
-  padding: 6px 13px;
-  border-radius: 17px;
-  color: var(--text-2);
-}
-
-.phone-notes button.is-active {
-  background: var(--accent);
-  color: var(--on-accent);
 }

@@ -135,6 +135,10 @@ export function weekViewDates(today: ISODate, weekStartsOn: 0 | 1): ISODate[] {
 
 /* ------------------------------------------------------------------ Labels */
 
+/** The days set aside for notes (`notes.ts`), which labels name rather than date. */
+const NOTES_FROM: ISODate = '1000-01-01'
+const NOTES_TO: ISODate = '1099-12-31'
+
 /** "Today", "Tomorrow", "Yesterday", or the weekday name. */
 export function relativeDayName(date: ISODate, today: ISODate): string {
   const delta = diffDays(today, date)
@@ -187,8 +191,12 @@ export function relativeLabel(date: ISODate, today: ISODate): string {
   return -d < 14 ? `${-d} days ago` : -d < 60 ? `${Math.round(-d / 7)} weeks ago` : `${Math.round(-d / 30)} months ago`
 }
 
-/** Compact label for lists: "Today", "Tomorrow", "Yesterday", "Fri, Oct 23", "Mar 3, 2025". */
+/**
+ * Compact label for lists: "Today", "Tomorrow", "Yesterday", "Fri, Oct 23", "Mar 3, 2025".
+ * A note's page (`notes.ts`) has no date to show: "Scratch", or "Notes".
+ */
 export function friendlyDate(date: ISODate, today: ISODate): string {
+  if (date >= NOTES_FROM && date <= NOTES_TO) return date === NOTES_FROM ? 'Scratch' : 'Notes'
   const delta = diffDays(today, date)
   if (delta === 0) return 'Today'
   if (delta === 1) return 'Tomorrow'

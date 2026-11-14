@@ -50,7 +50,7 @@ export function Header() {
           <button role="tab" aria-selected={view.mode === 'week'} className={view.mode === 'week' ? 'is-active' : ''} onMouseDown={keep} onClick={() => controller.execute('go.week')} title="This week  ⌘3">
             Week
           </button>
-          {/* PROTOTYPE (notes/): scratch and the starred notes, the third place beside Today and Week. */}
+          {/* Scratch and the starred notes: the third place, beside Today and Week. */}
           <button role="tab" aria-selected={view.mode === 'notes'} className={view.mode === 'notes' ? 'is-active' : ''} onMouseDown={keep} onClick={() => controller.execute('go.notes')} title="Notes  ⌘4">
             Notes
           </button>
