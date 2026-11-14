@@ -80,6 +80,16 @@ after the slot get fresh keys, so the line lands exactly where asked, and the tw
 before it keep theirs. Only those rewritten twins could lose an unsynced edit another
 device makes to them at the same moment.
 
+**Notes are pages without a day** (`core/notes.ts`). Scratch and the few starred notes use
+the same items, editor, undo, search, sync and export as a day does. Since every item is
+filed by date, a note's page borrows a day nobody writes on: scratch is `1000-01-01`, and
+each starred note is a day picked at random from `1000-01-02` to `1099-12-31`, so two devices
+starring at the same moment don't land on one page. Nothing in storage, the sync protocol or
+the server had to change. A note has no fields of its own: its name is its first line, and
+it exists while it has lines. Wherever a date would be shown for one (search, links, export,
+the assistant tools), its name or "Notes" is shown instead. This suits a handful of notes;
+a notebook would want pages with ids of their own.
+
 The outline for a day is derived, never stored (`core/outline.ts`). Derivation is
 total: orphaned items render at the top level and parent cycles are broken.
 

@@ -38,7 +38,7 @@ OAuth server.** There's no new table, service key or server to run.
 | --- | --- |
 | `get_day(date)` | One day's page, in order, nested, with ids |
 | `find_todos(from, to?, include_done?)` | To-dos across up to a year of days, open ones unless asked |
-| `search(query, limit?)` | Lines containing every word, newest days first |
+| `search(query, limit?)` | Lines containing every word, newest days first. Lines in scratch or a starred note come last, under a heading that says so rather than a date |
 | `add_lines(date, markdown, after_id?)` | Adds Markdown lines at the end of a day, or after a line |
 | `update_lines(ids, done?, type?, text?, date?)` | Checks off or reopens, changes type, rewrites one line's text, or moves lines (with what's nested under them) to the end of another day |
 

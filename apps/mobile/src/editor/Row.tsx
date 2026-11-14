@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { diffDays } from '@shared/dates'
 import { soleLink } from '@shared/links'
+import { isNotePage, SCRATCH } from '@shared/notes'
 import type { ISODate } from '@shared/types'
 import { focusAt } from '../../modules/cue-native'
 import { useStore } from '../core/store'
@@ -25,6 +26,7 @@ const LIFT_DELAY = 340
 const HIDDEN = -10_000
 
 function placeholderFor(date: ISODate, today: ISODate): string {
+  if (isNotePage(date)) return date === SCRATCH ? 'Start typing…' : 'Add a line'
   const delta = diffDays(today, date)
   if (delta === 0) return 'Start typing…'
   if (delta > 0) return 'Nothing planned'
@@ -106,7 +108,20 @@ const dropped = (date: ISODate, id: string, index: number, depth: number): void 
  * A line that is only a link shows its page instead (`LinkLine`) while it isn't being
  * edited. Tapping the page (or its icon) opens it; tapping the space beside it edits the link.
  */
-export const Row = memo(function Row({ id, date, depth, empty }: { id: string; date: ISODate; depth: number; empty?: boolean }) {
+export const Row = memo(function Row({
+  id,
+  date,
+  depth,
+  empty,
+  title
+}: {
+  id: string
+  date: ISODate
+  depth: number
+  empty?: boolean
+  /** A starred note's first line, which is its name: set as the page's title. */
+  title?: boolean
+}) {
   const item = useItem(id)
   const c = useColors()
   const focused = useStore(ui, (s) => s.focusedId === id)
@@ -371,7 +386,7 @@ export const Row = memo(function Row({ id, date, depth, empty }: { id: string; d
               placeholderTextColor={c.text3}
               selectionColor={c.accent}
               autoCapitalize="sentences"
-              style={[styles.text, { color: done ? c.text3 : c.text }, done && styles.done, remeasure && styles.remeasure, link && styles.behind]}
+              style={[styles.text, title && item?.type === 'text' && styles.title, { color: done ? c.text3 : c.text }, done && styles.done, remeasure && styles.remeasure, link && styles.behind]}
               nativeID={`line-${id}`}
               // For end-to-end tests: depth, type and text, e.g. "1/todo-done:Book flights".
               testID={ghost ? `new-line-${date}` : `${depth}/${item.type}${done ? '-done' : ''}:${item.text}`}
@@ -440,6 +455,12 @@ const styles = StyleSheet.create({
     paddingLeft: 0,
     paddingRight: 0,
     margin: 0
+  },
+  // The size of a day's title (DayPage), on a line that can still be edited.
+  title: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '700'
   },
   done: {
     textDecorationLine: 'line-through'

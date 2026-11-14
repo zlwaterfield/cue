@@ -18,6 +18,7 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets'
 import * as Haptics from 'expo-haptics'
 import { addDays, daySubtitle, relativeDayName } from '@shared/dates'
+import { isNotePage, SCRATCH } from '@shared/notes'
 import type { ISODate } from '@shared/types'
 import { itemStore } from '../core/app'
 import { useStore } from '../core/store'
@@ -47,7 +48,9 @@ let turning = 0
 const turnPage = (date: ISODate, days: number, shift: SharedValue<number>): void => {
   void Haptics.selectionAsync()
   turning = days
-  editor.goTo(addDays(date, days)).catch(() => {
+  // A note turns to the note before or after it; at either end the page springs back.
+  const turned = isNotePage(date) ? editor.stepNote(days < 0 ? -1 : 1) : editor.goTo(addDays(date, days))
+  turned.catch(() => {
     turning = 0
     shift.value = withSpring(0, SWIPE_HOME)
   })
@@ -94,7 +97,7 @@ function useStableOrder(ids: string[]): string[] {
   }, [ids])
 }
 
-/** One day: its title and its lines, as a scrolling page. */
+/** One day, or one note: its title and its lines, as a scrolling page. */
 export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
   const c = useColors()
   const rows = useOutline(date)
@@ -208,9 +211,13 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
 
   /* ---------------------------------------------------------- Rendering */
 
-  const title = relativeDayName(date, today)
-  const subtitle = daySubtitle(date, today)
+  const note = isNotePage(date)
+  const scratch = date === SCRATCH
   const empty = rows.length === 0
+  // Scratch is titled like a day. A starred note's first line is its name, so that line
+  // is the title (Row) and the head above it only says what kind of page this is.
+  const title = scratch ? 'Scratch' : note ? null : relativeDayName(date, today)
+  const subtitle = scratch ? (empty ? 'Type or paste anything. Star it to keep it.' : null) : note ? null : daySubtitle(date, today)
   // An empty day whose notes are still on their way can't be written in yet, so nothing
   // typed now lands beside the notes about to arrive.
   const waiting = empty && arriving
@@ -230,13 +237,30 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
       contentInsetAdjustmentBehavior="never"
     >
       <Turn date={date} shift={shift}>
-        <View style={styles.head}>
-          <Text style={[styles.title, { color: c.text }]} accessibilityRole="header" testID="day-title" maxFontSizeMultiplier={1.4}>
-            {title}
-          </Text>
-          <Text style={[styles.subtitle, { color: c.text2 }]} maxFontSizeMultiplier={2}>
-            {subtitle}
-          </Text>
+        <View style={[styles.head, note && !scratch && styles.starredHead]}>
+          <View style={styles.titleRow}>
+            {title ? (
+              <Text style={[styles.title, { color: c.text }]} accessibilityRole="header" testID="day-title" maxFontSizeMultiplier={1.4}>
+                {title}
+              </Text>
+            ) : (
+              <Text style={[styles.kind, { color: c.text2 }]} maxFontSizeMultiplier={1.6}>
+                ★ Starred
+              </Text>
+            )}
+            {note && !empty && (
+              <View style={styles.actions}>
+                <NoteAction label="Share" onPress={() => editor.sharePage(date)} />
+                <NoteAction label={scratch ? 'Clear' : 'Delete'} onPress={() => editor.discardNote(date)} />
+                {scratch && <NoteAction label="Star" onPress={() => void editor.starScratch()} />}
+              </View>
+            )}
+          </View>
+          {subtitle ? (
+            <Text style={[styles.subtitle, { color: c.text2 }]} maxFontSizeMultiplier={2}>
+              {subtitle}
+            </Text>
+          ) : null}
         </View>
       </Turn>
       {date === today && <LooseEnds today={today} />}
@@ -250,7 +274,7 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
         {waiting ? (
           <Text style={[styles.waiting, { color: c.text3 }]}>Getting your notes…</Text>
         ) : (
-          loaded && order.map((id) => <Row key={id} id={id} date={date} depth={depths.get(id) ?? 0} empty={empty} />)
+          loaded && order.map((id) => <Row key={id} id={id} date={date} depth={depths.get(id) ?? 0} empty={empty} title={note && !scratch && id === rows[0]?.id} />)
         )}
       </Animated.View>
       {/* Tapping the open space below the last line starts a new one. */}
@@ -266,6 +290,18 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
     </View>
   )
 })
+
+/** What can be done with a whole note, in words beside its title. */
+function NoteAction({ label, onPress }: { label: string; onPress: () => void }) {
+  const c = useColors()
+  return (
+    <Pressable onPress={onPress} hitSlop={{ top: 12, bottom: 12, left: 6, right: 6 }} accessibilityRole="button" testID={`note-${label.toLowerCase()}`}>
+      <Text style={[styles.action, { color: c.text2 }]} maxFontSizeMultiplier={1.4}>
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
 
 const styles = StyleSheet.create({
   frame: {
@@ -284,9 +320,30 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 10
   },
+  starredHead: {
+    paddingBottom: 2
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12
+  },
   title: {
+    flexShrink: 1,
     fontSize: 34,
     fontWeight: '700'
+  },
+  kind: {
+    fontSize: 14,
+    fontWeight: '500'
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 18
+  },
+  action: {
+    fontSize: 15
   },
   subtitle: {
     fontSize: 15,

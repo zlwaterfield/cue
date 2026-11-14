@@ -40,7 +40,14 @@ lines to act on them together.
   <img src="docs/images/move-to-date.png" alt="Move to, opened with ⇧⌘M: the to-do being moved at the top, &quot;fri&quot; read as Fri, Nov 13 (tomorrow), and a calendar alongside" width="80%">
 </p>
 
-**Finding.** ⌘K searches every command and understands dates ("move to fri", "go to oct 31").
+**Notes.** For what doesn't belong to a day: one scratch page to paste and edit something you'll
+probably throw away, and a few notes you star to keep and add to over time. They sit beside
+Today and Week (⌘4), one page at a time, and are pages like any day, with the same lines and
+shortcuts. ⌘E opens scratch from anywhere and takes you back to the line you left; ⇧⌘S stars
+it, and its first line becomes its name. This is for a handful of notes, not a notebook.
+
+**Finding.** ⌘K searches every command, understands dates ("move to fri", "go to oct 31") and
+opens a starred note by its name.
 ⌘F searches every day you've written, ignoring case and accents. ⌘L lists every link you've
 written or shared, newest first, and finds one by what its page says (its title, description and
 the start of its text) as well as by the words around it.
@@ -66,7 +73,8 @@ and [docs/MCP.md](docs/MCP.md).
 **iPhone.** The same core as the Mac, built for touch: tap a bullet to make it a to-do, tap a
 box to check it, swipe to complete or send to tomorrow, and long-press to drag. Like the
 Mac, it needs no account; turn on sync to share notes with your Mac. Share a link from any app to add it to today, and a line
-that's only a link shows its page. The link button lists every link, like ⌘L on the Mac. See [apps/mobile/README.md](apps/mobile/README.md).
+that's only a link shows its page. The link button lists every link, like ⌘L on the Mac, and
+the notes button opens scratch and your starred notes. See [apps/mobile/README.md](apps/mobile/README.md).
 
 **Feel.** One calm column in monochrome graphite, system typography, and light and dark
 appearance. The caret is the brand: it holds still while you type and rests after ten idle
@@ -79,8 +87,12 @@ seconds.
 | Command palette | ⌘K |
 | Search | ⌘F |
 | Links | ⌘L |
-| Today · Tomorrow · This week | ⌘1 · ⌘2 · ⌘3 |
-| Previous / next day | ⌘[ · ⌘] |
+| Today · Tomorrow · This week · Notes | ⌘1 · ⌘2 · ⌘3 · ⌘4 |
+| Previous / next day (or note) | ⌘[ · ⌘] |
+| Scratch, and back | ⌘E |
+| Star scratch | ⇧⌘S |
+| Clear scratch, or delete the open note | ⌥⌘⌫ |
+| Copy the whole page | ⇧⌘C |
 | Go to date | ⌘J |
 | New item | ⌘N, or just start typing |
 | Complete / reopen | ⌘↩ |
@@ -167,7 +179,8 @@ server: your own Supabase project, set up as in [docs/SYNC.md](docs/SYNC.md).
 - With sync on, your notes are also stored on the sync server (Cue's, or your own if you
   build it yourself). Turning sync off keeps every note on your Mac, and you can delete the
   account from Settings.
-- File ▸ Export as Markdown writes one file per day; Export JSON Backup writes everything.
+- File ▸ Export as Markdown writes one file per day, and one per note in a `Notes` folder;
+  Export JSON Backup writes everything.
   On the iPhone, Settings → Your notes shares the same two: the Markdown as a zip, the
   backup as the file the Mac imports.
 - The hosted service's [Privacy Policy](https://www.usecue.today/privacy) and

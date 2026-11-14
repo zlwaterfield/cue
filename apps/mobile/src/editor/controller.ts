@@ -1,4 +1,4 @@
-import { Keyboard, type TextInputInstance } from 'react-native'
+import { Keyboard, Share, type TextInputInstance } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { addDays, friendlyDate, todayISO } from '@shared/dates'
 import * as ops from '@shared/editor/ops'
@@ -9,9 +9,11 @@ import { revert, UndoManager, type SelectionSnapshot, type UndoEntry } from '@sh
 import { uuidv7 } from '@shared/ids'
 import { soleLink } from '@shared/links'
 import { movedToTodayLabel } from '@shared/looseEnds'
-import { parseMarkdownLines } from '@shared/markdown'
+import { linesToMarkdown, parseMarkdownLines } from '@shared/markdown'
+import { isNotePage, neighborNote, SCRATCH } from '@shared/notes'
 import type { ISODate, Item, ItemType } from '@shared/types'
 import { itemStore, sync } from '../core/app'
+import { newNotePage, notePages, notes, noteTitle, refreshNotes } from '../core/notes'
 import { dismissToast, showToast, ui } from '../core/ui'
 import { DayLayout } from './layout'
 
@@ -139,7 +141,71 @@ export class Editor {
     await itemStore.ensureLoaded([date])
     if (ui.get().focusedId) Keyboard.dismiss()
     ui.set({ date })
-    void itemStore.ensureLoaded([addDays(date, -1), addDays(date, 1)])
+    if (isNotePage(date)) notes.set({ last: date })
+    else void itemStore.ensureLoaded([addDays(date, -1), addDays(date, 1)])
+  }
+
+  /* ============================================================= Notes */
+
+  /**
+   * The notes button: to the note last open (scratch, the first time), and from a note back
+   * to the day it was pressed on.
+   */
+  async toggleNotes(): Promise<void> {
+    const { date, today } = ui.get()
+    if (isNotePage(date)) return this.goTo(notes.get().back ?? today)
+    refreshNotes()
+    await itemStore.ensureLoaded([SCRATCH])
+    const { last } = notes.get()
+    notes.set({ back: date })
+    // The note last open may have been deleted since, here or on the Mac.
+    await this.goTo(notePages().includes(last) ? last : SCRATCH)
+  }
+
+  /** The note before or after the one open, as a swiped page turns to the next day. */
+  stepNote(direction: -1 | 1): Promise<void> {
+    const next = neighborNote(notePages(), ui.get().date, direction)
+    return next ? this.goTo(next) : Promise.reject(new Error('No note that way'))
+  }
+
+  /** Star: scratch becomes a note, named by its first line, and scratch is empty again. */
+  async starScratch(): Promise<void> {
+    const ids = itemStore.outline(SCRATCH).map((row) => row.id)
+    if (!ids.length) return
+    const before = this.snapshot()
+    const to = await newNotePage()
+    if (!this.commit('Star', (tx) => void ops.moveToDate(tx, ids, to), { before })) return
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    await this.goTo(to)
+    this.announce(`Starred “${noteTitle(to)}”`)
+  }
+
+  /** Clear scratch, or delete a starred note. Undo brings either back. */
+  discardNote(date: ISODate): void {
+    const ids = itemStore.outline(date).map((row) => row.id)
+    if (!isNotePage(date) || !ids.length) return
+    const title = noteTitle(date)
+    if (ui.get().focusedId) Keyboard.dismiss()
+    this.commit(date === SCRATCH ? 'Clear scratch' : 'Delete note', (tx) => void ops.remove(tx, ids), { before: { kind: 'none' } })
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+    // With the note gone, scratch is the page left to show.
+    if (date !== SCRATCH) void this.goTo(SCRATCH)
+    this.announce(date === SCRATCH ? 'Scratch cleared' : `Deleted “${title}”`)
+  }
+
+  /** A whole page as Markdown, to the share sheet (which has Copy). */
+  sharePage(date: ISODate): void {
+    const lines = itemStore.outline(date).map((row) => {
+      const { type, done, text } = itemStore.get(row.id)!
+      return { depth: row.depth, type, done, text }
+    })
+    if (lines.length) void Share.share({ message: linesToMarkdown(lines, { document: true }) })
+  }
+
+  /** After an undo or redo: a starred note with nothing left on it isn't a page to stay on. */
+  private leaveEmptyNote(): void {
+    const { date } = ui.get()
+    if (isNotePage(date) && date !== SCRATCH && !itemStore.outline(date).length) void this.goTo(SCRATCH)
   }
 
   /** Open a line's day and point the line out (from search). */
@@ -318,6 +384,7 @@ export class Editor {
     itemStore.commit(records)
     // Lands only on a line that's still there.
     this.restore(direction === 'undo' ? entry.selectionBefore : entry.selectionAfter)
+    this.leaveEmptyNote()
   }
 
   /** The toast's Undo: only undoes the action it announced. */

@@ -110,13 +110,19 @@ export function buildMenu(options: { isDev: boolean; syncAvailable: boolean; upd
         command('go.today', 'Today'),
         command('go.tomorrow', 'Tomorrow'),
         command('go.week', 'This Week'),
+        command('go.notes', 'Notes'),
+        command('notes.scratch', 'Scratch'),
         command('links.open', 'Links…'),
         command('looseEnds.toggle', 'Earlier Open To-dos'),
         command('looseEnds.moveAll', 'Move Earlier Open To-dos to Today'),
         separator,
         command('go.prevDay', 'Previous Day'),
         command('go.nextDay', 'Next Day'),
-        command('go.date', 'Go to Date…')
+        command('go.date', 'Go to Date…'),
+        separator,
+        command('notes.star', 'Star Scratch'),
+        command('notes.discard', 'Clear Scratch or Delete Note'),
+        command('notes.copy', 'Copy Page')
       ]
     },
     {
