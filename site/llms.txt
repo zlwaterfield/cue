@@ -24,13 +24,16 @@ driver. It is in beta and deliberately small.
   tomorrow, and ⌘K is a command palette that understands dates like “move to fri”.
 - Touch-first on the iPhone: tap a bullet to make it a to-do, swipe to complete or send to
   tomorrow, long-press to drag.
+- Beside the days: one scratch page for something you’ll paste, edit and probably throw
+  away, and a few starred notes you keep and add to. That is the whole of it.
 - Export from the Mac at any time: Markdown, one file per day, or all notes as JSON.
 
 ## What it deliberately isn’t
 
 Cue has no projects, tags, priorities, folders, reminders, recurring tasks, attachments,
-collaboration, dashboards or AI writing your notes. Days are the only structure. If you want
-a project manager or a second brain, Cue is the wrong tool and says so.
+collaboration, dashboards or AI writing your notes. Days are the structure; the scratch page
+and the few starred notes sit beside them and are not a notebook. If you want a project
+manager, a note-taking app or a second brain, Cue is the wrong tool and says so.
 
 ## Assistants, over MCP
 

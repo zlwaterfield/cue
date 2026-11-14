@@ -8,11 +8,13 @@ import { SymbolView, type SFSymbol } from 'expo-symbols'
 import * as Haptics from 'expo-haptics'
 import { addDays, dateRange, longDate, MONTHS, parts, startOfWeek, weekday, WEEKDAYS } from '@shared/dates'
 import { indicator, INDICATOR_DELAY, INDICATOR_FADE } from '@shared/sync/status'
+import { isNotePage } from '@shared/notes'
 import type { ISODate } from '@shared/types'
 import { itemStore, sync } from '../core/app'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
+import { NoteStrip } from './NoteStrip'
 import { metrics, useColors } from './theme'
 
 const DAY_MAX_FONT_SCALE = 1.3
@@ -35,34 +37,44 @@ const shiftWeek = (weeks: number): void => {
 }
 
 /**
- * The top of the screen: the month (tap for a calendar), links, search and settings, and a week
- * strip. Tap a day to open it; swipe the strip for the previous or next week. Sync stays
+ * The top of the screen: the month (tap for a calendar), notes, links, search and settings, and
+ * a week strip. On a note the bar says Notes, and the strip is the notes there are. Tap a day to open it; swipe the strip for the previous or next week. Sync stays
  * out of sight unless it needs attention, as on the Mac.
  */
 export function Header() {
   const c = useColors()
   const date = useStore(ui, (s) => s.date)
   const today = useStore(ui, (s) => s.today)
-  const { year, month } = parts(date)
+  const note = isNotePage(date)
+  const { year, month } = parts(note ? today : date)
   const isToday = date === today
+  // Beside the Today pill there's less room: this year's months go without their year.
+  const showYear = isToday || year !== parts(today).year
 
   return (
     <View style={[styles.header, { backgroundColor: c.bg }]}>
       <View style={styles.bar}>
-        <Pressable
-          onPress={() => router.push('/calendar')}
-          accessibilityRole="button"
-          accessibilityLabel={`${MONTHS[month - 1]} ${year}`}
-          accessibilityHint="Opens the calendar"
-          style={styles.month}
-          hitSlop={8}
-        >
-          {/* At the largest text sizes the month gives way, so links, search and settings stay on screen. */}
-          <Text style={[styles.monthText, { color: c.text }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
-            {MONTHS[month - 1]} <Text style={{ color: c.text3 }}>{year}</Text>
+        {note ? (
+          <Text style={[styles.month, styles.monthText, { color: c.text }]} numberOfLines={1} maxFontSizeMultiplier={1.4} accessibilityRole="header">
+            Notes
           </Text>
-          <SymbolView name="chevron.down" size={12} weight="semibold" tintColor={c.text3} />
-        </Pressable>
+        ) : (
+          <Pressable
+            onPress={() => router.push('/calendar')}
+            accessibilityRole="button"
+            accessibilityLabel={`${MONTHS[month - 1]} ${year}`}
+            accessibilityHint="Opens the calendar"
+            style={styles.month}
+            hitSlop={8}
+          >
+            {/* At the largest text sizes the month gives way, so the buttons stay on screen. */}
+            <Text style={[styles.monthText, { color: c.text }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+              {MONTHS[month - 1]}
+              {showYear && <Text style={{ color: c.text3 }}> {year}</Text>}
+            </Text>
+            <SymbolView name="chevron.down" size={12} weight="semibold" tintColor={c.text3} />
+          </Pressable>
+        )}
         <View style={styles.actions}>
           <SyncIndicator compact={!isToday} />
           {!isToday && (
@@ -77,21 +89,30 @@ export function Header() {
               </Text>
             </Pressable>
           )}
+          <IconButton icon={note ? 'note.text' : 'note'} label="Notes" active={note} onPress={() => void editor.toggleNotes()} />
           <IconButton icon="link" label="Links" onPress={() => router.push('/links')} />
           <IconButton icon="magnifyingglass" label="Search" onPress={() => router.push('/search')} />
           <IconButton icon="person.crop.circle" label="Settings" onPress={() => router.push('/settings')} />
         </View>
       </View>
-      <WeekStrip date={date} today={today} />
+      {note ? <NoteStrip current={date} /> : <WeekStrip date={date} today={today} />}
     </View>
   )
 }
 
-function IconButton({ icon, label, onPress }: { icon: SFSymbol; label: string; onPress: () => void }) {
+function IconButton({ icon, label, active, onPress }: { icon: SFSymbol; label: string; active?: boolean; onPress: () => void }) {
   const c = useColors()
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} hitSlop={8} style={styles.icon}>
-      <SymbolView name={icon} size={ICON_SIZE} tintColor={c.text2} />
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={active === undefined ? undefined : { selected: active }}
+      hitSlop={8}
+      style={styles.icon}
+      testID={`header-${label.toLowerCase()}`}
+    >
+      <SymbolView name={icon} size={ICON_SIZE} tintColor={active ? c.text : c.text2} />
     </Pressable>
   )
 }

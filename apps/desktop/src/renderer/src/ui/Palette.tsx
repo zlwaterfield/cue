@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { COMMANDS, shortcutKeys, type CommandGroup } from '@shared/commands'
 import { parseDateInput } from '@shared/dateParse'
+import { isNotePage, notePages, noteTitle } from '../notes/model'
+import { openNote } from '../notes/actions'
 import { addDays, friendlyDate, namedMoveDays, nextWeekday, relativeLabel, shortDate, startOfWeek } from '@shared/dates'
 import { matchRanges, searchTerms } from '@shared/text'
 import type { ISODate, ItemType, SearchResult } from '@shared/types'
@@ -33,7 +35,7 @@ interface Entry {
 
 type PaletteOverlay = Extract<NonNullable<Overlay>, { kind: 'palette' }>
 
-const GROUP_ORDER: CommandGroup[] = ['Item', 'Move', 'Navigate', 'General', 'Edit', 'Data']
+const GROUP_ORDER: CommandGroup[] = ['Item', 'Move', 'Navigate', 'Notes', 'General', 'Edit', 'Data']
 
 export function Palette() {
   const overlay = useStore(ui, (s) => s.overlay)
@@ -147,7 +149,8 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
             <Highlight text={r.text} terms={terms} />
           </span>
         ),
-        hint: friendlyDate(r.date, today),
+        // A line in a note says which note.
+        hint: isNotePage(r.date) ? noteTitle(r.date) : friendlyDate(r.date, today),
         run: () => {
           const match = matchRanges(r.text, terms)[0] ?? [0, 0]
           ui.set({ overlay: null })
@@ -193,7 +196,11 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
     const syncAvailable = syncState.get().available
     const updatesAvailable = updateState.get().available
     const visible = COMMANDS.filter(
-      (c) => !c.paletteHidden && (!c.needsItem || hasTarget) && (!c.needsSync || syncAvailable) && (!c.needsUpdates || updatesAvailable)
+      (c) =>
+        !c.paletteHidden &&
+        (!c.needsItem || hasTarget) &&
+        (!c.needsSync || syncAvailable) &&
+        (!c.needsUpdates || updatesAvailable)
     )
     const tomorrow = addDays(today, 1)
     const hintFor = (id: string): string | undefined => {
@@ -252,6 +259,26 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
       if (!hasTarget) list.push(go)
       else if (/^(move|mv|defer|push)\b/i.test(q)) list.push(move, go)
       else list.push(go, move)
+    }
+    // A starred note opens by its name, the way "fri" opens Friday. "go to books" works too.
+    const name = q.replace(/^(go to|goto|open)\s+/i, '')
+    const named = notePages()
+      .slice(1) // scratch has its own command
+      .map((page) => ({ page, score: fuzzyScore(name, noteTitle(page)) }))
+      .filter((n): n is { page: ISODate; score: number } => n.score !== null)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+    for (const { page } of named) {
+      list.push({
+        key: `note:${page}`,
+        icon: icons.text,
+        title: `Go to ${noteTitle(page)}`,
+        hint: 'Starred note',
+        run: () => {
+          ui.set({ overlay: null })
+          openNote(page)
+        }
+      })
     }
     list.push(...scored)
     list.push({

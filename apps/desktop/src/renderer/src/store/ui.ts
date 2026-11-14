@@ -36,7 +36,8 @@ export function useStore<T, S>(store: Store<T>, selector: (state: T) => S): S {
   return useSyncExternalStore(store.subscribe, () => selector(store.get()))
 }
 
-export type View = { mode: 'week' } | { mode: 'day'; date: ISODate }
+/** `notes` is scratch or one starred note, a page shown like a day; `date` is that page (`core/notes.ts`). */
+export type View = { mode: 'week' } | { mode: 'day'; date: ISODate } | { mode: 'notes'; date: ISODate }
 
 export type Selection =
   | { kind: 'none' }

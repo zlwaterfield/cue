@@ -1341,7 +1341,7 @@ kbd.is-text {
 }
 
 .sheet.is-wide {
-  width: min(780px, calc(100vw - 48px));
+  width: min(860px, calc(100vw - 48px));
 }
 
 .sheet.is-bare {
@@ -1371,9 +1371,16 @@ kbd.is-text {
   overflow-y: auto;
 }
 
+/* Three columns at the window's default width, so every shortcut shows without scrolling. */
 .shortcut-columns {
-  columns: 2;
-  column-gap: 36px;
+  columns: 3;
+  column-gap: 30px;
+}
+
+@media (max-width: 800px) {
+  .shortcut-columns {
+    columns: 2;
+  }
 }
 
 .shortcut-group {
@@ -1867,4 +1874,115 @@ kbd.is-text {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ---------------------------------------------------------------- Notes */
+
+/* The notes there are, above the one that's open. */
+.note-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+  padding: 14px 0 0;
+  margin-bottom: -6px;
+}
+
+.note-strip button {
+  border: 0;
+  background: none;
+  padding: 2px 0;
+  max-width: 220px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 120ms ease;
+}
+
+.note-strip button:hover {
+  color: var(--text);
+}
+
+.note-strip .note-new {
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+}
+
+.note-strip button.is-active {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.day.is-scratch .day-sub {
+  font-size: 14px;
+}
+
+.note-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+  align-self: center;
+}
+
+.note-actions button {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 12.5px;
+  color: var(--text-2);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.day.is-note:hover .note-actions button,
+.day.is-note:focus-within .note-actions button,
+.note-actions button:focus-visible {
+  opacity: 1;
+}
+
+.note-actions button:hover {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+
+/* A starred note is named by its first line, so that line is set as its heading, with the
+   star hanging in the margin where a bullet would. */
+.day.is-starred .day-head {
+  position: relative;
+  min-height: 0;
+  height: 0;
+  margin: 0;
+}
+
+.day.is-starred .note-actions {
+  position: absolute;
+  right: 0;
+  top: 12px;
+  z-index: 1;
+}
+
+.day.is-starred .rows > .row:first-child {
+  --row-font: 27px;
+  --row-line: 36px;
+  --row-pad: 2px;
+  margin-bottom: 8px;
+}
+
+.day.is-starred .rows > .row:first-child .text {
+  font-family: var(--font-display);
+  font-weight: 650;
+  letter-spacing: -0.022em;
+  padding-right: 110px;
+}
+
+.day.is-starred .rows > .row.is-text:first-child .marker::before {
+  content: '★';
+  font-size: 12px;
+  margin-left: 2px;
+  color: var(--text-3);
 }

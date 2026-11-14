@@ -1,0 +1,56 @@
+# Notes on the phone: the notes button opens scratch, the plus starts a note named by its
+# first line, the strip switches between notes, and Delete can be undone.
+appId: app.cue
+name: Notes
+---
+- runFlow: subflows/launch.yaml
+
+# The notes button, beside links: scratch, with the notes there are where the week was.
+- tapOn:
+    id: header-notes
+- assertVisible:
+    id: "note-Scratch"
+- assertVisible: "Type or paste anything. It stays until you clear it."
+
+# The plus starts a note, keyboard up on the line that names it.
+- tapOn:
+    id: note-new
+- extendedWaitUntil:
+    visible:
+      id: tool-hide
+    timeout: 5000
+- inputText: "Books to read"
+- pressKey: Enter
+- inputText: "[] Middlemarch"
+- tapOn:
+    id: tool-hide
+- assertVisible:
+    id: "note-Books to read"
+- assertVisible:
+    id: "0/text:Books to read"
+- assertVisible:
+    id: "0/todo:Middlemarch"
+
+# Scratch is its own page, and the note is one tap away.
+- tapOn:
+    id: "note-Scratch"
+- assertVisible: "Type or paste anything. It stays until you clear it."
+- tapOn:
+    id: "note-Books to read"
+- assertVisible:
+    id: "0/todo:Middlemarch"
+
+# Deleting a note leaves scratch; Undo brings it back.
+- tapOn:
+    id: note-delete
+- assertNotVisible:
+    id: "note-Books to read"
+- tapOn: "Undo"
+- assertVisible:
+    id: "note-Books to read"
+
+# The Today pill leaves notes for the day.
+- tapOn: "Today"
+- assertVisible:
+    id: "day-title"
+    text: "Today"

@@ -8,7 +8,7 @@
  * followed by a key (`K`, `Enter`, `ArrowUp`, `[`, …).
  */
 
-export type CommandGroup = 'General' | 'Navigate' | 'Edit' | 'Item' | 'Move' | 'Data'
+export type CommandGroup = 'General' | 'Navigate' | 'Notes' | 'Edit' | 'Item' | 'Move' | 'Data'
 
 export interface CommandMeta {
   id: string
@@ -42,6 +42,12 @@ export const COMMANDS: CommandMeta[] = [
   { id: 'go.nextDay', title: 'Next day', group: 'Navigate', shortcut: 'Mod+]', keywords: 'forward' },
   { id: 'go.date', title: 'Go to date…', group: 'Navigate', shortcut: 'Mod+J', keywords: 'jump calendar pick' },
   { id: 'links.open', title: 'Links', group: 'Navigate', shortcut: 'Mod+L', keywords: 'urls pages shared saved bookmarks read later' },
+  // Notes: scratch, and the few pages starred to keep (notes.ts).
+  { id: 'go.notes', title: 'Open notes', group: 'Notes', shortcut: 'Mod+4', keywords: 'starred scratch pages kept pinned' },
+  { id: 'notes.scratch', title: 'Scratch', group: 'Notes', shortcut: 'Mod+E', keywords: 'note pad quick blob draft misc' },
+  { id: 'notes.new', title: 'New note', group: 'Notes', shortcut: 'Mod+Shift+N', keywords: 'create add star starred keep pin favorite page' },
+  { id: 'notes.discard', title: 'Clear or delete note', group: 'Notes', shortcut: 'Mod+Alt+Backspace', keywords: 'scratch discard empty throw away remove unstar' },
+  { id: 'notes.copy', title: 'Copy page', group: 'Notes', shortcut: 'Mod+Shift+C', keywords: 'copy all whole day note markdown clipboard' },
   { id: 'looseEnds.toggle', title: 'Show earlier open to-dos', group: 'Navigate', keywords: 'loose ends overdue unfinished leftover carry over' },
 
   { id: 'edit.undo', title: 'Undo', group: 'Edit', shortcut: 'Mod+Z' },

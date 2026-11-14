@@ -81,7 +81,7 @@ const MARKDOWN: Array<[string, string]> = [
 export function ShortcutsSheet() {
   const open = useStore(ui, (s) => s.overlay?.kind === 'shortcuts')
   if (!open) return null
-  const groups = ['General', 'Navigate', 'Item', 'Move', 'Edit'] as const
+  const groups = ['General', 'Navigate', 'Notes', 'Item', 'Move', 'Edit'] as const
   return (
     <Sheet title="Keyboard shortcuts" wide>
       <div className="shortcut-columns">
