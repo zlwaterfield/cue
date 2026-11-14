@@ -36,7 +36,8 @@ export function useStore<T, S>(store: Store<T>, selector: (state: T) => S): S {
   return useSyncExternalStore(store.subscribe, () => selector(store.get()))
 }
 
-export type View = { mode: 'week' } | { mode: 'day'; date: ISODate }
+/** `notes` (PROTOTYPE, notes/) is scratch and the starred notes on one page. */
+export type View = { mode: 'week' } | { mode: 'day'; date: ISODate } | { mode: 'notes' }
 
 export type Selection =
   | { kind: 'none' }
@@ -59,9 +60,6 @@ export type Overlay =
   | { kind: 'settings'; category?: SettingsCategory }
   | { kind: 'about' }
   | { kind: 'links' }
-  /** PROTOTYPE (notes/): the list of scratch and starred notes, and the plain-text pad. */
-  | { kind: 'notes' }
-  | { kind: 'pad' }
 
 export interface Toast {
   id: number

@@ -6,8 +6,6 @@ import { itemStore } from '../store/items'
 import { syncState } from '../store/sync'
 import { dismissToast, ui, useStore } from '../store/ui'
 import { Chevron } from './Calendar'
-import { isNotePage, notes } from '../notes/model'
-import { StarIcon } from '../notes/icons'
 
 /** Quiet top bar: day navigation on the left, view switch and search on the right. */
 export function Header() {
@@ -16,11 +14,8 @@ export function Header() {
 
   // A day's own heading names it; the bar gives the month, like the calendar.
   let title: React.ReactNode
-  const variant = useStore(notes, (s) => s.variant)
-  const marginOpen = useStore(notes, (s) => s.marginOpen)
-  const onNote = view.mode === 'day' && isNotePage(view.date)
   if (view.mode === 'week') title = 'This week'
-  else if (onNote) title = 'Notes'
+  else if (view.mode === 'notes') title = 'Notes'
   else {
     const { year, month } = parts(view.date)
     title = (
@@ -32,14 +27,15 @@ export function Header() {
 
   const keep = (e: React.MouseEvent): void => e.preventDefault()
   const isToday = view.mode === 'day' && view.date === today
+  const [back, forward] = view.mode === 'notes' ? ['Previous note', 'Next note'] : ['Previous day', 'Next day']
 
   return (
     <header className="titlebar">
       <div className="titlebar-left">
-        <button className="icon-btn" onMouseDown={keep} onClick={() => controller.execute('go.prevDay')} title="Previous day  ⌘[" aria-label="Previous day">
+        <button className="icon-btn" onMouseDown={keep} onClick={() => controller.execute('go.prevDay')} title={`${back}  ⌘[`} aria-label={back}>
           <Chevron dir="left" />
         </button>
-        <button className="icon-btn" onMouseDown={keep} onClick={() => controller.execute('go.nextDay')} title="Next day  ⌘]" aria-label="Next day">
+        <button className="icon-btn" onMouseDown={keep} onClick={() => controller.execute('go.nextDay')} title={`${forward}  ⌘]`} aria-label={forward}>
           <Chevron dir="right" />
         </button>
         <button className="view-title" onMouseDown={keep} onClick={() => controller.execute('go.date')} title="Go to date  ⌘J">
@@ -54,20 +50,12 @@ export function Header() {
           <button role="tab" aria-selected={view.mode === 'week'} className={view.mode === 'week' ? 'is-active' : ''} onMouseDown={keep} onClick={() => controller.execute('go.week')} title="This week  ⌘3">
             Week
           </button>
+          {/* PROTOTYPE (notes/): scratch and the starred notes, the third place beside Today and Week. */}
+          <button role="tab" aria-selected={view.mode === 'notes'} className={view.mode === 'notes' ? 'is-active' : ''} onMouseDown={keep} onClick={() => controller.execute('go.notes')} title="Notes  ⌘4">
+            Notes
+          </button>
         </div>
         <SyncIndicator />
-        {/* PROTOTYPE (notes/): the one new control. Margin and Pad open on ⌘E; Pages lists the notes. */}
-        {variant !== 'off' && (
-          <button
-            className={`icon-btn${onNote || marginOpen ? ' is-on' : ''}`}
-            onMouseDown={keep}
-            onClick={() => controller.execute(variant === 'pages' ? 'notes.list' : 'notes.scratch')}
-            title={variant === 'pages' ? 'Notes  ⇧⌘E' : 'Notes  ⌘E'}
-            aria-label="Notes"
-          >
-            <StarIcon filled={onNote || marginOpen} />
-          </button>
-        )}
         <button className="icon-btn" onMouseDown={keep} onClick={() => controller.execute('search.open')} title="Search  ⌘F" aria-label="Search">
           <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden>
             <circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" strokeWidth="1.5" />

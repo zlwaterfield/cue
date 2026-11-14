@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { COMMANDS, shortcutKeys, type CommandGroup } from '@shared/commands'
 import { parseDateInput } from '@shared/dateParse'
-import { isNotePage, notes, pageLabel } from '../notes/model'
+import { isNotePage, pageLabel } from '../notes/model'
 import { addDays, friendlyDate, namedMoveDays, nextWeekday, relativeLabel, shortDate, startOfWeek } from '@shared/dates'
 import { matchRanges, searchTerms } from '@shared/text'
 import type { ISODate, ItemType, SearchResult } from '@shared/types'
@@ -193,14 +193,12 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
     // Commands
     const syncAvailable = syncState.get().available
     const updatesAvailable = updateState.get().available
-    const notesOff = notes.get().variant === 'off'
     const visible = COMMANDS.filter(
       (c) =>
         !c.paletteHidden &&
         (!c.needsItem || hasTarget) &&
         (!c.needsSync || syncAvailable) &&
-        (!c.needsUpdates || updatesAvailable) &&
-        !(notesOff && c.id.startsWith('notes.'))
+        (!c.needsUpdates || updatesAvailable)
     )
     const tomorrow = addDays(today, 1)
     const hintFor = (id: string): string | undefined => {

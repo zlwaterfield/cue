@@ -42,11 +42,12 @@ export const COMMANDS: CommandMeta[] = [
   { id: 'go.nextDay', title: 'Next day', group: 'Navigate', shortcut: 'Mod+]', keywords: 'forward' },
   { id: 'go.date', title: 'Go to date…', group: 'Navigate', shortcut: 'Mod+J', keywords: 'jump calendar pick' },
   { id: 'links.open', title: 'Links', group: 'Navigate', shortcut: 'Mod+L', keywords: 'urls pages shared saved bookmarks read later' },
-  // PROTOTYPE: scratch and starred notes (apps/desktop/src/renderer/src/notes).
+  // PROTOTYPE: Notes (apps/desktop/src/renderer/src/notes).
+  { id: 'go.notes', title: 'Open notes', group: 'Navigate', shortcut: 'Mod+4', keywords: 'starred scratch pages kept pinned' },
   { id: 'notes.scratch', title: 'Scratch', group: 'Navigate', shortcut: 'Mod+E', keywords: 'note pad quick blob draft misc' },
-  { id: 'notes.list', title: 'Starred notes', group: 'Navigate', shortcut: 'Mod+Shift+E', keywords: 'star pinned favorite saved pages' },
-  { id: 'notes.star', title: 'Star', group: 'Navigate', shortcut: 'Mod+Shift+S', keywords: 'keep pin favorite save note unstar' },
-  { id: 'notes.clear', title: 'Clear scratch', group: 'Navigate', keywords: 'discard empty throw away note' },
+  { id: 'notes.star', title: 'Star scratch', group: 'Navigate', shortcut: 'Mod+Shift+S', keywords: 'keep pin favorite save note' },
+  { id: 'notes.discard', title: 'Clear scratch or delete note', group: 'Navigate', shortcut: 'Mod+Alt+Backspace', keywords: 'discard empty throw away remove unstar' },
+  { id: 'notes.copy', title: 'Copy page', group: 'Edit', shortcut: 'Mod+Shift+C', keywords: 'copy all whole day note markdown clipboard' },
   { id: 'looseEnds.toggle', title: 'Show earlier open to-dos', group: 'Navigate', keywords: 'loose ends overdue unfinished leftover carry over' },
 
   { id: 'edit.undo', title: 'Undo', group: 'Edit', shortcut: 'Mod+Z' },
@@ -79,12 +80,7 @@ export const COMMANDS: CommandMeta[] = [
   { id: 'sync.now', title: 'Sync now', group: 'Data', keywords: 'cloud devices refresh upload download', needsSync: true },
   { id: 'theme.system', title: 'Use system appearance', group: 'General', keywords: 'theme auto' },
   { id: 'theme.light', title: 'Use light appearance', group: 'General', keywords: 'theme' },
-  { id: 'theme.dark', title: 'Use dark appearance', group: 'General', keywords: 'theme night' },
-
-  { id: 'proto.pages', title: 'Notes prototype: Pages', group: 'General', keywords: 'scratch starred variant a' },
-  { id: 'proto.margin', title: 'Notes prototype: Margin', group: 'General', keywords: 'scratch starred variant b side panel' },
-  { id: 'proto.pad', title: 'Notes prototype: Pad', group: 'General', keywords: 'scratch starred variant c overlay' },
-  { id: 'proto.off', title: 'Notes prototype: Off', group: 'General', keywords: 'scratch starred none' }
+  { id: 'theme.dark', title: 'Use dark appearance', group: 'General', keywords: 'theme night' }
 ]
 
 export const COMMANDS_BY_ID: Record<string, CommandMeta> = Object.fromEntries(COMMANDS.map((c) => [c.id, c]))

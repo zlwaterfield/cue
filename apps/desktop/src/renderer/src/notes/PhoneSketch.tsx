@@ -2,8 +2,6 @@ import { addDays, dateRange, MONTHS, parts, startOfWeek } from '@shared/dates'
 import { controller } from '../editor/controller'
 import { itemStore } from '../store/items'
 import { ui, useStore } from '../store/ui'
-import { isNotePage, notes } from './model'
-import { StarIcon } from './icons'
 
 /**
  * PROTOTYPE — `?phone=1`. A sketch of the iPhone app's header (apps/mobile/src/ui/Header.tsx)
@@ -14,10 +12,8 @@ export function PhoneHeader() {
   const view = useStore(ui, (s) => s.view)
   const today = useStore(ui, (s) => s.today)
   const weekStartsOn = useStore(ui, (s) => s.settings.weekStartsOn)
-  const variant = useStore(notes, (s) => s.variant)
-  const marginOpen = useStore(notes, (s) => s.marginOpen)
-  const onNote = view.mode === 'day' && isNotePage(view.date)
-  const date = view.mode === 'day' && !onNote ? view.date : today
+  const onNote = view.mode === 'notes'
+  const date = view.mode === 'day' ? view.date : today
   const { year, month } = parts(date)
   const start = startOfWeek(date, weekStartsOn)
   const days = dateRange(start, addDays(start, 6))
@@ -39,16 +35,12 @@ export function PhoneHeader() {
           </svg>
         </button>
         <div className="phone-actions">
-          {variant !== 'off' && (
-            <button
-              className={onNote || marginOpen ? 'is-on' : ''}
-              onMouseDown={keep}
-              onClick={() => controller.execute(variant === 'pages' ? 'notes.list' : 'notes.scratch')}
-              aria-label="Notes"
-            >
-              <StarIcon size={21} filled={onNote || marginOpen} />
-            </button>
-          )}
+          <button className={onNote ? 'is-on' : ''} onMouseDown={keep} onClick={() => controller.execute(onNote ? 'go.today' : 'go.notes')} aria-label="Notes">
+            <svg width="21" height="21" viewBox="0 0 22 22" aria-hidden>
+              <rect x="4.5" y="3" width="13" height="16" rx="3" {...stroke} fill={onNote ? 'currentColor' : 'none'} />
+              <path d="M8 8h6M8 11.5h6M8 15h3.5" {...stroke} stroke={onNote ? 'var(--bg)' : 'currentColor'} />
+            </svg>
+          </button>
           <button onMouseDown={keep} onClick={() => controller.execute('links.open')} aria-label="Links">
             <svg width="21" height="21" viewBox="0 0 22 22" aria-hidden>
               <path d="M9.5 12.5a4 4 0 005.7 0l2.6-2.6a4 4 0 00-5.7-5.7l-1 1M12.5 9.5a4 4 0 00-5.7 0l-2.6 2.6a4 4 0 005.7 5.7l1-1" {...stroke} />
@@ -71,7 +63,7 @@ export function PhoneHeader() {
       </div>
       <div className="phone-week">
         {days.map((day) => {
-          const selected = !onNote && view.mode === 'day' ? day === view.date : !onNote && day === today
+          const selected = view.mode === 'day' ? day === view.date : !onNote && day === today
           return (
             <button key={day} onMouseDown={keep} onClick={() => void controller.navigate({ mode: 'day', date: day })}>
               <span className="phone-weekday">{'SMTWTFS'[new Date(`${day}T12:00:00`).getDay()]}</span>

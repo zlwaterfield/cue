@@ -11,7 +11,7 @@ const START_TYPING = 'Start typing…'
 
 /** What an empty day says when it isn't focused. Focused, every blank line says "Start typing…". */
 function placeholderFor(date: ISODate, today: ISODate): string {
-  if (date === SCRATCH) return 'Type or paste anything'
+  if (date === SCRATCH) return ''
   if (isNotePage(date)) return 'Add a line'
   const delta = diffDays(today, date)
   if (delta === 0) return START_TYPING
@@ -79,30 +79,31 @@ export const DaySection = memo(function DaySection({
   if (isNotePage(date)) {
     const scratch = date === SCRATCH
     const keep = (e: React.MouseEvent): void => e.preventDefault()
+    // A button acts on its own note, wherever the caret was.
+    const act = (command: string) => (): void => {
+      controller.focusText(ghostId(date), 0)
+      controller.execute(command)
+    }
     return (
       <section className={`day is-${variant} is-note ${scratch ? 'is-scratch' : 'is-starred'}`} data-day={date} aria-label={noteTitle(date)}>
         <header className="day-head">
-          {scratch ? <h2 className="day-title">Scratch</h2> : <span className="note-kicker">★ Starred</span>}
-          <span className="note-actions">
-            {scratch && rows.length > 0 && (
-              <button onMouseDown={keep} onClick={() => controller.execute('notes.clear')}>
-                Clear
+          {scratch && <h2 className="day-title">Scratch</h2>}
+          {scratch && rows.length === 0 && <span className="day-sub">Type or paste anything. Star it to keep it.</span>}
+          {rows.length > 0 && (
+            <span className="note-actions">
+              <button onMouseDown={keep} onClick={act('notes.copy')} title="Copy page  ⇧⌘C">
+                Copy
               </button>
-            )}
-            {(!scratch || rows.length > 0) && (
-              <button
-                onMouseDown={keep}
-                onClick={() => {
-                  // The button stars its own page, wherever the caret is.
-                  controller.focusText(ghostId(date), 0)
-                  controller.execute('notes.star')
-                }}
-                title="⇧⌘S"
-              >
-                {scratch ? 'Star' : 'Unstar'}
+              <button onMouseDown={keep} onClick={act('notes.discard')} title={`${scratch ? 'Clear scratch' : 'Delete note'}  ⌥⌘⌫`}>
+                {scratch ? 'Clear' : 'Delete'}
               </button>
-            )}
-          </span>
+              {scratch && (
+                <button onMouseDown={keep} onClick={act('notes.star')} title="Star scratch  ⇧⌘S">
+                  Star
+                </button>
+              )}
+            </span>
+          )}
         </header>
         <div className="rows">
           {rows.map((row) => (

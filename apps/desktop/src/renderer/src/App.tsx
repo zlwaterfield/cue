@@ -7,17 +7,15 @@ import { LinksPanel } from './ui/Links'
 import { MovePanel } from './ui/MoveTo'
 import { Palette } from './ui/Palette'
 import { AboutSheet, SettingsSheet, ShortcutsSheet } from './ui/Sheets'
-import { Margin } from './notes/Margin'
-import { phoneSketch } from './notes/model'
-import { NotesList } from './notes/NotesList'
-import { Pad } from './notes/Pad'
+import { phoneSketch, useNotePages } from './notes/model'
 import { PhoneHeader } from './notes/PhoneSketch'
 
 export function App() {
   const view = useStore(ui, (s) => s.view)
   const today = useStore(ui, (s) => s.today)
   const weekStartsOn = useStore(ui, (s) => s.settings.weekStartsOn)
-  const dates = view.mode === 'week' ? weekViewDates(today, weekStartsOn) : [view.date]
+  const notePages = useNotePages()
+  const dates = view.mode === 'week' ? weekViewDates(today, weekStartsOn) : view.mode === 'notes' ? notePages : [view.date]
 
   // Clicking empty space never steals the caret; it just ends a block selection.
   const onBackgroundMouseDown = (e: React.MouseEvent): void => {
@@ -30,7 +28,6 @@ export function App() {
   return (
     <div className={phoneSketch ? 'app is-phone' : 'app'}>
       {phoneSketch ? <PhoneHeader /> : <Header />}
-      <div className="app-body">
       <main
         className="scroller"
         onMouseDown={onBackgroundMouseDown}
@@ -38,18 +35,14 @@ export function App() {
       >
         <div className={`column is-${view.mode}`}>
           {dates.map((date) => (
-            <DaySection key={date} date={date} today={today} variant={view.mode} />
+            <DaySection key={date} date={date} today={today} variant={view.mode === 'day' ? 'day' : 'week'} />
           ))}
         </div>
       </main>
-      <Margin />
-      </div>
       <div className="focus-sink" tabIndex={-1} ref={(el) => void (controller.sink = el)} aria-hidden />
       <Palette />
       <LinksPanel />
       <MovePanel />
-      <NotesList />
-      <Pad />
       <ShortcutsSheet />
       <SettingsSheet />
       <AboutSheet />

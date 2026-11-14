@@ -3,7 +3,7 @@ import { addDays, todayISO } from '@shared/dates'
 import { uuidv7 } from '@shared/ids'
 import type { ISODate, Item, ItemType } from '@shared/types'
 import { backend } from '../data/backend'
-import { pad, SCRATCH } from './model'
+import { SCRATCH } from './model'
 
 /** PROTOTYPE — `?seed=1`. A believable week and a few notes, for screenshots in a browser. */
 
@@ -72,12 +72,4 @@ export async function seed(): Promise<void> {
     ...STARRED.flatMap((lines, i) => page(addDays(SCRATCH, i + 1), lines))
   ]
   await backend.saveItems(items)
-  const asText = (lines: Line[]): string =>
-    lines.map(([type, text, , done]) => (type === 'todo' ? `- [${done ? 'x' : ' '}] ${text}` : type === 'bullet' ? `- ${text}` : text)).join('\n')
-  if (pad.get().notes.length === 1 && !pad.get().notes[0].text) {
-    pad.set({
-      notes: [{ id: 'scratch', text: SCRATCH_LINES.map(([, text]) => text).join('\n\n') }, ...STARRED.map((lines, i) => ({ id: `seed-${i}`, text: asText(lines) }))],
-      current: 'scratch'
-    })
-  }
 }

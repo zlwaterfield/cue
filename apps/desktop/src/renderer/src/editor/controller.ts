@@ -17,8 +17,8 @@ import { commandFor, isMac } from './keys'
 import * as ops from '@shared/editor/ops'
 import { Tx } from '@shared/editor/tx'
 import { revert, UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
-import { isNotePage, loadNotes, notePages, notes } from '../notes/model'
-import { runNotesCommand } from '../notes/actions'
+import { isNotePage, loadNotes, notePages, SCRATCH } from '../notes/model'
+import { runNotesCommand, stepNote } from '../notes/actions'
 
 /**
  * The editor controller: owns focus, caret movement across items, block selection,
@@ -89,18 +89,22 @@ class EditorController {
   /* ================================================================ View */
 
   datesFor(view: View, today = ui.get().today, settings: Settings = ui.get().settings): ISODate[] {
+    if (view.mode === 'notes') return notePages()
     return view.mode === 'week' ? weekViewDates(today, settings.weekStartsOn) : [view.date]
   }
 
+  /** The view a page is shown in when something asks for that page alone. */
+  viewOf(date: ISODate): View {
+    return isNotePage(date) ? { mode: 'notes' } : { mode: 'day', date }
+  }
+
   visibleDates(): ISODate[] {
-    const dates = this.datesFor(ui.get().view)
-    // PROTOTYPE (Margin): the notes beside the day are on screen too.
-    const { variant, marginOpen } = notes.get()
-    return variant === 'margin' && marginOpen ? [...dates, ...notePages().filter((d) => !dates.includes(d))] : dates
+    return this.datesFor(ui.get().view)
   }
 
   primaryDate(): ISODate {
     const { view, today } = ui.get()
+    if (view.mode === 'notes') return SCRATCH
     return view.mode === 'day' ? view.date : today
   }
 
@@ -242,7 +246,7 @@ class EditorController {
     if (snapshot.kind === 'blocks') {
       if (!itemStore.get(snapshot.anchor) || !itemStore.get(snapshot.focus)) return
       if (!this.visibleDates().includes(snapshot.date)) {
-        void this.navigate({ mode: 'day', date: snapshot.date }, { focus: snapshot })
+        void this.navigate(this.viewOf(snapshot.date), { focus: snapshot })
         return
       }
       this.selectBlocks(snapshot.date, snapshot.anchor, snapshot.focus)
@@ -251,7 +255,7 @@ class EditorController {
     const date = this.dateOf(snapshot.id)
     if (!date) return
     if (!this.visibleDates().includes(date)) {
-      void this.navigate({ mode: 'day', date }, { focus: snapshot })
+      void this.navigate(this.viewOf(date), { focus: snapshot })
       return
     }
     this.focusText(snapshot.id, snapshot.start, snapshot.end)
@@ -545,7 +549,7 @@ class EditorController {
       if (e.key === 'Escape') {
         e.preventDefault()
         this.closeOverlay()
-      } else if (command === 'palette.open' || command === 'search.open' || command === 'links.open' || command === 'move.date' || command === 'help.shortcuts' || command === 'notes.scratch' || command === 'notes.list') {
+      } else if (command === 'palette.open' || command === 'search.open' || command === 'links.open' || command === 'move.date' || command === 'help.shortcuts') {
         e.preventDefault()
         this.execute(command, 'key')
       }
@@ -771,7 +775,7 @@ class EditorController {
     })
   }
 
-  private markdownFor(ids: string[]): string {
+  markdownFor(ids: string[]): string {
     if (!ids.length) return ''
     const date = itemStore.get(ids[0])!.date
     const set = new Set(ids)
@@ -833,11 +837,11 @@ class EditorController {
     this.lastExecuted = { id, at: now, source }
 
     // Menu commands act on the document, so an open overlay steps aside first.
-    const overlayCommands = ['palette.open', 'search.open', 'links.open', 'move.date', 'help.shortcuts', 'app.settings', 'app.about', 'edit.undo', 'edit.redo', 'notes.scratch', 'notes.list']
+    const overlayCommands = ['palette.open', 'search.open', 'links.open', 'move.date', 'help.shortcuts', 'app.settings', 'app.about', 'edit.undo', 'edit.redo']
     if (source === 'menu' && ui.get().overlay && COMMANDS_BY_ID[id] && !overlayCommands.includes(id)) this.closeOverlay()
 
     const { today } = ui.get()
-    if (id.startsWith('notes.') || id.startsWith('proto.')) {
+    if (id.startsWith('notes.')) {
       runNotesCommand(id)
       return
     }
@@ -872,14 +876,15 @@ class EditorController {
       case 'go.week':
         void this.navigate({ mode: 'week' })
         return
+      case 'go.notes':
+        void this.navigate({ mode: 'notes' })
+        return
       case 'go.prevDay':
       case 'go.nextDay': {
         const view = ui.get().view
-        // PROTOTYPE (Pages): on a note, the pair steps through scratch and the starred notes.
-        if (view.mode === 'day' && isNotePage(view.date)) {
-          const pages = notePages()
-          const next = pages[(pages.indexOf(view.date) + (id === 'go.prevDay' ? -1 : 1) + pages.length) % pages.length]
-          void this.navigate({ mode: 'day', date: next })
+        // PROTOTYPE (notes/): Notes has no days to step through, so the pair steps between its notes.
+        if (view.mode === 'notes') {
+          stepNote(id === 'go.prevDay' ? -1 : 1)
           return
         }
         const target = this.targets()[0]
@@ -1093,7 +1098,7 @@ class EditorController {
       showToast('Earlier to-dos are turned off in Settings')
       return
     }
-    const showsToday = view.mode === 'week' || view.date === today
+    const showsToday = view.mode === 'week' || (view.mode === 'day' && view.date === today)
     if (!showsToday) {
       await this.navigate({ mode: 'day', date: today })
       ui.set({ looseEndsOpen: true })
@@ -1180,7 +1185,7 @@ class EditorController {
   /** Open a search result: its day (keeping the week view if it's visible), caret on the match. */
   async openItem(id: string, date: ISODate, match: [number, number]): Promise<void> {
     const inWeek = ui.get().view.mode === 'week' && this.datesFor({ mode: 'week' }).includes(date)
-    const view: View = inWeek ? { mode: 'week' } : { mode: 'day', date }
+    const view: View = inWeek ? { mode: 'week' } : this.viewOf(date)
     await this.navigate(view, { focus: { id, start: match[1] } })
     const el = this.els.get(id)
     if (el) flash(el, match[0], match[1])
