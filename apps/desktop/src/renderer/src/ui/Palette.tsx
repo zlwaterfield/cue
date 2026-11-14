@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { COMMANDS, shortcutKeys, type CommandGroup } from '@shared/commands'
 import { parseDateInput } from '@shared/dateParse'
-import { isNotePage, pageLabel } from '../notes/model'
+import { isNotePage, notePages, noteTitle, pageLabel } from '../notes/model'
+import { openNote } from '../notes/actions'
 import { addDays, friendlyDate, namedMoveDays, nextWeekday, relativeLabel, shortDate, startOfWeek } from '@shared/dates'
 import { matchRanges, searchTerms } from '@shared/text'
 import type { ISODate, ItemType, SearchResult } from '@shared/types'
@@ -257,6 +258,26 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
       if (!hasTarget) list.push(go)
       else if (/^(move|mv|defer|push)\b/i.test(q)) list.push(move, go)
       else list.push(go, move)
+    }
+    // PROTOTYPE (notes/): a note opens by its name, the way "fri" opens Friday. "go to books" works too.
+    const name = q.replace(/^(go to|goto|open)\s+/i, '')
+    const named = notePages()
+      .slice(1) // scratch has its own command
+      .map((page) => ({ page, score: fuzzyScore(name, noteTitle(page)) }))
+      .filter((n): n is { page: ISODate; score: number } => n.score !== null)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+    for (const { page } of named) {
+      list.push({
+        key: `note:${page}`,
+        icon: icons.text,
+        title: `Go to ${noteTitle(page)}`,
+        hint: 'Starred note',
+        run: () => {
+          ui.set({ overlay: null })
+          openNote(page)
+        }
+      })
     }
     list.push(...scored)
     list.push({
