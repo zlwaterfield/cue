@@ -19,7 +19,7 @@ from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
-SCREENS = os.path.join(ROOT, 'docs', 'app-store', 'screens')
+SCREENS = os.path.join(ROOT, 'brand', 'app-store', 'screens')
 
 # Brand palette, from brand/README.md.
 GRAPHITE = '#1C1C1E'
@@ -45,7 +45,7 @@ def data_uri(path, mime):
 
 
 FONT = data_uri(os.path.join(ROOT, 'site', 'fonts', 'newsreader-latin.woff2'), 'font/woff2')
-LOCKUP = open(os.path.join(ROOT, 'docs', 'brand', 'logo', 'cue-lockup-on-light.svg')).read().replace(
+LOCKUP = open(os.path.join(ROOT, 'brand', 'logo', 'cue-lockup-on-light.svg')).read().replace(
     '<svg ', '<svg class="lockup" ', 1)
 
 # The lockup's height and the air under it, against the headline's size, as the

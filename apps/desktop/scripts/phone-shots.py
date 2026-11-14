@@ -26,7 +26,7 @@ from PIL import Image
 # The repository root, three folders up: this script reads the App Store screens and
 # writes into the site.
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..'))
-SCREENS = os.path.join(ROOT, 'docs', 'app-store', 'screens')
+SCREENS = os.path.join(ROOT, 'brand', 'app-store', 'screens')
 OUT = os.path.join(ROOT, 'site', 'images')
 
 SOURCE = '08-mac.png'
