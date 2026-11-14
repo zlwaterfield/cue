@@ -1905,6 +1905,12 @@ kbd.is-text {
   color: var(--text);
 }
 
+.note-strip .note-new {
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+}
+
 .note-strip button.is-active {
   color: var(--text);
   font-weight: 600;

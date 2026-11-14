@@ -63,9 +63,9 @@ VoiceOver reads lines in the day's order.
 The notes button in the header (beside links) opens scratch and the few starred notes, the
 Mac's Notes (⌘4). A note is shown where a day is, one at a time, and edits like one. While a
 note is open the bar says Notes and the week strip gives way to the notes there are; tap one
-to open it, or swipe the page as you would to turn a day. Beside a note's title: Share (the
-whole page as Markdown, where Copy is), Clear or Delete (Undo is in the toast), and on
-scratch, Star, which keeps it as a note named by its first line. The Today pill, or the notes
+to open it, or swipe the page as you would to turn a day. The plus at the end of the row
+starts a note, named by its first line. Beside a note's title: Share (the whole page as
+Markdown, where Copy is), and Clear or Delete (Undo is in the toast). The Today pill, or the notes
 button again, goes back to the day. What a note is lives in `../../core/notes.ts`.
 
 ## Links and the share sheet

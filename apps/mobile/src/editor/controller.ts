@@ -168,16 +168,14 @@ export class Editor {
     return next ? this.goTo(next) : Promise.reject(new Error('No note that way'))
   }
 
-  /** Star: scratch becomes a note, named by its first line, and scratch is empty again. */
-  async starScratch(): Promise<void> {
-    const ids = itemStore.outline(SCRATCH).map((row) => row.id)
-    if (!ids.length) return
-    const before = this.snapshot()
-    const to = await newNotePage()
-    if (!this.commit('Star', (tx) => void ops.moveToDate(tx, ids, to), { before })) return
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    await this.goTo(to)
-    this.announce(`Starred “${noteTitle(to)}”`)
+  /**
+   * A new starred note, open with the keyboard up on its first line, which is its name. The
+   * note exists once something is written on it; leaving it blank makes nothing.
+   */
+  async newNote(): Promise<void> {
+    const date = await newNotePage()
+    await this.goTo(date)
+    this.focus(this.ghostId(date), 0)
   }
 
   /** Clear scratch, or delete a starred note. Undo brings either back. */

@@ -26,7 +26,7 @@ const LIFT_DELAY = 340
 const HIDDEN = -10_000
 
 function placeholderFor(date: ISODate, today: ISODate): string {
-  if (isNotePage(date)) return date === SCRATCH ? 'Start typing…' : 'Add a line'
+  if (isNotePage(date)) return date === SCRATCH ? 'Start typing…' : 'Name this note'
   const delta = diffDays(today, date)
   if (delta === 0) return 'Start typing…'
   if (delta > 0) return 'Nothing planned'
@@ -386,7 +386,7 @@ export const Row = memo(function Row({
               placeholderTextColor={c.text3}
               selectionColor={c.accent}
               autoCapitalize="sentences"
-              style={[styles.text, title && item?.type === 'text' && styles.title, { color: done ? c.text3 : c.text }, done && styles.done, remeasure && styles.remeasure, link && styles.behind]}
+              style={[styles.text, title && (!item || item.type === 'text') && styles.title, { color: done ? c.text3 : c.text }, done && styles.done, remeasure && styles.remeasure, link && styles.behind]}
               nativeID={`line-${id}`}
               // For end-to-end tests: depth, type and text, e.g. "1/todo-done:Book flights".
               testID={ghost ? `new-line-${date}` : `${depth}/${item.type}${done ? '-done' : ''}:${item.text}`}

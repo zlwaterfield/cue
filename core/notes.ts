@@ -39,7 +39,7 @@ export function noteTitle(source: NoteSource, date: ISODate): string {
   return (first && source.get(first.id)?.text.trim()) || 'Untitled'
 }
 
-/** When a note was written: its oldest line. Starring moves lines, so they keep their time. */
+/** When a note was started: its oldest line. */
 function writtenAt(source: NoteSource, date: ISODate): number {
   let at = Infinity
   for (const row of source.outline(date)) at = Math.min(at, source.get(row.id)?.createdAt ?? Infinity)
@@ -48,7 +48,7 @@ function writtenAt(source: NoteSource, date: ISODate): number {
 
 /**
  * The notes to show: scratch, then the starred notes that have something on them, newest
- * first. `known` is every note page there may be (stored ones, and ones starred since).
+ * first. `known` is every note page there may be (stored ones, and ones started since).
  */
 export function notePages(source: NoteSource, known: Iterable<ISODate>): ISODate[] {
   const starred = [...new Set(known)]

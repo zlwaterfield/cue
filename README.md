@@ -43,12 +43,12 @@ lines to act on them together.
 **Notes.** For what doesn't belong to a day: one scratch page to paste and edit something you'll
 probably throw away, and a few notes you star to keep and add to over time. They sit beside
 Today and Week (⌘4), one page at a time, and are pages like any day, with the same lines and
-shortcuts. ⌘E opens scratch from anywhere and takes you back to the line you left; ⇧⌘S stars
-it, and its first line becomes its name. This is for a handful of notes, not a notebook.
+shortcuts. ⌘E opens scratch from anywhere and takes you back to the line you left; ⇧⌘N starts
+a note, and its first line is its name. This is for a handful of notes, not a notebook.
 
 <p align="center">
   <img src="docs/images/notes.png" alt="Notes, beside Today and Week: a starred note called Books to read, with Scratch and Gift ideas named above it" width="49%">
-  <img src="docs/images/notes-scratch.png" alt="Scratch, holding a draft email, with Copy, Clear and Star beside its title" width="49%">
+  <img src="docs/images/notes-scratch.png" alt="Scratch, holding a draft email, with Copy and Clear beside its title" width="49%">
 </p>
 
 **Finding.** ⌘K searches every command, understands dates ("move to fri", "go to oct 31") and
@@ -95,7 +95,7 @@ seconds.
 | Today · Tomorrow · This week · Notes | ⌘1 · ⌘2 · ⌘3 · ⌘4 |
 | Previous / next day (or note) | ⌘[ · ⌘] |
 | Scratch, and back | ⌘E |
-| Star scratch | ⇧⌘S |
+| New note | ⇧⌘N |
 | Clear scratch, or delete the open note | ⌥⌘⌫ |
 | Copy the whole page | ⇧⌘C |
 | Go to date | ⌘J |

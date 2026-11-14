@@ -12,7 +12,8 @@ const START_TYPING = 'Start typing…'
 /** What an empty day says when it isn't focused. Focused, every blank line says "Start typing…". */
 function placeholderFor(date: ISODate, today: ISODate): string {
   if (date === SCRATCH) return ''
-  if (isNotePage(date)) return 'Add a line'
+  // A new note's first line is its name.
+  if (isNotePage(date)) return 'Name this note'
   const delta = diffDays(today, date)
   if (delta === 0) return START_TYPING
   if (delta > 0) return 'Nothing planned'
@@ -88,7 +89,7 @@ export const DaySection = memo(function DaySection({
       <section className={`day is-${variant} is-note ${scratch ? 'is-scratch' : 'is-starred'}`} data-day={date} aria-label={noteTitle(date)}>
         <header className="day-head">
           {scratch && <h2 className="day-title">Scratch</h2>}
-          {scratch && rows.length === 0 && <span className="day-sub">Type or paste anything. Star it to keep it.</span>}
+          {scratch && rows.length === 0 && <span className="day-sub">Type or paste anything. It stays until you clear it.</span>}
           {rows.length > 0 && (
             <span className="note-actions">
               <button onMouseDown={keep} onClick={act('notes.copy')} title="Copy page  ⇧⌘C">
@@ -97,11 +98,6 @@ export const DaySection = memo(function DaySection({
               <button onMouseDown={keep} onClick={act('notes.discard')} title={`${scratch ? 'Clear scratch' : 'Delete note'}  ⌥⌘⌫`}>
                 {scratch ? 'Clear' : 'Delete'}
               </button>
-              {scratch && (
-                <button onMouseDown={keep} onClick={act('notes.star')} title="Star scratch  ⇧⌘S">
-                  Star
-                </button>
-              )}
             </span>
           )}
         </header>

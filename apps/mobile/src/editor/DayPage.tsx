@@ -217,7 +217,7 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
   // Scratch is titled like a day. A starred note's first line is its name, so that line
   // is the title (Row) and the head above it only says what kind of page this is.
   const title = scratch ? 'Scratch' : note ? null : relativeDayName(date, today)
-  const subtitle = scratch ? (empty ? 'Type or paste anything. Star it to keep it.' : null) : note ? null : daySubtitle(date, today)
+  const subtitle = scratch ? (empty ? 'Type or paste anything. It stays until you clear it.' : null) : note ? null : daySubtitle(date, today)
   // An empty day whose notes are still on their way can't be written in yet, so nothing
   // typed now lands beside the notes about to arrive.
   const waiting = empty && arriving
@@ -252,7 +252,6 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
               <View style={styles.actions}>
                 <NoteAction label="Share" onPress={() => editor.sharePage(date)} />
                 <NoteAction label={scratch ? 'Clear' : 'Delete'} onPress={() => editor.discardNote(date)} />
-                {scratch && <NoteAction label="Star" onPress={() => void editor.starScratch()} />}
               </View>
             )}
           </View>
@@ -274,7 +273,7 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
         {waiting ? (
           <Text style={[styles.waiting, { color: c.text3 }]}>Getting your notes…</Text>
         ) : (
-          loaded && order.map((id) => <Row key={id} id={id} date={date} depth={depths.get(id) ?? 0} empty={empty} title={note && !scratch && id === rows[0]?.id} />)
+          loaded && order.map((id) => <Row key={id} id={id} date={date} depth={depths.get(id) ?? 0} empty={empty} title={note && !scratch && id === (rows[0]?.id ?? ghost)} />)
         )}
       </Animated.View>
       {/* Tapping the open space below the last line starts a new one. */}

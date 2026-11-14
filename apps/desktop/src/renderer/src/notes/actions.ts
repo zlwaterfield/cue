@@ -36,36 +36,17 @@ function toggleScratch(): void {
   void controller.navigate({ mode: 'notes', date: SCRATCH }, { focus: { id: ghostId(SCRATCH), start: 0 } })
 }
 
-/** ⇧⌘S: scratch becomes a starred note, named by its first line, and scratch is empty again. */
-async function star(): Promise<void> {
+/**
+ * ⇧⌘N: a new starred note, open with the caret on its first line, which is its name. The
+ * note exists once something is written on it; leaving it blank makes nothing.
+ */
+async function newNote(): Promise<void> {
   const view = ui.get().view
-  if (view.mode !== 'notes' || view.date !== SCRATCH) {
-    showToast('Star keeps what’s in scratch. ⌘E opens it')
-    return
+  if (view.mode !== 'notes') {
+    notes.set({ back: view })
+    returnTo = controller.snapshot()
   }
-  const rows = itemStore.outline(SCRATCH)
-  if (!rows.length) {
-    showToast('Nothing in scratch to star')
-    return
-  }
-  const before = controller.snapshot()
-  const to = await newNotePage()
-  const first = rows[0].id
-  controller.commit(
-    'Star',
-    (tx) => {
-      ops.moveToDate(
-        tx,
-        rows.map((row) => row.id),
-        to
-      )
-      return null
-    },
-    { before }
-  )
-  // The note opens with the caret at the end of its name, in case it wants changing.
-  await controller.navigate({ mode: 'notes', date: to }, { focus: { id: first, start: itemStore.get(first)!.text.length } })
-  controller.toastUndo(`Starred “${noteTitle(to)}”`)
+  openNote(await newNotePage())
 }
 
 /** ⌥⌘⌫: empty scratch, or delete the starred note the caret is in. Undo brings either back. */
@@ -108,7 +89,9 @@ export function openNote(date: ISODate): void {
 /** ⌘[ and ⌘] on a note: the one before or after it. */
 export function stepNote(direction: -1 | 1): void {
   const pages = notePages()
-  const next = pages[pages.indexOf(currentPage()) + direction]
+  const at = pages.indexOf(currentPage())
+  // From a new note with nothing on it yet, either way is back to scratch.
+  const next = at === -1 ? SCRATCH : pages[at + direction]
   if (next) openNote(next)
 }
 
@@ -117,8 +100,8 @@ export function runNotesCommand(id: string): void {
     case 'notes.scratch':
       toggleScratch()
       return
-    case 'notes.star':
-      void star()
+    case 'notes.new':
+      void newNote()
       return
     case 'notes.discard':
       discard()

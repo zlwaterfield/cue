@@ -1,4 +1,4 @@
-# Notes on the phone: the notes button opens scratch, Star keeps it as a note named by its
+# Notes on the phone: the notes button opens scratch, the plus starts a note named by its
 # first line, the strip switches between notes, and Delete can be undone.
 appId: app.cue
 name: Notes
@@ -10,18 +10,20 @@ name: Notes
     id: header-notes
 - assertVisible:
     id: "note-Scratch"
-- assertVisible: "Type or paste anything. Star it to keep it."
+- assertVisible: "Type or paste anything. It stays until you clear it."
 
-# Write something worth keeping, then star it.
+# The plus starts a note, keyboard up on the line that names it.
 - tapOn:
-    id: "new-line-1000-01-01"
+    id: note-new
+- extendedWaitUntil:
+    visible:
+      id: tool-hide
+    timeout: 5000
 - inputText: "Books to read"
 - pressKey: Enter
 - inputText: "[] Middlemarch"
 - tapOn:
     id: tool-hide
-- tapOn:
-    id: note-star
 - assertVisible:
     id: "note-Books to read"
 - assertVisible:
@@ -29,10 +31,10 @@ name: Notes
 - assertVisible:
     id: "0/todo:Middlemarch"
 
-# Scratch is empty again, and the note is one tap away.
+# Scratch is its own page, and the note is one tap away.
 - tapOn:
     id: "note-Scratch"
-- assertVisible: "Type or paste anything. Star it to keep it."
+- assertVisible: "Type or paste anything. It stays until you clear it."
 - tapOn:
     id: "note-Books to read"
 - assertVisible:

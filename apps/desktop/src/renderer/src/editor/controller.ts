@@ -17,7 +17,7 @@ import { commandFor, isMac } from './keys'
 import * as ops from '@shared/editor/ops'
 import { Tx } from '@shared/editor/tx'
 import { revert, UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
-import { isNotePage, loadNotes, notes } from '../notes/model'
+import { isNotePage, loadNotes, notePages, notes, SCRATCH } from '../notes/model'
 import { runNotesCommand, stepNote } from '../notes/actions'
 
 /**
@@ -875,7 +875,8 @@ class EditorController {
         void this.navigate({ mode: 'week' })
         return
       case 'go.notes':
-        void this.navigate({ mode: 'notes', date: notes.get().last })
+        // The note last open, unless it has gone since (deleted, or a new one left blank).
+        void this.navigate({ mode: 'notes', date: notePages().includes(notes.get().last) ? notes.get().last : SCRATCH })
         return
       case 'go.prevDay':
       case 'go.nextDay': {

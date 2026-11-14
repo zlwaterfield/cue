@@ -120,7 +120,7 @@ export function buildMenu(options: { isDev: boolean; syncAvailable: boolean; upd
         command('go.nextDay', 'Next Day'),
         command('go.date', 'Go to Date…'),
         separator,
-        command('notes.star', 'Star Scratch'),
+        command('notes.new', 'New Note'),
         command('notes.discard', 'Clear or Delete Note'),
         command('notes.copy', 'Copy Page')
       ]
