@@ -1868,3 +1868,500 @@ kbd.is-text {
     transition: none !important;
   }
 }
+
+/* =====================================================================
+   PROTOTYPE — scratch and starred notes (src/notes). Three variants share this.
+   ===================================================================== */
+
+.app-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  position: relative;
+}
+
+.icon-btn.is-on {
+  color: var(--text);
+}
+
+/* A note is a page like a day, with a name where the date would be. */
+.note-kicker {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-2);
+  letter-spacing: 0.01em;
+}
+
+.note-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+  align-self: center;
+}
+
+.note-actions button {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 12.5px;
+  color: var(--text-2);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.day.is-note:hover .note-actions button,
+.day.is-note:focus-within .note-actions button,
+.note-actions button:focus-visible {
+  opacity: 1;
+}
+
+.note-actions button:hover {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+
+/* A starred note is named by its first line, so that line is set as the title. */
+.day.is-starred .day-head {
+  margin-bottom: 0;
+  min-height: 20px;
+}
+
+.day.is-starred .rows > .row:first-child {
+  --row-font: 17px;
+  --row-line: 26px;
+}
+
+.day.is-starred .rows > .row:first-child .text {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+
+.day.is-day.is-starred .rows > .row:first-child {
+  --row-font: 27px;
+  --row-line: 36px;
+  --row-pad: 2px;
+  margin-bottom: 8px;
+}
+
+.day.is-day.is-starred .rows > .row:first-child .text {
+  font-weight: 650;
+  letter-spacing: -0.022em;
+}
+
+/* ⇧⌘E */
+.palette.is-notes {
+  width: min(520px, calc(100vw - 48px));
+}
+
+.is-notes .palette-item .keys {
+  margin-left: 4px;
+}
+
+/* ---------------------------------------------------------------- Margin */
+
+.margin {
+  flex: none;
+  width: min(400px, 42vw);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--line);
+  background: var(--bg);
+  animation: margin-in 140ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@keyframes margin-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+
+.margin-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 0 calc(22px + var(--marker));
+  height: 34px;
+}
+
+.margin-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.margin-close {
+  border: 0;
+  background: none;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.margin-close:hover {
+  background: var(--bg-hover);
+}
+
+.margin-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 22px 40vh calc(22px + var(--marker));
+}
+
+.margin .day {
+  padding-top: 14px;
+}
+
+.margin .day.is-scratch .day-title {
+  font-size: 17px;
+}
+
+/* With the notes open the day gives up its wide gutters first. */
+.app-body:has(.margin) .column {
+  padding-left: 40px;
+  padding-right: 28px;
+}
+
+@media (max-width: 720px) {
+  .margin {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    z-index: 4;
+    border-left: 0;
+  }
+}
+
+/* ------------------------------------------------------------------- Pad */
+
+.overlay.is-pad {
+  padding-top: 11vh;
+}
+
+.sheet.pad {
+  width: min(640px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+}
+
+.pad-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 10px 12px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pad-tab {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 180px;
+  border: 0;
+  background: none;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.pad-tab span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pad-tab:hover {
+  color: var(--text);
+}
+
+.pad-tab.is-active {
+  background: var(--bg-subtle);
+  color: var(--text);
+}
+
+.pad-text {
+  display: block;
+  width: 100%;
+  height: min(46vh, 380px);
+  resize: none;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  caret-color: var(--accent);
+  font: 15px/24px var(--font);
+  padding: 14px 22px 16px;
+}
+
+.pad-text::placeholder {
+  color: var(--text-3);
+}
+
+.pad-foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.pad-foot button,
+.pad-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.pad-foot button:hover {
+  color: var(--text);
+}
+
+.pad-switch {
+  margin-left: auto;
+}
+
+@media (max-width: 720px) {
+  /* On a phone the pad is a sheet from the bottom, above the keyboard. */
+  .overlay.is-pad {
+    align-items: flex-end;
+    padding-top: 0;
+  }
+
+  .sheet.pad {
+    width: 100vw;
+    border-radius: 18px 18px 0 0;
+    animation-name: sheet-up;
+  }
+
+  .pad-text {
+    height: 44vh;
+  }
+
+  .pad-foot .keys,
+  .pad-switch {
+    display: none;
+  }
+
+  .pad-foot {
+    justify-content: space-around;
+    font-size: 13.5px;
+    padding: 12px 16px 26px;
+  }
+
+  .pad-foot button {
+    font-size: 13.5px;
+  }
+
+  .note-actions button {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+/* --------------------------------------------- ?phone=1: the iPhone header, sketched */
+
+.phone-head {
+  flex: none;
+  background: var(--bg);
+  position: relative;
+  z-index: 5;
+}
+
+.phone-status {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 30px 0 38px;
+  font: 600 15px var(--font);
+}
+
+.phone-island {
+  width: 104px;
+  height: 30px;
+  border-radius: 16px;
+  background: #000;
+}
+
+.phone-battery {
+  width: 25px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--text);
+  opacity: 0.9;
+}
+
+.phone-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px 2px 20px;
+}
+
+.phone-head button {
+  border: 0;
+  background: none;
+  padding: 0;
+}
+
+.phone-month {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 650 20px var(--font-display);
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.phone-month span,
+.phone-month svg {
+  color: var(--text-3);
+}
+
+.phone-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.phone-actions button {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+}
+
+.phone-actions button.is-on {
+  color: var(--text);
+}
+
+.phone-week {
+  display: flex;
+  padding: 6px 8px 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.phone-week button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.phone-weekday {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.phone-day {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.phone-day.is-today {
+  font-weight: 700;
+}
+
+.phone-day.is-selected {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.phone-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+}
+
+.phone-dot.is-marked {
+  background: var(--text-3);
+}
+
+.app.is-phone .column {
+  padding: 4px 20px 45vh calc(20px + var(--marker));
+}
+
+.app.is-phone .row {
+  --row-font: 17px;
+  --row-line: 26px;
+  --row-pad: 5px;
+}
+
+.app.is-phone .margin-head {
+  padding-left: calc(20px + var(--marker));
+}
+
+.app.is-phone .margin-body {
+  padding: 0 20px 40vh calc(20px + var(--marker));
+}
+
+.app.is-phone .pad-text {
+  font-size: 17px;
+  line-height: 26px;
+}
+
+/* In the margin the title carries the note; the star and Unstar sit quietly at its right. */
+.margin .day.is-starred .day-head {
+  position: relative;
+  min-height: 0;
+  height: 0;
+}
+
+.margin .note-kicker {
+  display: none;
+}
+
+.margin .day.is-starred .note-actions {
+  position: absolute;
+  right: 0;
+  top: 5px;
+  z-index: 1;
+}
+
+.margin-done {
+  display: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+@media (max-width: 720px) {
+  .margin-close .keys {
+    display: none;
+  }
+
+  .margin-done {
+    display: inline;
+  }
+}

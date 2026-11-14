@@ -2,7 +2,9 @@ import { StrictMode } from 'react'
 import { flushSync } from 'react-dom'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
-import { backend } from './data/backend'
+import { backend, isDesktop } from './data/backend'
+import { seedDemo } from './notes/model'
+import { seed } from './notes/seed'
 import { installCaret } from './editor/caret'
 import { controller } from './editor/controller'
 import { initSync } from './store/sync'
@@ -10,6 +12,8 @@ import { initUpdates } from './store/updates'
 import './styles/app.css'
 
 async function boot(): Promise<void> {
+  // PROTOTYPE (notes/): demo notes for a browser session, never in the Mac app.
+  if (seedDemo && !isDesktop) await seed()
   await controller.init()
   initSync()
   initUpdates()

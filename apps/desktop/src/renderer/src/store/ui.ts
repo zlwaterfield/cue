@@ -59,6 +59,9 @@ export type Overlay =
   | { kind: 'settings'; category?: SettingsCategory }
   | { kind: 'about' }
   | { kind: 'links' }
+  /** PROTOTYPE (notes/): the list of scratch and starred notes, and the plain-text pad. */
+  | { kind: 'notes' }
+  | { kind: 'pad' }
 
 export interface Toast {
   id: number

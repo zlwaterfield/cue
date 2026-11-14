@@ -7,6 +7,11 @@ import { LinksPanel } from './ui/Links'
 import { MovePanel } from './ui/MoveTo'
 import { Palette } from './ui/Palette'
 import { AboutSheet, SettingsSheet, ShortcutsSheet } from './ui/Sheets'
+import { Margin } from './notes/Margin'
+import { phoneSketch } from './notes/model'
+import { NotesList } from './notes/NotesList'
+import { Pad } from './notes/Pad'
+import { PhoneHeader } from './notes/PhoneSketch'
 
 export function App() {
   const view = useStore(ui, (s) => s.view)
@@ -23,8 +28,9 @@ export function App() {
   }
 
   return (
-    <div className="app">
-      <Header />
+    <div className={phoneSketch ? 'app is-phone' : 'app'}>
+      {phoneSketch ? <PhoneHeader /> : <Header />}
+      <div className="app-body">
       <main
         className="scroller"
         onMouseDown={onBackgroundMouseDown}
@@ -36,10 +42,14 @@ export function App() {
           ))}
         </div>
       </main>
+      <Margin />
+      </div>
       <div className="focus-sink" tabIndex={-1} ref={(el) => void (controller.sink = el)} aria-hidden />
       <Palette />
       <LinksPanel />
       <MovePanel />
+      <NotesList />
+      <Pad />
       <ShortcutsSheet />
       <SettingsSheet />
       <AboutSheet />

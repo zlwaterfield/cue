@@ -5,11 +5,14 @@ import { controller, ghostId } from './controller'
 import { useOutline } from './hooks'
 import { ItemRow } from './ItemRow'
 import { LooseEnds } from './LooseEnds'
+import { isNotePage, noteTitle, SCRATCH } from '../notes/model'
 
 const START_TYPING = 'Start typing…'
 
 /** What an empty day says when it isn't focused. Focused, every blank line says "Start typing…". */
 function placeholderFor(date: ISODate, today: ISODate): string {
+  if (date === SCRATCH) return 'Type or paste anything'
+  if (isNotePage(date)) return 'Add a line'
   const delta = diffDays(today, date)
   if (delta === 0) return START_TYPING
   if (delta > 0) return 'Nothing planned'
@@ -39,7 +42,7 @@ const GhostRow = memo(function GhostRow({ date, today, empty }: { date: ISODate;
         suppressContentEditableWarning
         spellCheck
         role="textbox"
-        aria-label={`New line for ${longDate(date)}`}
+        aria-label={`New line for ${isNotePage(date) ? noteTitle(date) : longDate(date)}`}
         data-editable-id={id}
         data-placeholder={placeholderFor(date, today)}
         data-placeholder-focus={START_TYPING}
@@ -71,6 +74,45 @@ export const DaySection = memo(function DaySection({
   const classes = ['day', `is-${variant}`]
   if (delta === 0) classes.push('is-today')
   if (delta < 0) classes.push('is-past')
+
+  // PROTOTYPE (notes/): scratch and a starred note are pages too, without a date to show.
+  if (isNotePage(date)) {
+    const scratch = date === SCRATCH
+    const keep = (e: React.MouseEvent): void => e.preventDefault()
+    return (
+      <section className={`day is-${variant} is-note ${scratch ? 'is-scratch' : 'is-starred'}`} data-day={date} aria-label={noteTitle(date)}>
+        <header className="day-head">
+          {scratch ? <h2 className="day-title">Scratch</h2> : <span className="note-kicker">★ Starred</span>}
+          <span className="note-actions">
+            {scratch && rows.length > 0 && (
+              <button onMouseDown={keep} onClick={() => controller.execute('notes.clear')}>
+                Clear
+              </button>
+            )}
+            {(!scratch || rows.length > 0) && (
+              <button
+                onMouseDown={keep}
+                onClick={() => {
+                  // The button stars its own page, wherever the caret is.
+                  controller.focusText(ghostId(date), 0)
+                  controller.execute('notes.star')
+                }}
+                title="⇧⌘S"
+              >
+                {scratch ? 'Star' : 'Unstar'}
+              </button>
+            )}
+          </span>
+        </header>
+        <div className="rows">
+          {rows.map((row) => (
+            <ItemRow key={row.id} id={row.id} depth={row.depth} date={date} />
+          ))}
+          <GhostRow date={date} today={today} empty={rows.length === 0} />
+        </div>
+      </section>
+    )
+  }
 
   const openDay = (): void => {
     if (variant === 'week') void controller.navigate({ mode: 'day', date })

@@ -6,6 +6,8 @@ import { itemStore } from '../store/items'
 import { syncState } from '../store/sync'
 import { dismissToast, ui, useStore } from '../store/ui'
 import { Chevron } from './Calendar'
+import { isNotePage, notes } from '../notes/model'
+import { StarIcon } from '../notes/icons'
 
 /** Quiet top bar: day navigation on the left, view switch and search on the right. */
 export function Header() {
@@ -14,7 +16,11 @@ export function Header() {
 
   // A day's own heading names it; the bar gives the month, like the calendar.
   let title: React.ReactNode
+  const variant = useStore(notes, (s) => s.variant)
+  const marginOpen = useStore(notes, (s) => s.marginOpen)
+  const onNote = view.mode === 'day' && isNotePage(view.date)
   if (view.mode === 'week') title = 'This week'
+  else if (onNote) title = 'Notes'
   else {
     const { year, month } = parts(view.date)
     title = (
@@ -50,6 +56,18 @@ export function Header() {
           </button>
         </div>
         <SyncIndicator />
+        {/* PROTOTYPE (notes/): the one new control. Margin and Pad open on ⌘E; Pages lists the notes. */}
+        {variant !== 'off' && (
+          <button
+            className={`icon-btn${onNote || marginOpen ? ' is-on' : ''}`}
+            onMouseDown={keep}
+            onClick={() => controller.execute(variant === 'pages' ? 'notes.list' : 'notes.scratch')}
+            title={variant === 'pages' ? 'Notes  ⇧⌘E' : 'Notes  ⌘E'}
+            aria-label="Notes"
+          >
+            <StarIcon filled={onNote || marginOpen} />
+          </button>
+        )}
         <button className="icon-btn" onMouseDown={keep} onClick={() => controller.execute('search.open')} title="Search  ⌘F" aria-label="Search">
           <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden>
             <circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" strokeWidth="1.5" />
