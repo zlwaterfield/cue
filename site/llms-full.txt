@@ -32,7 +32,8 @@ ready before I’ve finished thinking of what to write.
 ## What makes it different
 
 **The day is the only folder.** Things belong to dates, not projects. No tags, priorities or
-dashboards. Whatever didn’t get done moves to tomorrow with ⌘D.
+dashboards. Whatever didn’t get done moves to tomorrow with ⌘D. Beside the days sit one
+scratch page and a few notes you keep, and that’s all: Cue isn’t a notebook.
 
 **Keyboard first.** Tab nests, ⌘↩ completes, and ⌘K does everything else, including dates
 like “move to fri”. The mouse still works.
@@ -173,13 +174,19 @@ items). A keystroke to a rendered frame is 1.5 ms, p95 3.7 ms. Searching all 36,
 takes 0.5 ms. Every number is checked against a budget by `pnpm bench`, on the real packaged
 app.
 
-**What doesn’t it do?** No projects, tags, priorities, folders, reminders, recurring tasks,
-attachments, collaboration, dashboards or AI writing your notes. That’s on purpose.
+**Can I keep a note that isn’t about a day?** A little. Beside the days there’s one scratch
+page, for something you’ll paste, edit and probably throw away, and a few starred notes you
+keep and add to, like a reading list. They’re pages like any day. That’s all there is: Cue
+isn’t a notebook, and there are no folders to file notes in.
+
+**What doesn’t it do?** No projects, tags, priorities, folders, a notebook, reminders,
+recurring tasks, attachments, collaboration, dashboards or AI writing your notes. That’s on
+purpose.
 
 **What are the shortcuts?** ⌘K command palette, ⌘F search, ⌘1/⌘2/⌘3 today/tomorrow/this
-week, ⌘[ and ⌘] previous and next day, ⌘J go to date, ⌘N new item, ⌘↩ complete, ⇧⌘↩ toggle
-bullet and to-do, Tab and ⇧Tab indent and outdent, ⌥↑ and ⌥↓ move, ⌘D move to tomorrow,
-⇧⌘M move to a date, ⌘Z undo, and ⌘/ for the whole list.
+week, ⌘4 notes, ⌘[ and ⌘] previous and next day, ⌘J go to date, ⌘N new item, ⌘↩ complete,
+⇧⌘↩ toggle bullet and to-do, Tab and ⇧Tab indent and outdent, ⌥↑ and ⌥↓ move, ⌘D move to
+tomorrow, ⇧⌘M move to a date, ⌘Z undo, and ⌘/ for the whole list.
 
 ---
 

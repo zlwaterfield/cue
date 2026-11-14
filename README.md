@@ -19,6 +19,7 @@
 
 Every day in Cue is a page of text, bullets and to-dos. Open the app and start typing into
 today. There are no projects, tags or priorities: just days, and what you wrote on them.
+Beside the days sit one scratch page and a few notes you keep; Cue isn't a notebook.
 
 - **The day is the only folder.** Things belong to dates. What didn't get done moves to
   tomorrow with ⌘D.
@@ -215,8 +216,8 @@ making what's already here faster and more dependable. Nothing below is promised
 
 **Before the stable 1.0:** a stable storage format with tested migrations.
 
-**Not planned:** projects, tags, priorities, reminders, recurring tasks, attachments,
-collaboration, AI built into the app and dashboards.
+**Not planned:** projects, tags, priorities, folders or a notebook for notes, reminders,
+recurring tasks, attachments, collaboration, AI built into the app and dashboards.
 
 ## Contributing
 
