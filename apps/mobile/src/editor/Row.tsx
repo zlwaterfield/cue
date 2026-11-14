@@ -13,7 +13,7 @@ import { focusAt } from '../../modules/cue-native'
 import { useStore } from '../core/store'
 import { itemStore } from '../core/app'
 import { showToast, ui } from '../core/ui'
-import { colors, metrics, useColors } from '../ui/theme'
+import { colors, metrics, useColors, useColumn } from '../ui/theme'
 import { editor } from './controller'
 import { beginDrag, drag, dragTop, resetDrag, scrollState, updateDrag } from './drag'
 import { useItem } from './hooks'
@@ -126,7 +126,9 @@ export const Row = memo(function Row({
   const c = useColors()
   const focused = useStore(ui, (s) => s.focusedId === id)
   const today = useStore(ui, (s) => s.today)
+  // A line swiped away leaves the window; deleting arms at a share of the line's own width.
   const { width } = useWindowDimensions()
+  const lineWidth = useColumn()
   const layout = editor.layout(date)
   const geometry = layout.geometry
   const input = useRef<TextInputInstance | null>(null)
@@ -259,7 +261,7 @@ export const Row = memo(function Row({
 
   /* -------------------------------------------------------------- Swipe */
 
-  const deleteAt = width * SWIPE_DELETE_FRACTION
+  const deleteAt = lineWidth * SWIPE_DELETE_FRACTION
   const swipeGesture = usePanGesture({
     enabled: !ghost && !focused,
     activeOffsetX: [-14, 14],

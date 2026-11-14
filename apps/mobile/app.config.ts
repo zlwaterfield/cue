@@ -21,6 +21,9 @@ const config: ExpoConfig = {
   scheme: 'cue',
   // The same version as the Mac app. The App Store only takes numbers here.
   version: '1.0.0',
+  // Upright on an iPhone. A resizable window ignores this from iOS 27: unfolded, iPhone Duo
+  // gives Cue its whole inner display, wider than it is tall, and the page keeps to one
+  // column however wide the window gets (`useColumn` in src/ui/theme.ts).
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
   icon: './assets/icon.png',

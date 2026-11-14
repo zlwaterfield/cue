@@ -9,7 +9,7 @@ import { isEmailAddress, NOT_AN_EMAIL } from '@shared/text'
 import { appleSignIn, sync } from '../core/app'
 import { useStore } from '../core/store'
 import { lockup } from '../ui/lockup'
-import { metrics, useColors } from '../ui/theme'
+import { column, metrics, useColors } from '../ui/theme'
 
 /**
  * Turning sync on, from Settings. Sign-in is the Mac's: Sign in with Apple, or an email
@@ -250,6 +250,8 @@ const styles = StyleSheet.create({
     flex: 1
   },
   screen: {
+    // Kept to the page's column in a wide window.
+    ...column,
     flexGrow: 1,
     paddingTop: 14,
     paddingBottom: 24,

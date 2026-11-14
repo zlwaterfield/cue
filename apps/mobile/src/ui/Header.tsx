@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler'
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
@@ -15,7 +15,7 @@ import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
 import { NoteStrip } from './NoteStrip'
-import { metrics, useColors } from './theme'
+import { column, metrics, useColors, useColumn } from './theme'
 
 const DAY_MAX_FONT_SCALE = 1.3
 const DAY_CIRCLE = 34
@@ -24,7 +24,8 @@ const ICON_SIZE = 21
 
 /**
  * The week strip's side margins: its seven days share the rest equally, and the first and
- * last day circles land on the screen's outer edge (`metrics.gutter`).
+ * last day circles land on the page's outer edge (`metrics.gutter`). `width` is the page's
+ * column, which is the screen's width on an iPhone held upright.
  */
 const stripInset = (width: number): number => ((metrics.gutter + DAY_CIRCLE / 2 - width / 14) * 7) / 6
 
@@ -53,49 +54,52 @@ export function Header() {
 
   return (
     <View style={[styles.header, { backgroundColor: c.bg }]}>
-      <View style={styles.bar}>
-        {note ? (
-          <Text style={[styles.month, styles.monthText, { color: c.text }]} numberOfLines={1} maxFontSizeMultiplier={1.4} accessibilityRole="header">
-            Notes
-          </Text>
-        ) : (
-          <Pressable
-            onPress={() => router.push('/calendar')}
-            accessibilityRole="button"
-            accessibilityLabel={`${MONTHS[month - 1]} ${year}`}
-            accessibilityHint="Opens the calendar"
-            style={styles.month}
-            hitSlop={8}
-          >
-            {/* At the largest text sizes the month gives way, so the buttons stay on screen. */}
-            <Text style={[styles.monthText, { color: c.text }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
-              {MONTHS[month - 1]}
-              {showYear && <Text style={{ color: c.text3 }}> {year}</Text>}
+      {/* Over the page's column, so the month starts where the markers do in a wide window too. */}
+      <View style={column}>
+        <View style={styles.bar}>
+          {note ? (
+            <Text style={[styles.month, styles.monthText, { color: c.text }]} numberOfLines={1} maxFontSizeMultiplier={1.4} accessibilityRole="header">
+              Notes
             </Text>
-            <SymbolView name="chevron.down" size={12} weight="semibold" tintColor={c.text3} />
-          </Pressable>
-        )}
-        <View style={styles.actions}>
-          <SyncIndicator compact={!isToday} />
-          {!isToday && (
+          ) : (
             <Pressable
-              onPress={() => void editor.goTo(today)}
-              style={[styles.todayPill, { borderColor: c.lineStrong }]}
+              onPress={() => router.push('/calendar')}
               accessibilityRole="button"
-              hitSlop={6}
+              accessibilityLabel={`${MONTHS[month - 1]} ${year}`}
+              accessibilityHint="Opens the calendar"
+              style={styles.month}
+              hitSlop={8}
             >
-              <Text style={[styles.todayText, { color: c.text }]} maxFontSizeMultiplier={1.3}>
-                Today
+              {/* At the largest text sizes the month gives way, so the buttons stay on screen. */}
+              <Text style={[styles.monthText, { color: c.text }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+                {MONTHS[month - 1]}
+                {showYear && <Text style={{ color: c.text3 }}> {year}</Text>}
               </Text>
+              <SymbolView name="chevron.down" size={12} weight="semibold" tintColor={c.text3} />
             </Pressable>
           )}
-          <IconButton icon={note ? 'note.text' : 'note'} label="Notes" active={note} onPress={() => void editor.toggleNotes()} />
-          <IconButton icon="link" label="Links" onPress={() => router.push('/links')} />
-          <IconButton icon="magnifyingglass" label="Search" onPress={() => router.push('/search')} />
-          <IconButton icon="person.crop.circle" label="Settings" onPress={() => router.push('/settings')} />
+          <View style={styles.actions}>
+            <SyncIndicator compact={!isToday} />
+            {!isToday && (
+              <Pressable
+                onPress={() => void editor.goTo(today)}
+                style={[styles.todayPill, { borderColor: c.lineStrong }]}
+                accessibilityRole="button"
+                hitSlop={6}
+              >
+                <Text style={[styles.todayText, { color: c.text }]} maxFontSizeMultiplier={1.3}>
+                  Today
+                </Text>
+              </Pressable>
+            )}
+            <IconButton icon={note ? 'note.text' : 'note'} label="Notes" active={note} onPress={() => void editor.toggleNotes()} />
+            <IconButton icon="link" label="Links" onPress={() => router.push('/links')} />
+            <IconButton icon="magnifyingglass" label="Search" onPress={() => router.push('/search')} />
+            <IconButton icon="person.crop.circle" label="Settings" onPress={() => router.push('/settings')} />
+          </View>
         </View>
+        {note ? <NoteStrip current={date} /> : <WeekStrip date={date} today={today} />}
       </View>
-      {note ? <NoteStrip current={date} /> : <WeekStrip date={date} today={today} />}
     </View>
   )
 }
@@ -139,7 +143,7 @@ function WeekStrip({ date, today }: { date: ISODate; today: ISODate }) {
   const start = startOfWeek(date, weekStartsOn)
   const days = useMemo(() => dateRange(start, addDays(start, 6)), [start])
   const marked = useMarked(days)
-  const { width } = useWindowDimensions()
+  const width = useColumn()
   const offset = useSharedValue(0)
 
   useEffect(() => {

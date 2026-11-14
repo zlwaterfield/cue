@@ -43,6 +43,11 @@ and `screens/07-dark.png` are what the dark version of it is derived from
 - App previews are optional and there are none. They are video, 886 × 1920 at 6.3".
 - The app's `supportsTablet` is on, so App Store Connect also asks for 13" iPad screenshots.
   There are none yet.
+- From April 2027, App Store Connect requires iPhone Duo screenshots with every app
+  submitted, and a product page that has them gets a badge saying the app is optimized for
+  iPhone Duo ([Apple, October 2026](https://developer.apple.com/news/)). There are none
+  yet. Take them on the iPhone Duo simulator in Xcode 27.1, at the size the Screenshot
+  specifications page gives for iPhone Duo.
 
 ## Creative assets
 

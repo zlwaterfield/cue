@@ -31,6 +31,13 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
   [`../../core/zip.ts`](../../core/zip.ts) rather than a dependency. They are built in
   the cache directory, which iOS may empty whenever it likes: the copy that matters is the
   one you saved or sent.
+- **iPhone Duo, unfolded, keeps one column.** On the inner display, and in any window wider
+  than 680 pt (an iPad, iPhone Mirroring), the header, the page, the toolbar, search and
+  links keep to the Mac's 680 pt column, centred, instead of running lines across the
+  display. A swipe deletes at 2/3 of the line's width, not the display's. Folding or
+  unfolding resizes Cue's window while it runs, and every width is read from the window as
+  it is now, so the page lays itself out again. Cue stays upright on an iPhone; from iOS 27
+  a resizable window ignores that, so the inner display is filled either way.
 - **One day at a time**, with a week strip above it. Swipe the page (anywhere but on a
   line) for the next or previous day, tap a day to open it, swipe the strip for other weeks
   (opening on their first day, or on today in this week), or tap the month for a calendar
@@ -122,6 +129,11 @@ button again, goes back to the day. What a note is lives in `../../core/notes.ts
 
 You'll need Xcode 26 with an iOS 26 simulator, Node 24 and pnpm. You'll also need a sync
 server: the local Supabase stack from [docs/SYNC.md](../../docs/SYNC.md) works.
+
+For iPhone Duo you'll need Xcode 27.1, which has the iPhone Duo simulator. Fold and unfold
+it to see the window resize. Only a build made with the iOS 27 SDK or later resizes there:
+one made with Xcode 26 opens unfolded as a phone-sized window in the middle of the inner
+display.
 
 ```sh
 cd apps/mobile
@@ -226,7 +238,7 @@ src/app/        screens (Expo Router): day, sign-in, search, links, move, calend
 src/app/settings/  the settings sheet: an index that pushes into a category
 src/core/       database adapter (expo-sqlite), optional sync lifecycle, app state, link previews, share inbox, export
 src/editor/     the day page: layout, rows, drag, swipe, toolbar, editing controller
-src/ui/         header and week strip, calendar, toast, theme (brand tokens)
+src/ui/         header and week strip, calendar, toast, theme (brand tokens, the page's column)
 modules/        cue-native: caret-at-touch, background time, the share inbox (Swift)
 plugins/        share-extension: Cue in the share sheet (config plugin and Swift)
 e2e/            Maestro flows

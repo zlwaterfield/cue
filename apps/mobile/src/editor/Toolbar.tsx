@@ -6,12 +6,13 @@ import { router } from 'expo-router'
 import { SymbolView, type SFSymbol } from 'expo-symbols'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
-import { useColors } from '../ui/theme'
+import { useColors, useColumn } from '../ui/theme'
 import { editor } from './controller'
 import { useItem } from './hooks'
 
 const BAR_HEIGHT = 46
 const BAR_GAP = 6
+const BAR_MARGIN = 8
 /** Room the bar takes above the keyboard; the page and the toast keep clear of it. */
 export const TOOLBAR_SPACE = BAR_HEIGHT + BAR_GAP
 
@@ -23,6 +24,8 @@ export const TOOLBAR_SPACE = BAR_HEIGHT + BAR_GAP
 export function Toolbar() {
   const c = useColors()
   const insets = useSafeAreaInsets()
+  // As wide as the page, less a margin each side: the screen on an iPhone held upright.
+  const width = useColumn() - 2 * BAR_MARGIN
   // Focus passes through nothing for a moment when it moves between lines; the bar keeps
   // showing the line it had rather than flickering.
   const current = useStore(ui, (s) => s.focusedId)
@@ -36,9 +39,13 @@ export function Toolbar() {
 
   return (
     // Rides on top of the keyboard, following it as it opens, closes, and is dragged away.
-    <KeyboardStickyView style={styles.sticky} offset={{ closed: -insets.bottom, opened: 0 }} pointerEvents="box-none">
+    <KeyboardStickyView
+      style={[styles.sticky, { paddingLeft: insets.left, paddingRight: insets.right }]}
+      offset={{ closed: -insets.bottom, opened: 0 }}
+      pointerEvents="box-none"
+    >
       {live && (
-        <View style={[styles.bar, { borderColor: c.line, backgroundColor: c.bgElevated }]}>
+        <View style={[styles.bar, { width, borderColor: c.line, backgroundColor: c.bgElevated }]}>
           <Tool id="todo" icon="checkmark.square" label="To-do" active={type === 'todo'} onPress={() => focused && editor.toggleType(focused, 'todo')} />
           <Tool id="bullet" icon="list.bullet" label="Bullet" active={type === 'bullet'} onPress={() => focused && editor.toggleType(focused, 'bullet')} />
           <View style={[styles.divider, { backgroundColor: c.line }]} />
@@ -106,7 +113,7 @@ const styles = StyleSheet.create({
   },
   bar: {
     height: BAR_HEIGHT,
-    marginHorizontal: 8,
+    alignSelf: 'center',
     marginBottom: BAR_GAP,
     flexDirection: 'row',
     alignItems: 'center',

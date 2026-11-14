@@ -76,7 +76,8 @@ and [docs/MCP.md](docs/MCP.md).
 box to check it, swipe to complete or send to tomorrow, and long-press to drag. Like the
 Mac, it needs no account; turn on sync to share notes with your Mac. Share a link from any app to add it to today, and a line
 that's only a link shows its page. The link button lists every link, like ⌘L on the Mac, and
-the notes button opens scratch and your starred notes. See [apps/mobile/README.md](apps/mobile/README.md).
+the notes button opens scratch and your starred notes. Unfold an iPhone Duo and the page keeps
+to one column in the middle of the display, as on the Mac. See [apps/mobile/README.md](apps/mobile/README.md).
 
 **Feel.** One calm column in monochrome graphite, system typography, and light and dark
 appearance. The caret is the brand: it holds still while you type and rests after ten idle

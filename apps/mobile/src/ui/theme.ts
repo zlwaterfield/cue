@@ -1,4 +1,5 @@
-import { useColorScheme } from 'react-native'
+import { useColorScheme, useWindowDimensions } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 /**
  * Brand kit v1.0 (brand/tokens): monochrome graphite, no hue. These must match
@@ -62,8 +63,29 @@ export const metrics = {
   marker: 28,
   indent: 28,
   gutter: 20,
+  /** The page's widest, gutters included: the Mac's column. */
   column: 680
 }
+
+/**
+ * How wide the page is. On an iPhone held upright it's the window; in a wider window (iPhone
+ * Duo unfolded, an iPad, an iPhone on its side) the page keeps the Mac's one column,
+ * centred, rather than running lines across the whole display. Folding or unfolding iPhone
+ * Duo resizes the window while Cue runs, so this follows the window rather than being read
+ * once.
+ */
+export function useColumn(): number {
+  const { width } = useWindowDimensions()
+  const { left, right } = useSafeAreaInsets()
+  return Math.min(width - left - right, metrics.column)
+}
+
+/** Holds what's in it to the page's column, centred in a wider window. */
+export const column = {
+  width: '100%',
+  maxWidth: metrics.column,
+  alignSelf: 'center'
+} as const
 
 export function useColors(): Colors {
   return useColorScheme() === 'dark' ? dark : light

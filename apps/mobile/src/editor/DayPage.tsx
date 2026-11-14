@@ -23,7 +23,7 @@ import type { ISODate } from '@shared/types'
 import { itemStore } from '../core/app'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
-import { metrics, useColors } from '../ui/theme'
+import { column, metrics, useColors } from '../ui/theme'
 import { editor } from './controller'
 import { drag, scrollState, updateDrag } from './drag'
 import { TOOLBAR_SPACE } from './Toolbar'
@@ -236,55 +236,59 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
       keyboardShouldPersistTaps="handled"
       contentInsetAdjustmentBehavior="never"
     >
-      <Turn date={date} shift={shift}>
-        <View style={[styles.head, note && !scratch && styles.starredHead]}>
-          <View style={styles.titleRow}>
-            {title ? (
-              <Text style={[styles.title, { color: c.text }]} accessibilityRole="header" testID="day-title" maxFontSizeMultiplier={1.4}>
-                {title}
+      {/* The scroll view spans the window, so a page scrolls from its margins too; what's on
+          it keeps to the column. */}
+      <View style={[column, styles.page]}>
+        <Turn date={date} shift={shift}>
+          <View style={[styles.head, note && !scratch && styles.starredHead]}>
+            <View style={styles.titleRow}>
+              {title ? (
+                <Text style={[styles.title, { color: c.text }]} accessibilityRole="header" testID="day-title" maxFontSizeMultiplier={1.4}>
+                  {title}
+                </Text>
+              ) : (
+                <Text style={[styles.kind, { color: c.text2 }]} maxFontSizeMultiplier={1.6}>
+                  ★ Starred
+                </Text>
+              )}
+              {note && !empty && (
+                <View style={styles.actions}>
+                  <NoteAction label="Share" onPress={() => editor.sharePage(date)} />
+                  <NoteAction label={scratch ? 'Clear' : 'Delete'} onPress={() => editor.discardNote(date)} />
+                </View>
+              )}
+            </View>
+            {subtitle ? (
+              <Text style={[styles.subtitle, { color: c.text2 }]} maxFontSizeMultiplier={2}>
+                {subtitle}
               </Text>
-            ) : (
-              <Text style={[styles.kind, { color: c.text2 }]} maxFontSizeMultiplier={1.6}>
-                ★ Starred
-              </Text>
-            )}
-            {note && !empty && (
-              <View style={styles.actions}>
-                <NoteAction label="Share" onPress={() => editor.sharePage(date)} />
-                <NoteAction label={scratch ? 'Clear' : 'Delete'} onPress={() => editor.discardNote(date)} />
-              </View>
-            )}
+            ) : null}
           </View>
-          {subtitle ? (
-            <Text style={[styles.subtitle, { color: c.text2 }]} maxFontSizeMultiplier={2}>
-              {subtitle}
-            </Text>
-          ) : null}
-        </View>
-      </Turn>
-      {date === today && <LooseEnds today={today} />}
-      <Animated.View
-        style={[styles.rows, container]}
-        onLayout={(e) => (contentTop.current = e.nativeEvent.layout.y)}
-        // Views are in creation order; VoiceOver reads them in the day's order.
-        experimental_accessibilityOrder={waiting ? undefined : accessibilityOrder}
-      >
-        <SwipeUnderlay geometry={geometry} />
-        {waiting ? (
-          <Text style={[styles.waiting, { color: c.text3 }]}>Getting your notes…</Text>
-        ) : (
-          loaded && order.map((id) => <Row key={id} id={id} date={date} depth={depths.get(id) ?? 0} empty={empty} title={note && !scratch && id === (rows[0]?.id ?? ghost)} />)
-        )}
-      </Animated.View>
-      {/* Tapping the open space below the last line starts a new one. */}
-      <Turn date={date} shift={shift}>
-        <Pressable
-          style={[styles.below, { minHeight: screenHeight * 0.45 }]}
-          onPress={() => editor.focus(editor.ghostId(date), 0)}
-          disabled={waiting}
-          accessibilityLabel="New line"
-        />
-      </Turn>
+        </Turn>
+        {date === today && <LooseEnds today={today} />}
+        <Animated.View
+          style={[styles.rows, container]}
+          onLayout={(e) => (contentTop.current = e.nativeEvent.layout.y)}
+          // Views are in creation order; VoiceOver reads them in the day's order.
+          experimental_accessibilityOrder={waiting ? undefined : accessibilityOrder}
+        >
+          <SwipeUnderlay geometry={geometry} />
+          {waiting ? (
+            <Text style={[styles.waiting, { color: c.text3 }]}>Getting your notes…</Text>
+          ) : (
+            loaded && order.map((id) => <Row key={id} id={id} date={date} depth={depths.get(id) ?? 0} empty={empty} title={note && !scratch && id === (rows[0]?.id ?? ghost)} />)
+          )}
+        </Animated.View>
+        {/* Tapping the open space below the last line starts a new one. */}
+        <Turn date={date} shift={shift}>
+          <Pressable
+            style={[styles.below, { minHeight: screenHeight * 0.45 }]}
+            onPress={() => editor.focus(editor.ghostId(date), 0)}
+            disabled={waiting}
+            accessibilityLabel="New line"
+          />
+        </Turn>
+      </View>
     </AnimatedScrollView>
     </View>
   )
@@ -307,6 +311,9 @@ const styles = StyleSheet.create({
     flex: 1
   },
   content: {
+    flexGrow: 1
+  },
+  page: {
     flexGrow: 1
   },
   below: {

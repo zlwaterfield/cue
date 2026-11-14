@@ -64,7 +64,9 @@ export default function Day() {
   }, [])
 
   return (
-    <View style={[styles.screen, { backgroundColor: c.bg, paddingTop: insets.top }]}>
+    // Clear of the status bar and, when the window is wider than it is tall, the sides it
+    // can be on.
+    <View style={[styles.screen, { backgroundColor: c.bg, paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right }]}>
       <Header />
       {ready && <DayPage key={date} date={date} />}
       <Toolbar />

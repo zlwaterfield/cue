@@ -10,7 +10,7 @@ import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
 import { Marker } from '../editor/Marker'
-import { metrics, useColors } from '../ui/theme'
+import { column, metrics, useColors } from '../ui/theme'
 
 /** After the first character, search again once typing pauses this long (the Mac palette's wait). */
 const SETTLE = 30
@@ -145,8 +145,10 @@ function Highlighted({ text, terms, mark }: { text: string; terms: string[]; mar
 }
 
 const styles = StyleSheet.create({
+  // On the page's column in a wide window, like the day it opens onto.
   screen: {
-    flex: 1
+    flex: 1,
+    ...column
   },
   bar: {
     flexDirection: 'row',
