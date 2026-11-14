@@ -2,6 +2,7 @@ import { addDays, dateRange, MONTHS, parts, startOfWeek } from '@shared/dates'
 import { controller } from '../editor/controller'
 import { itemStore } from '../store/items'
 import { ui, useStore } from '../store/ui'
+import { NoteStrip } from './NoteStrip'
 
 /**
  * PROTOTYPE — `?phone=1`. A sketch of the iPhone app's header (apps/mobile/src/ui/Header.tsx)
@@ -13,6 +14,7 @@ export function PhoneHeader() {
   const today = useStore(ui, (s) => s.today)
   const weekStartsOn = useStore(ui, (s) => s.settings.weekStartsOn)
   const onNote = view.mode === 'notes'
+  const note = view.mode === 'notes' ? view.date : null
   const date = view.mode === 'day' ? view.date : today
   const { year, month } = parts(date)
   const start = startOfWeek(date, weekStartsOn)
@@ -61,6 +63,9 @@ export function PhoneHeader() {
           </button>
         </div>
       </div>
+      {note ? (
+        <NoteStrip current={note} className="phone-notes" />
+      ) : (
       <div className="phone-week">
         {days.map((day) => {
           const selected = view.mode === 'day' ? day === view.date : !onNote && day === today
@@ -73,6 +78,7 @@ export function PhoneHeader() {
           )
         })}
       </div>
+      )}
     </header>
   )
 }

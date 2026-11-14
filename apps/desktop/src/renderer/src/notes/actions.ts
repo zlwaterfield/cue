@@ -25,7 +25,7 @@ let returnTo: SelectionSnapshot | null = null
 /** ⌘E: to scratch from anywhere, ready to type; again, back to where it was pressed. */
 function toggleScratch(): void {
   const view = ui.get().view
-  if (view.mode === 'notes' && currentPage() === SCRATCH) {
+  if (view.mode === 'notes' && view.date === SCRATCH) {
     void controller.navigate(notes.get().back ?? { mode: 'week' }, { focus: returnTo })
     return
   }
@@ -33,12 +33,13 @@ function toggleScratch(): void {
     notes.set({ back: view })
     returnTo = controller.snapshot()
   }
-  void controller.navigate({ mode: 'notes' }, { focus: { id: ghostId(SCRATCH), start: 0 } })
+  void controller.navigate({ mode: 'notes', date: SCRATCH }, { focus: { id: ghostId(SCRATCH), start: 0 } })
 }
 
 /** ⇧⌘S: scratch becomes a starred note, named by its first line, and scratch is empty again. */
 async function star(): Promise<void> {
-  if (ui.get().view.mode !== 'notes' || currentPage() !== SCRATCH) {
+  const view = ui.get().view
+  if (view.mode !== 'notes' || view.date !== SCRATCH) {
     showToast('Star keeps what’s in scratch. ⌘E opens it')
     return
   }
@@ -58,11 +59,12 @@ async function star(): Promise<void> {
         rows.map((row) => row.id),
         to
       )
-      // The caret waits at the end of the name, in case it wants changing.
-      return { id: first, start: tx.get(first)!.text.length }
+      return null
     },
     { before }
   )
+  // The note opens with the caret at the end of its name, in case it wants changing.
+  await controller.navigate({ mode: 'notes', date: to }, { focus: { id: first, start: itemStore.get(first)!.text.length } })
   controller.toastUndo(`Starred “${noteTitle(to)}”`)
 }
 
@@ -78,8 +80,10 @@ function discard(): void {
   const title = noteTitle(page)
   controller.commit(page === SCRATCH ? 'Clear scratch' : 'Delete note', (tx) => {
     ops.remove(tx, ids)
-    return { id: ghostId(SCRATCH), start: 0 }
+    return page === SCRATCH ? { id: ghostId(SCRATCH), start: 0 } : null
   })
+  // With the note gone, scratch is the page left to show.
+  if (page !== SCRATCH) void controller.navigate({ mode: 'notes', date: SCRATCH }, { focus: { id: ghostId(SCRATCH), start: 0 } })
   controller.toastUndo(page === SCRATCH ? 'Scratch cleared' : `Deleted “${title}”`)
 }
 
@@ -96,14 +100,16 @@ async function copyPage(): Promise<void> {
   showToast(`Copied ${name}`)
 }
 
-/** ⌘[ and ⌘] on the Notes page: the caret steps to the note above or below. */
+/** Open a note with the caret on its blank last line, ready for more. */
+export function openNote(date: ISODate): void {
+  void controller.navigate({ mode: 'notes', date }, { focus: { id: ghostId(date), start: 0 } })
+}
+
+/** ⌘[ and ⌘] on a note: the one before or after it. */
 export function stepNote(direction: -1 | 1): void {
   const pages = notePages()
   const next = pages[pages.indexOf(currentPage()) + direction]
-  if (!next) return
-  const first = itemStore.outline(next)[0]
-  if (first) controller.focusEnd(first.id)
-  else controller.focusText(ghostId(next), 0)
+  if (next) openNote(next)
 }
 
 export function runNotesCommand(id: string): void {

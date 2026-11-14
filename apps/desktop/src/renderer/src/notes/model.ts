@@ -6,8 +6,8 @@ import { itemStore } from '../store/items'
 import { Store, useStore, type View } from '../store/ui'
 
 /**
- * PROTOTYPE — Notes: scratch, and the few notes starred to keep, on one page beside Today
- * and Week. Not for merging as is.
+ * PROTOTYPE — Notes: scratch, and the few notes starred to keep, one page at a time, beside
+ * Today and Week. Not for merging as is.
  *
  * A note is a page of ordinary lines, so the whole editor, undo, search and export work on
  * it untouched. To get there without a schema change, a note's page borrows a date nobody
@@ -34,9 +34,11 @@ export interface NotesState {
   known: ISODate[]
   /** Where ⌘E came from, to go back to. */
   back: View | null
+  /** The note last open, which ⌘4 opens again. */
+  last: ISODate
 }
 
-export const notes = new Store<NotesState>({ known: [], back: null })
+export const notes = new Store<NotesState>({ known: [], back: null, last: SCRATCH })
 
 /** Load scratch and every starred page, so they're on hand like the week is. */
 export async function loadNotes(): Promise<void> {
@@ -55,7 +57,7 @@ export function notePages(): ISODate[] {
   return pagesCache
 }
 
-/** The Notes page's sections, following every star and delete. */
+/** The notes there are to switch between, following every star and delete. */
 export function useNotePages(): ISODate[] {
   const known = useStore(notes, (s) => s.known)
   const subscribe = useCallback(
@@ -86,4 +88,29 @@ export function noteTitle(date: ISODate): string {
 
 export function pageLabel(date: ISODate): string {
   return date === SCRATCH ? 'Scratch' : `★ ${noteTitle(date)}`
+}
+
+/** A note's name, following edits to its first line. */
+export function useNoteTitle(date: ISODate): string {
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      let offItem = (): void => {}
+      const watch = (): void => {
+        offItem()
+        const first = itemStore.outline(date)[0]
+        offItem = first ? itemStore.subscribeItem(first.id, listener) : () => {}
+      }
+      watch()
+      const offDate = itemStore.subscribeDate(date, () => {
+        watch()
+        listener()
+      })
+      return () => {
+        offDate()
+        offItem()
+      }
+    },
+    [date]
+  )
+  return useSyncExternalStore(subscribe, () => noteTitle(date))
 }

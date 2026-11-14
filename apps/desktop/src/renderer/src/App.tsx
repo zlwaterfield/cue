@@ -7,15 +7,15 @@ import { LinksPanel } from './ui/Links'
 import { MovePanel } from './ui/MoveTo'
 import { Palette } from './ui/Palette'
 import { AboutSheet, SettingsSheet, ShortcutsSheet } from './ui/Sheets'
-import { phoneSketch, useNotePages } from './notes/model'
+import { phoneSketch } from './notes/model'
+import { NoteStrip } from './notes/NoteStrip'
 import { PhoneHeader } from './notes/PhoneSketch'
 
 export function App() {
   const view = useStore(ui, (s) => s.view)
   const today = useStore(ui, (s) => s.today)
   const weekStartsOn = useStore(ui, (s) => s.settings.weekStartsOn)
-  const notePages = useNotePages()
-  const dates = view.mode === 'week' ? weekViewDates(today, weekStartsOn) : view.mode === 'notes' ? notePages : [view.date]
+  const dates = view.mode === 'week' ? weekViewDates(today, weekStartsOn) : [view.date]
 
   // Clicking empty space never steals the caret; it just ends a block selection.
   const onBackgroundMouseDown = (e: React.MouseEvent): void => {
@@ -34,8 +34,9 @@ export function App() {
         onScroll={(e) => document.querySelector('.titlebar')?.classList.toggle('is-scrolled', e.currentTarget.scrollTop > 4)}
       >
         <div className={`column is-${view.mode}`}>
+          {view.mode === 'notes' && !phoneSketch && <NoteStrip current={view.date} />}
           {dates.map((date) => (
-            <DaySection key={date} date={date} today={today} variant={view.mode === 'day' ? 'day' : 'week'} />
+            <DaySection key={date} date={date} today={today} variant={view.mode === 'week' ? 'week' : 'day'} />
           ))}
         </div>
       </main>

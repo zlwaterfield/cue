@@ -1873,29 +1873,42 @@ kbd.is-text {
    PROTOTYPE — Notes (src/notes): scratch and the starred notes on one page.
    ===================================================================== */
 
-/* Scratch leads the page the way Today leads the week. */
-.day.is-scratch {
-  padding-top: 18px;
+/* The notes there are, above the one that's open. */
+.note-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+  padding: 14px 0 0;
+  margin-bottom: -6px;
 }
 
-.day.is-scratch .day-title {
-  font-size: 27px;
-  letter-spacing: -0.022em;
-  font-weight: 650;
+.note-strip button,
+.phone-notes button {
+  border: 0;
+  background: none;
+  padding: 2px 0;
+  max-width: 220px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 120ms ease;
 }
 
-.day.is-scratch .day-head {
-  margin-bottom: 10px;
+.note-strip button:hover {
+  color: var(--text);
+}
+
+.note-strip button.is-active,
+.phone-notes button.is-active {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .day.is-scratch .day-sub {
   font-size: 14px;
-}
-
-.day.is-scratch .row {
-  --row-font: 15px;
-  --row-line: 24px;
-  --row-pad: 3px;
 }
 
 .note-actions {
@@ -1940,27 +1953,28 @@ kbd.is-text {
 .day.is-starred .note-actions {
   position: absolute;
   right: 0;
-  top: 5px;
+  top: 12px;
   z-index: 1;
 }
 
 .day.is-starred .rows > .row:first-child {
-  --row-font: 17px;
-  --row-line: 26px;
-  margin-bottom: 2px;
+  --row-font: 27px;
+  --row-line: 36px;
+  --row-pad: 2px;
+  margin-bottom: 8px;
 }
 
 .day.is-starred .rows > .row:first-child .text {
   font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: -0.012em;
+  font-weight: 650;
+  letter-spacing: -0.022em;
   padding-right: 110px;
 }
 
 .day.is-starred .rows > .row.is-text:first-child .marker::before {
   content: '★';
-  font-size: 11px;
-  margin-left: 3px;
+  font-size: 12px;
+  margin-left: 2px;
   color: var(--text-3);
 }
 
@@ -2105,4 +2119,27 @@ kbd.is-text {
 .app.is-phone .note-actions button {
   opacity: 1;
   font-size: 14px;
+}
+
+.phone-notes {
+  display: flex;
+  gap: 8px;
+  padding: 10px 20px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--line);
+}
+
+.phone-notes button {
+  flex: none;
+  max-width: 170px;
+  font-size: 15px;
+  padding: 6px 13px;
+  border-radius: 17px;
+  color: var(--text-2);
+}
+
+.phone-notes button.is-active {
+  background: var(--accent);
+  color: var(--on-accent);
 }

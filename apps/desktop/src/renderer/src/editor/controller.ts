@@ -17,7 +17,7 @@ import { commandFor, isMac } from './keys'
 import * as ops from '@shared/editor/ops'
 import { Tx } from '@shared/editor/tx'
 import { revert, UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
-import { isNotePage, loadNotes, notePages, SCRATCH } from '../notes/model'
+import { isNotePage, loadNotes, notes } from '../notes/model'
 import { runNotesCommand, stepNote } from '../notes/actions'
 
 /**
@@ -89,13 +89,12 @@ class EditorController {
   /* ================================================================ View */
 
   datesFor(view: View, today = ui.get().today, settings: Settings = ui.get().settings): ISODate[] {
-    if (view.mode === 'notes') return notePages()
     return view.mode === 'week' ? weekViewDates(today, settings.weekStartsOn) : [view.date]
   }
 
   /** The view a page is shown in when something asks for that page alone. */
   viewOf(date: ISODate): View {
-    return isNotePage(date) ? { mode: 'notes' } : { mode: 'day', date }
+    return isNotePage(date) ? { mode: 'notes', date } : { mode: 'day', date }
   }
 
   visibleDates(): ISODate[] {
@@ -104,8 +103,7 @@ class EditorController {
 
   primaryDate(): ISODate {
     const { view, today } = ui.get()
-    if (view.mode === 'notes') return SCRATCH
-    return view.mode === 'day' ? view.date : today
+    return view.mode === 'week' ? today : view.date
   }
 
   private dateOf(id: string): ISODate | undefined {
@@ -877,12 +875,12 @@ class EditorController {
         void this.navigate({ mode: 'week' })
         return
       case 'go.notes':
-        void this.navigate({ mode: 'notes' })
+        void this.navigate({ mode: 'notes', date: notes.get().last })
         return
       case 'go.prevDay':
       case 'go.nextDay': {
         const view = ui.get().view
-        // PROTOTYPE (notes/): Notes has no days to step through, so the pair steps between its notes.
+        // PROTOTYPE (notes/): on a note, the pair steps to the note before or after, as it does for days.
         if (view.mode === 'notes') {
           stepNote(id === 'go.prevDay' ? -1 : 1)
           return
@@ -1156,7 +1154,8 @@ class EditorController {
     // A later navigation started while this one was loading; it wins.
     if (seq !== this.navigationSeq) return
     const current = ui.get().view
-    const changed = current.mode !== view.mode || (view.mode === 'day' && current.mode === 'day' && current.date !== view.date)
+    const changed = current.mode !== view.mode || (view.mode !== 'week' && current.mode !== 'week' && current.date !== view.date)
+    if (view.mode === 'notes') notes.set({ last: view.date })
     flushSync(() => {
       ui.set({ view, selection: { kind: 'none' } })
     })

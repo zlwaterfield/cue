@@ -36,8 +36,8 @@ export function useStore<T, S>(store: Store<T>, selector: (state: T) => S): S {
   return useSyncExternalStore(store.subscribe, () => selector(store.get()))
 }
 
-/** `notes` (PROTOTYPE, notes/) is scratch and the starred notes on one page. */
-export type View = { mode: 'week' } | { mode: 'day'; date: ISODate } | { mode: 'notes' }
+/** `notes` (PROTOTYPE, notes/) is scratch or one starred note, a page shown like a day; `date` is that page. */
+export type View = { mode: 'week' } | { mode: 'day'; date: ISODate } | { mode: 'notes'; date: ISODate }
 
 export type Selection =
   | { kind: 'none' }
