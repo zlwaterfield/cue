@@ -145,7 +145,7 @@ pnpm bench --check    # exits non-zero if anything misses its budget
 ## Getting started
 
 Download Cue from [usecue.today/download](https://www.usecue.today/download): the Mac app for
-Apple silicon, signed and notarized, and the iPhone app on TestFlight. Both are free and work
+Apple silicon, signed and notarized, and the iPhone app on the App Store. Both are free and work
 offline with no account. Syncing them together needs an account (Sign in with Apple, or an
 emailed code), and that’s free as well.
 
