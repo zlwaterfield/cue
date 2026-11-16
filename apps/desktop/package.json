@@ -44,6 +44,7 @@
     "bench": "node scripts/bench.mjs",
     "screenshots": "node scripts/screenshots.mjs",
     "og-video": "node scripts/og-video.mjs",
+    "x-carousel": "node scripts/x-carousel.mjs",
     "video": "node scripts/launch-video.mjs"
   },
   "engines": {
