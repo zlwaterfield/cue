@@ -39,9 +39,10 @@ in two versions, and the `theme-color` metas, follow the choice too.
 > it applies rewrites, so a page at `site/mcp/index.html` would shadow the endpoint and every
 > connected assistant would start getting HTML.
 
-Two links on the downloads page point outside the repo and need a hand now and then: the Mac
-button goes to the current GitHub release (releases carry their version in the file name), and
-the iPhone button goes to the TestFlight invitation.
+Two links on the downloads page point outside the repo: the Mac button downloads the DMG from
+the current GitHub release, and the iPhone button goes to the App Store. Releases carry their
+version in the file name, so the Mac link (and the JSON-LD and `llms-full.txt` beside it) needs
+updating with each one.
 
 Everything comes from the brand kit in [`brand`](../brand): the color tokens, the
 outlined wordmark, the favicons and `site.webmanifest` (`brand/web`), and the social image

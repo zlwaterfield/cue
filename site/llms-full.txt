@@ -51,7 +51,7 @@ Cue stays small on purpose: no reminders, recurring tasks, collaboration or AI i
 
 It’s 1.0, and it’s free. Cue is my daily driver on my Mac and my iPhone, and it runs
 without any issues. The Mac app is a free download that works offline with no account, and
-the iPhone app is on TestFlight.
+the iPhone app is on the App Store.
 
 Want the same notes on both? Sign in with Apple or your email and they sync, free as well.
 That’s the only part with a server in it: a Postgres database at Supabase, and the MCP
@@ -67,14 +67,14 @@ Free on your Mac and iPhone, with no account. Turn on sync whenever you like.
 ## Cue for Mac
 
 Works offline, totally free. No account, no sign-up: open it and start typing. Apple silicon
-Mac, signed and notarized. The download is 1.0.0, a 122 MB .dmg, from
-https://github.com/zlwaterfield/cue/releases
+Mac, signed and notarized. The download is 1.0.0, a 122 MB .dmg:
+https://github.com/zlwaterfield/cue/releases/download/v1.0.0/Cue-1.0.0-arm64.dmg
 
 ## Cue for iPhone
 
 Today’s page in your pocket, on its own or synced with your Mac. The same core as the Mac
-app, built for touch. Free, no account needed, and on TestFlight:
-https://testflight.apple.com/join/KyVXdDgz
+app, built for touch. Free, no account needed, and on the App Store:
+https://apps.apple.com/us/app/cue-daily-notes/id6824752126
 
 ## Accounts and privacy
 
