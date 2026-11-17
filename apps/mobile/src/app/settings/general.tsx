@@ -3,13 +3,14 @@ import { updateSettings } from '../../core/app'
 import { useStore } from '../../core/store'
 import { ui } from '../../core/ui'
 import { Section, Segmented, SettingsScreen } from '../../ui/SettingsList'
+import { device } from '../../core/device'
 
 /** Appearance and the week: the Mac's General pane, in the same order. */
 export default function General() {
   const settings = useStore(ui, (s) => s.settings)
   return (
     <SettingsScreen title="General">
-      <Section title="Appearance" footnote="Follows your iPhone unless you choose otherwise.">
+      <Section title="Appearance" footnote={`Follows your ${device} unless you choose otherwise.`}>
         <Segmented<Settings['theme']>
           value={settings.theme}
           options={[

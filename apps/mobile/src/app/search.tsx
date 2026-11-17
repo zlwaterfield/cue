@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { router } from 'expo-router'
-import { SymbolView } from 'expo-symbols'
+import { SymbolView } from '../ui/Symbol'
 import { friendlyDate } from '@shared/dates'
 import { matchRanges, searchTerms } from '@shared/text'
 import type { ISODate, SearchResult } from '@shared/types'

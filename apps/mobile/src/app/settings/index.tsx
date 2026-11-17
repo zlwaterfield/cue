@@ -11,6 +11,7 @@ import { lockup } from '../../ui/lockup'
 import { Row, Section, styles } from '../../ui/SettingsList'
 import { SheetTitle } from '../../ui/Sheet'
 import { useColors } from '../../ui/theme'
+import { device } from '../../core/device'
 
 const THEMES = { system: 'System', light: 'Light', dark: 'Dark' } as const
 
@@ -34,7 +35,7 @@ export default function Settings() {
     ? (state.message ?? undefined)
     : state.email
       ? statusLine(state, now)
-      : 'Your notes are stored only on this iPhone. Turn on sync to keep them on your other devices too.'
+      : `Your notes are stored only on this ${device}. Turn on sync to keep them on your other devices too.`
 
   return (
     <ScrollView contentContainerStyle={styles.sheet}>

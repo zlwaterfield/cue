@@ -170,6 +170,8 @@ working on Cue can't touch your notes.
 
 For the iPhone app, see [apps/mobile/README.md](apps/mobile/README.md). It needs Xcode 26 and a sync
 server: your own Supabase project, set up as in [docs/SYNC.md](docs/SYNC.md).
+The same app builds for Android too, from Linux or a Mac: see
+[apps/mobile/README.md](apps/mobile/README.md#android).
 
 ## Your data
 

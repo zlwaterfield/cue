@@ -1,6 +1,6 @@
 import { Children } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { SymbolView } from 'expo-symbols'
+import { SymbolView } from './Symbol'
 import { SheetTitle } from './Sheet'
 import { metrics, useColors } from './theme'
 

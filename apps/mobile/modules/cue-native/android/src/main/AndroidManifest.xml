@@ -1,0 +1,23 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application>
+    <!--
+      Cue in the share sheet. Like the iOS share extension it only confirms and leaves: the
+      share goes to the inbox, and Cue adds it to today the next time it comes to the screen.
+      Its own empty task keeps the app you shared from in front.
+    -->
+    <activity
+      android:name="app.cue.nativemodule.ShareActivity"
+      android:label="Add to Cue"
+      android:exported="true"
+      android:excludeFromRecents="true"
+      android:noHistory="true"
+      android:taskAffinity=""
+      android:theme="@android:style/Theme.Translucent.NoTitleBar">
+      <intent-filter>
+        <action android:name="android.intent.action.SEND" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <data android:mimeType="text/plain" />
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>

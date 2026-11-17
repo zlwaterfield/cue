@@ -1,4 +1,5 @@
-import { Share } from 'react-native'
+import { Platform, Share } from 'react-native'
+import * as Sharing from 'expo-sharing'
 import { Directory, File, Paths } from 'expo-file-system'
 import { todayISO } from '@shared/dates'
 import { backupJSON, markdownFiles } from '@shared/portability'
@@ -40,6 +41,12 @@ async function write(name: string, contents: string | Uint8Array): Promise<Expor
     // The name carries today's date, so a second export on the same day lands on the first.
     file.create({ overwrite: true })
     file.writeSync(contents)
+    if (Platform.OS === 'android') {
+      // Android's share sheet takes files only through a content URI, which expo-sharing
+      // provides. It doesn't say whether the file was sent, so it counts as shared.
+      await Sharing.shareAsync(file.uri, { mimeType: name.endsWith('.zip') ? 'application/zip' : 'application/json', dialogTitle: name })
+      return { ok: true, shared: true }
+    }
     const result = await Share.share({ url: file.uri })
     return { ok: true, shared: result.action === Share.sharedAction }
   } catch (error) {

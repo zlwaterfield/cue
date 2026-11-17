@@ -67,6 +67,16 @@ export class Editor {
   private inputs = new Map<string, TextInputInstance>()
   private carets = new Map<string, Caret>()
   private pending: { id: string; start: number; end: number } | null = null
+  /**
+   * Return made a new line, and the input that still has focus is the old one until the new
+   * line mounts and takes it (a render, then a focus change: tens of milliseconds, more on a
+   * slow phone). Keys typed in that gap reach the old input; they belong to the new line.
+   * `from` is the input with focus, `to` the line the caret is on its way to, `bases` the
+   * texts the old input may still show (before the split, or after it), and `sent` what the
+   * old input holds beyond them that's already gone to the new line. `rejoined`: a Backspace
+   * typed in the gap joined the new line back onto the old one, so the caret is home again.
+   */
+  private handoff: { from: string; to: string; bases: string[]; sent: string; at: number; rejoined?: boolean } | null = null
   private frame = 0
   /** Each day's blank last line has an id ready, so typing into it turns it into that item. */
   private ghosts = new Map<ISODate, string>()
@@ -100,6 +110,7 @@ export class Editor {
     this.carets.clear()
     this.stripped.clear()
     this.pending = null
+    this.handoff = null
     if (this.frame) cancelAnimationFrame(this.frame)
     this.frame = 0
     this.following = null
@@ -294,6 +305,8 @@ export class Editor {
   }
 
   onFocus(id: string): void {
+    // The caret arrived (or went somewhere else): keys go where they're typed again.
+    if (this.handoff && this.handoff.from !== id) this.handoff = null
     if (ui.get().focusedId !== id) this.undo.seal()
     ui.set({ focusedId: id })
   }
@@ -427,6 +440,17 @@ export class Editor {
   /* ============================================================ Typing */
 
   onChangeText(id: string, date: ISODate, text: string): void {
+    if (this.handedOff(id)) {
+      const handoff = this.handoff!
+      if (!handoff.rejoined) {
+        this.typeAhead(text)
+        return
+      }
+      // The Backspace that joined the lines also deleted a character in this input; the join
+      // was all it meant. Anything else is typing in this line again.
+      this.handoff = null
+      if (text.length < (itemStore.get(id)?.text.length ?? 0)) return
+    }
     const strip = this.stripped.get(id)
     if (strip !== undefined) {
       if (text.startsWith(strip)) text = text.slice(strip.length)
@@ -505,16 +529,91 @@ export class Editor {
 
   /** Return: split the line at the caret (or leave an empty list item). */
   onSubmit(id: string): void {
+    // Return again before the caret reached the new line: that's where it was typed.
+    const handoff = this.handedOff(id) ? this.handoff : null
+    if (handoff) id = handoff.to
     const item = itemStore.get(id)
     if (!item) return
     this.undo.seal()
+    const before = item.text
     const caret = this.caretOf(id)
-    if (item.text === '') this.commit('New line', (tx) => ops.enterOnEmpty(tx, id))
-    else this.commit('New line', (tx) => ops.splitAt(tx, id, caret.start, caret.end))
+    let target: string | undefined
+    this.commit('New line', (tx) => {
+      const result = item.text === '' ? ops.enterOnEmpty(tx, id) : ops.splitAt(tx, id, caret.start, caret.end)
+      target = result?.id
+      return result
+    })
+    if (!target || target === id) return
+    this.handoff = handoff
+      ? { ...handoff, to: target, at: Date.now() }
+      : { from: id, to: target, bases: [before, itemStore.get(id)?.text ?? ''], sent: '', at: Date.now() }
+  }
+
+  /** Whether a key in this line's input belongs to the line Return just made. */
+  private handedOff(id: string): boolean {
+    const handoff = this.handoff
+    if (!handoff || handoff.from !== id) return false
+    // A focus that never came (the new line was removed, the keyboard closed) lets go.
+    if (Date.now() - handoff.at > 1000 || !itemStore.get(handoff.to)) {
+      this.handoff = null
+      return false
+    }
+    return true
+  }
+
+  /**
+   * Text typed into the old line's input before the caret reached the new line: it goes into
+   * the new line at its caret, and the old line keeps its text.
+   * Anything but an insertion (a deletion, a replacement) is dropped; Backspace itself is
+   * redirected by onBackspace.
+   */
+  private typeAhead(text: string): void {
+    const handoff = this.handoff!
+    let inserted: string | null = null
+    for (const base of handoff.bases) {
+      const start = commonPrefix(base, text)
+      const end = commonSuffix(base, text, start)
+      if (start + end === base.length && text.length > base.length) {
+        inserted = text.slice(start, text.length - end)
+        break
+      }
+    }
+    // The old line's store text is unchanged; its controlled input puts it back by itself,
+    // unless another key got there first. So the input holds either what was sent plus new
+    // keys, or (put back in between) only new keys: the same text again can only be the latter.
+    if (!inserted) return
+    const fresh = inserted.startsWith(handoff.sent) && inserted !== handoff.sent ? inserted.slice(handoff.sent.length) : inserted
+    handoff.sent = inserted
+    inserted = fresh
+    const to = handoff.to
+    const target = itemStore.get(to)
+    if (!target) return
+    const caret = this.caretOf(to)
+    const previous = target.text
+    const next = previous.slice(0, caret.start) + inserted + previous.slice(caret.end)
+    if (/[\r\n]/.test(inserted)) {
+      this.pasteInto(to, previous, next)
+      return
+    }
+    this.commit('Typing', (tx) => {
+      tx.update(to, { text: next })
+      return { id: to, start: caret.start + inserted!.length }
+    }, { coalesce: `text:${to}` })
+    this.autoformat(to, previous, next)
   }
 
   /** Backspace at the very start: drop the marker, then the indent, then join the line above. */
   onBackspace(id: string, date: ISODate): void {
+    // Backspace before the caret reached the new line: it was typed there.
+    const handoff = this.handedOff(id) ? this.handoff! : null
+    if (handoff) id = handoff.to
+    this.backspaceAt(id, date)
+    if (handoff && this.handoff === handoff && this.pending?.id === handoff.from) {
+      this.handoff = { ...handoff, to: handoff.from, rejoined: true }
+    }
+  }
+
+  private backspaceAt(id: string, date: ISODate): void {
     const caret = this.caretOf(id)
     if (caret.start !== 0 || caret.end !== 0) return
     if (this.isGhost(id)) {

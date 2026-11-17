@@ -10,6 +10,7 @@ import { appleSignIn, sync } from '../core/app'
 import { useStore } from '../core/store'
 import { lockup } from '../ui/lockup'
 import { metrics, useColors } from '../ui/theme'
+import { device } from '../core/device'
 
 /**
  * Turning sync on, from Settings. Sign-in is the Mac's: Sign in with Apple, or an email
@@ -223,7 +224,7 @@ export default function SignIn() {
         </View>
 
         <Text style={[styles.footnote, { color: c.text2 }]}>
-          The notes on this iPhone join your account and sync across your devices. New here? Signing in creates your account.
+          The notes on this {device} join your account and sync across your devices. New here? Signing in creates your account.
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>

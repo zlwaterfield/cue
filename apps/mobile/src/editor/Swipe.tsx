@@ -1,6 +1,6 @@
 import { StyleSheet, useColorScheme, useWindowDimensions } from 'react-native'
 import Animated, { interpolate, makeMutable, useAnimatedStyle, type SharedValue } from 'react-native-reanimated'
-import { SymbolView, type SFSymbol } from 'expo-symbols'
+import { SymbolView, type SFSymbol } from '../ui/Symbol'
 import { metrics, useColors } from '../ui/theme'
 import type { DayGeometry } from './layout'
 

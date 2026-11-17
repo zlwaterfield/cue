@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
-import { SymbolView, type SFSymbol } from 'expo-symbols'
+import { SymbolView, type SFSymbol } from '../ui/Symbol'
 import { addDays, friendlyDate, nextWeekday, shortDate, startOfWeek } from '@shared/dates'
 import type { ISODate } from '@shared/types'
 import { useStore } from '../core/store'
