@@ -192,8 +192,11 @@ functions are in [`supabase/migrations`](../supabase/migrations).
 - **`sync_push`** takes a per-user advisory lock so that seq order is commit order. Without
   it, a reader could see seq 11 committed before seq 10 and skip 10 forever. It then does one
   set-based upsert that replaces a row only if the incoming version is newer. Malformed
-  records are skipped instead of failing the batch, so one bad row can't block a queue. It
-  sends one realtime hint per push, not one per row.
+  records are skipped instead of failing the batch, so one bad row can't block a queue. A
+  push of more than 1,000 records, or with a version more than a day ahead of the server's
+  clock, fails as a whole instead: a version that far ahead would pin its row against every
+  later edit, and move every device's clock there too. The device keeps those changes queued
+  and says sync is paused. It sends one realtime hint per push, not one per row.
 - **`sync_pull`** returns rows after a cursor, oldest first, in pages of up to 1,000.
 - **`sync_delete_account`** deletes the user, and their rows cascade.
 
@@ -213,8 +216,10 @@ functions are in [`supabase/migrations`](../supabase/migrations).
 - LWW is per *item*. If one device completes a to-do while another edits its text, one change
   wins. The upgrade path is per-field versions merged field by field, a contained change in
   `applyRemote` and `sync_push` with the same record format.
-- A device whose clock is far in the future wins every conflict until real time catches up.
-  This is standard for HLCs. A server-side bound on accepted versions would close it.
+- A device whose clock runs ahead wins every conflict until real time catches up. This is
+  standard for HLCs. The server accepts versions at most a day ahead (`sync_push`), so a fast
+  clock wins for a day at most, and a clock further ahead can't push until it's fixed and
+  real time has caught up with its versions.
 - Tombstones are never compacted yet. Once every device has pulled a deletion, the server can
   clear its text.
 

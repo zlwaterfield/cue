@@ -138,7 +138,7 @@ describe.skipIf(!syncServer)('sync with Supabase', { timeout: 30_000 }, () => {
   it('keeps accounts apart', async () => {
     const theirs = laptop.repo.allItems()[0]
     // Same id, newer version, different account: must not touch the first account's row.
-    other.repo.applyRemote([{ ...theirs, text: 'hijacked', version: theirs.version.replace(/^0/, 'z') }], { upload: true })
+    other.repo.applyRemote([{ ...theirs, text: 'hijacked', version: theirs.version.replace(/-[0-9a-z]+$/, '-zz') }], { upload: true })
     await other.engine.sync()
     await laptop.engine.sync()
     expect(laptop.repo.get(theirs.id)?.text).toBe(theirs.text)
