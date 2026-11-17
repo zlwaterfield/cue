@@ -13,10 +13,11 @@ import { arriving } from '../editor/hooks'
 import { DayPage } from '../editor/DayPage'
 import { Toolbar } from '../editor/Toolbar'
 import { Header } from '../ui/Header'
+import { TabBar } from '../ui/TabBar'
 import { useColors } from '../ui/theme'
 import { Toast } from '../ui/Toast'
 
-/** The day on screen, with the week above it. */
+/** The day on screen, with the week above it and the tabs floating below. */
 export default function Day() {
   const c = useColors()
   const insets = useSafeAreaInsets()
@@ -41,7 +42,7 @@ export default function Day() {
     })
     void itemStore.ensureLoaded([addDays(today, -1), today, addDays(today, 1)]).then(() => {
       setReady(true)
-      // Scratch and the starred notes, on hand before the notes button is pressed.
+      // Scratch and the starred notes, on hand before the Notes tab is pressed.
       refreshNotes()
       void SplashScreen.hideAsync()
       loaded = true
@@ -67,6 +68,7 @@ export default function Day() {
     <View style={[styles.screen, { backgroundColor: c.bg, paddingTop: insets.top }]}>
       <Header />
       {ready && <DayPage key={date} date={date} />}
+      <TabBar />
       <Toolbar />
       <Toast />
     </View>

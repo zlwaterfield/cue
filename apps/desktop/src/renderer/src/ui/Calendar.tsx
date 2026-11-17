@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { addDays, addMonths, longDate, MONTHS, parts, startOfMonth, startOfWeek } from '@shared/dates'
 import type { ISODate } from '@shared/types'
-import { backend } from '../data/backend'
 
-/** Compact month grid. Days with notes get a quiet dot. */
+/**
+ * A month to pick a day from. The picked day is the solid circle; today, when it isn't the
+ * picked day, keeps a ring.
+ */
 export function Calendar({
   selected,
   today,
@@ -16,7 +18,6 @@ export function Calendar({
   onPick: (date: ISODate) => void
 }) {
   const [month, setMonth] = useState(() => startOfMonth(selected ?? today))
-  const [marked, setMarked] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (selected) setMonth(startOfMonth(selected))
@@ -26,16 +27,6 @@ export function Calendar({
     const first = startOfWeek(month, weekStartsOn)
     return Array.from({ length: 42 }, (_, i) => addDays(first, i))
   }, [month, weekStartsOn])
-
-  useEffect(() => {
-    let cancelled = false
-    void backend.datesWithItems(days[0], days[days.length - 1]).then((dates) => {
-      if (!cancelled) setMarked(new Set(dates))
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [days])
 
   const { year, month: m } = parts(month)
   const labels = weekStartsOn === 1 ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -67,9 +58,14 @@ export function Calendar({
           if (p.month !== m) classes.push('is-outside')
           if (day === today) classes.push('is-today')
           if (day === selected) classes.push('is-selected')
-          if (marked.has(day)) classes.push('has-items')
           return (
-            <button key={day} className={classes.join(' ')} onClick={() => onPick(day)} aria-label={longDate(day)}>
+            <button
+              key={day}
+              className={classes.join(' ')}
+              onClick={() => onPick(day)}
+              aria-label={day === today ? `Today, ${longDate(day)}` : longDate(day)}
+              aria-current={day === today ? 'date' : undefined}
+            >
               {p.day}
             </button>
           )

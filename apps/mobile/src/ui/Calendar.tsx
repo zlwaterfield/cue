@@ -5,14 +5,13 @@ import * as Haptics from 'expo-haptics'
 import { addDays, addMonths, longDate, MONTHS, parts, relativeLabel, shortDate, startOfMonth, startOfWeek } from '@shared/dates'
 import { parseDateInput } from '@shared/dateParse'
 import type { ISODate } from '@shared/types'
-import { repo, sync } from '../core/app'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { metrics, useColors } from './theme'
 
 /**
  * Pick a day: type it the way you'd say it ("fri", "oct 31", "in 3 days", "+2w") with the
- * Mac's parser, or tap it on the month grid. Days with notes get a quiet dot.
+ * Mac's parser, or tap it on the month grid.
  */
 export function DatePicker({ selected, action, onPick }: { selected: ISODate; action: string; onPick: (date: ISODate) => void }) {
   const c = useColors()
@@ -72,9 +71,6 @@ function Month({
     const first = startOfWeek(month, weekStartsOn)
     return Array.from({ length: 42 }, (_, i) => addDays(first, i))
   }, [month, weekStartsOn])
-  // Read again after each sync, so notes arriving from another device get their dot.
-  const synced = useStore(sync.state, (s) => s.lastSyncedAt)
-  const marked = useMemo(() => new Set(repo.datesWithItems(days[0], days[days.length - 1])), [days, synced])
   const { year, month: m } = parts(month)
   const labels = weekStartsOn === 1 ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
@@ -95,7 +91,7 @@ function Month({
       </View>
       <View style={styles.grid}>
         {labels.map((label, i) => (
-          <Text key={`l${i}`} style={[styles.label, { color: c.text2 }]}>
+          <Text key={`l${i}`} style={[styles.label, { color: c.text3 }]}>
             {label}
           </Text>
         ))}
@@ -114,17 +110,16 @@ function Month({
               accessibilityLabel={isToday ? `Today, ${longDate(day)}` : longDate(day)}
               accessibilityState={{ selected: isSelected }}
             >
-              {/* Today keeps the solid circle wherever you are, so the eye finds it at once; the
-                  picked day, when it isn't today, gets a soft one. As in the week strip. */}
-              <View style={[styles.circle, isToday ? { backgroundColor: c.accent } : isSelected && { backgroundColor: c.accentSoft }]}>
+              {/* The picked day is the solid circle; today, when it isn't picked, keeps a ring.
+                  As in the week strip, and in the Mac's calendar. */}
+              <View style={[styles.circle, isSelected ? { backgroundColor: c.accent } : isToday && { borderWidth: 1.5, borderColor: c.text3 }]}>
                 <Text
-                  style={[styles.day, { color: isToday ? c.onAccent : inMonth ? c.text : c.text3 }, (isToday || isSelected) && styles.strong]}
+                  style={[styles.day, { color: isSelected ? c.onAccent : inMonth ? c.text : c.text3 }, (isToday || isSelected) && styles.strong]}
                   maxFontSizeMultiplier={1.3}
                 >
                   {parts(day).day}
                 </Text>
               </View>
-              <View style={[styles.dot, { backgroundColor: marked.has(day) && !isSelected ? c.text3 : 'transparent' }]} />
             </Pressable>
           )
         })}
@@ -186,19 +181,18 @@ const styles = StyleSheet.create({
     width: `${100 / 7}%`,
     textAlign: 'center',
     fontSize: 11,
-    fontWeight: '600',
-    paddingBottom: 4
+    fontWeight: '500',
+    paddingBottom: 6
   },
-  // A day's dot sits closer to its own number than to the row below.
   cell: {
     width: `${100 / 7}%`,
     alignItems: 'center',
-    paddingVertical: 4
+    paddingVertical: 3
   },
   circle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center'
   },
@@ -208,12 +202,6 @@ const styles = StyleSheet.create({
   },
   strong: {
     fontWeight: '700'
-  },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    marginTop: 4
   }
 })
 

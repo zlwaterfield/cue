@@ -14,13 +14,11 @@ import { Store, useStore } from './store'
 export interface NotesState {
   /** Every starred note's page: the stored ones, and ones starred or synced in since. */
   known: ISODate[]
-  /** The note last open, which the notes button opens again. */
+  /** The note last open, which the Notes tab opens again. */
   last: ISODate
-  /** The day the notes button was pressed on, which it goes back to. */
-  back: ISODate | null
 }
 
-const EMPTY: NotesState = { known: [], last: SCRATCH, back: null }
+const EMPTY: NotesState = { known: [], last: SCRATCH }
 
 export const notes = new Store<NotesState>(EMPTY)
 

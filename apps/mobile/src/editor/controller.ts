@@ -147,17 +147,12 @@ export class Editor {
 
   /* ============================================================= Notes */
 
-  /**
-   * The notes button: to the note last open (scratch, the first time), and from a note back
-   * to the day it was pressed on.
-   */
-  async toggleNotes(): Promise<void> {
-    const { date, today } = ui.get()
-    if (isNotePage(date)) return this.goTo(notes.get().back ?? today)
+  /** The Notes tab: to the note last open (scratch, the first time). */
+  async openNotes(): Promise<void> {
+    if (isNotePage(ui.get().date)) return
     refreshNotes()
     await itemStore.ensureLoaded([SCRATCH])
     const { last } = notes.get()
-    notes.set({ back: date })
     // The note last open may have been deleted since, here or on the Mac.
     await this.goTo(notePages().includes(last) ? last : SCRATCH)
   }
@@ -215,7 +210,7 @@ export class Editor {
 
   /**
    * Keep "today" right when the app stays open past midnight (every 30 s, and when the app
-   * comes back). Titles and the Today pill move on at once; the old today's page follows
+   * comes back). Titles and the Today tab move on at once; the old today's page follows
    * only once no line is being edited or dragged (see `rollover`).
    */
   checkToday(): void {
