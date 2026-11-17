@@ -34,7 +34,8 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 - **One day at a time**, with a week strip above it. Swipe the page (anywhere but on a
   line) for the next or previous day, tap a day to open it, swipe the strip for other weeks
   (opening on their first day, or on today in this week), or tap the month for a calendar
-  that also understands "fri", "oct 31", "in 3 days".
+  that also understands "fri", "oct 31", "in 3 days". In both, today is always the solid
+  circle; the open day, when it isn't today, is the soft one.
 
 ## Touch
 

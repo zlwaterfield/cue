@@ -187,14 +187,19 @@ function WeekStrip({ date, today }: { date: ISODate; today: ISODate }) {
               }}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
-              accessibilityLabel={longDate(day)}
+              accessibilityLabel={isToday ? `Today, ${longDate(day)}` : longDate(day)}
               testID={`day-${day}`}
             >
               <Text style={[styles.weekday, { color: isToday ? c.text : c.text2 }]} maxFontSizeMultiplier={1.3}>
                 {WEEKDAYS[weekday(day)].slice(0, 1)}
               </Text>
-              <View style={[styles.dayNumber, selected && { backgroundColor: c.accent }, !selected && isToday && { borderColor: c.lineStrong, borderWidth: 1 }]}>
-                <Text style={[styles.dayText, { color: selected ? c.onAccent : c.text }, isToday && styles.todayDay]} maxFontSizeMultiplier={DAY_MAX_FONT_SCALE}>
+              {/* Today keeps the solid circle on every day you open, so it's found at a glance; the
+                  open day, when it isn't today, gets a soft one (the title below names it). */}
+              <View style={[styles.dayNumber, isToday ? { backgroundColor: c.accent } : selected && { backgroundColor: c.accentSoft }]}>
+                <Text
+                  style={[styles.dayText, { color: isToday ? c.onAccent : c.text }, (isToday || selected) && styles.strongDay]}
+                  maxFontSizeMultiplier={DAY_MAX_FONT_SCALE}
+                >
                   {parts(day).day}
                 </Text>
               </View>
@@ -357,7 +362,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontVariant: ['tabular-nums']
   },
-  todayDay: {
+  strongDay: {
     fontWeight: '700'
   },
   dot: {
