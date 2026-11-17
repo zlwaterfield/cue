@@ -336,9 +336,10 @@ const styles = StyleSheet.create({
   syncAttention: {
     fontWeight: '500'
   },
+  // The dot's room under the circle comes out of here, so the header keeps its height.
   strip: {
     flexDirection: 'row',
-    paddingBottom: 6
+    paddingBottom: 4
   },
   day: {
     flex: 1,
@@ -369,6 +370,6 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    marginTop: 4
+    marginTop: 6
   }
 })

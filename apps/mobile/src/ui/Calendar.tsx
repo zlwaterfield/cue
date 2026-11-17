@@ -189,10 +189,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     paddingBottom: 4
   },
+  // A day's dot sits closer to its own number than to the row below.
   cell: {
     width: `${100 / 7}%`,
     alignItems: 'center',
-    paddingVertical: 2
+    paddingVertical: 4
   },
   circle: {
     width: 36,
@@ -212,7 +213,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    marginTop: 1
+    marginTop: 4
   }
 })
 
