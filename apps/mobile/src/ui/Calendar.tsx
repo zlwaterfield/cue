@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
-import { SymbolView } from 'expo-symbols'
+import { SymbolView } from './Symbol'
 import * as Haptics from 'expo-haptics'
 import { addDays, addMonths, longDate, MONTHS, parts, relativeLabel, shortDate, startOfMonth, startOfWeek } from '@shared/dates'
 import { parseDateInput } from '@shared/dateParse'

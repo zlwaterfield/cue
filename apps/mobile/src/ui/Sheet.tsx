@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { router, useNavigation } from 'expo-router'
-import { SymbolView } from 'expo-symbols'
+import { SymbolView } from './Symbol'
 import { useColors } from './theme'
 
 /**

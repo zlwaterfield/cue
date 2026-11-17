@@ -1,9 +1,10 @@
-import { Linking, Share } from 'react-native'
+import { Linking, Platform, Share } from 'react-native'
 import { router } from 'expo-router'
 import { ASSISTANTS_URL, assistantUrls } from '@shared/assistants'
 import { sync } from '../../core/app'
 import { useStore } from '../../core/store'
 import { Row, Section, SettingsScreen } from '../../ui/SettingsList'
+import { device } from '../../core/device'
 
 /**
  * The URL an assistant connects to over MCP, and how. An assistant works with the account,
@@ -24,11 +25,11 @@ export default function Assistants() {
           title="MCP server URL"
           footnote={`Add it as a custom connector in Claude, ChatGPT or another assistant, then sign in as ${state.email} and press Allow.`}
         >
-          <Row label={mcp} action="Share" onPress={() => void Share.share({ url: mcp })} />
+          <Row label={mcp} action="Share" onPress={() => void Share.share(Platform.OS === 'ios' ? { url: mcp } : { message: mcp })} />
         </Section>
       ) : (
         <>
-          <Section footnote="An assistant connects to your Cue account, not to this iPhone, so it only works once sync is on and you’re signed in.">
+          <Section footnote={`An assistant connects to your Cue account, not to this ${device}, so it only works once sync is on and you’re signed in.`}>
             <Row label={state.previousEmail ? 'Sign In Again…' : 'Turn On Sync…'} onPress={() => router.push('/sign-in')} />
           </Section>
           <Section title="MCP server URL" footnote="Once sync is on, add it as a custom connector in Claude, ChatGPT or another assistant.">

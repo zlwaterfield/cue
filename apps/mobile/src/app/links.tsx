@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native'
 import { router } from 'expo-router'
-import { SymbolView } from 'expo-symbols'
+import { SymbolView } from '../ui/Symbol'
 import { linkDay, linkGroup, linkNote, type LinkEntry, type LinkResults } from '@shared/linkList'
 import { bareLabel } from '@shared/links'
 import { matchRanges, searchTerms } from '@shared/text'

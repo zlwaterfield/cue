@@ -38,6 +38,17 @@ const config: ExpoConfig = {
       NSAppTransportSecurity: { NSAllowsLocalNetworking: true }
     }
   },
+  android: {
+    package: process.env.CUE_ANDROID_PACKAGE || 'app.cue',
+    versionCode: Number(process.env.CUE_ANDROID_VERSION_CODE || 1),
+    // The same icon as iOS, on the page colour; the light-mode iOS icon has its own background.
+    adaptiveIcon: { foregroundImage: './assets/icon.png', backgroundColor: '#FFFFFF' },
+    // The editor keeps its own toolbar above the keyboard (react-native-keyboard-controller).
+    softwareKeyboardLayoutMode: 'resize',
+    // A development sync server on this computer (http://10.0.2.2:54321 from the emulator) is
+    // plain HTTP; release builds talk to the hosted project over HTTPS.
+    ...(process.env.CUE_ANDROID_CLEARTEXT === 'on' ? { usesCleartextTraffic: true } : {})
+  },
   plugins: [
     'expo-router',
     'expo-sqlite',

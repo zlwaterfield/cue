@@ -5,6 +5,7 @@ import { statusLine } from '@shared/sync/status'
 import { sync } from '../../core/app'
 import { useStore } from '../../core/store'
 import { Row, Section, SettingsScreen } from '../../ui/SettingsList'
+import { device } from '../../core/device'
 
 /**
  * The account and what sync is doing. Sync is the Mac's: off until you turn it on, and
@@ -32,7 +33,7 @@ export default function Sync() {
   const deleteAccount = (): void => {
     Alert.alert(
       'Delete your account?',
-      'This deletes your account and every note in it from the sync server. Notes on this iPhone and your other devices stay there. This can’t be undone.',
+      `This deletes your account and every note in it from the sync server. Notes on this ${device} and your other devices stay there. This can’t be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -54,7 +55,7 @@ export default function Sync() {
           footnote={
             state.needsSignIn
               ? (state.message ?? undefined)
-              : 'Your notes are stored only on this iPhone. Turn on sync to keep them on your other devices too.'
+              : `Your notes are stored only on this ${device}. Turn on sync to keep them on your other devices too.`
           }
         >
           <Row label={state.previousEmail ? 'Sign In Again…' : 'Turn On Sync…'} onPress={() => router.push('/sign-in')} />
@@ -70,11 +71,11 @@ export default function Sync() {
         <Row label={state.email} action="Sync Now" onPress={syncNow} disabled={syncing || state.status === 'syncing'} />
       </Section>
 
-      <Section footnote="Every note stays on this iPhone. Turn sync back on any time.">
+      <Section footnote={`Every note stays on this ${device}. Turn sync back on any time.`}>
         <Row label="Turn Off Sync" onPress={() => void sync.signOut()} />
       </Section>
 
-      <Section footnote="Deletes your account and its notes from the sync server. Notes on this iPhone stay here.">
+      <Section footnote={`Deletes your account and its notes from the sync server. Notes on this ${device} stay here.`}>
         <Row label="Delete Account…" onPress={deleteAccount} />
       </Section>
     </SettingsScreen>

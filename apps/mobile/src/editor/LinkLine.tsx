@@ -1,6 +1,6 @@
 import { memo, useState } from 'react'
 import { Image, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native'
-import { SymbolView } from 'expo-symbols'
+import { SymbolView } from '../ui/Symbol'
 import { bareLabel } from '@shared/links'
 import { useLinkPreview } from '../core/links'
 import { metrics, useColors } from '../ui/theme'

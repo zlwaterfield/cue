@@ -219,6 +219,37 @@ Leave out `METRO` to test a release build, which runs its own bundle. After
 opens a development-client link that a release build doesn't handle, and the alert sits
 in front of the app.
 
+## Android
+
+The same app builds for Android from this folder. Everything but a handful of platform
+details is shared:
+
+- **Icons** are SF Symbols on iOS and the nearest Material Symbol on Android
+  (`src/ui/Symbol.tsx`; a new icon needs an entry in its map).
+- **Sign-in** is email codes only: there's no Sign in with Apple on Android.
+- **`modules/cue-native`** has a Kotlin side: caret-at-touch uses the text view's own
+  offset lookup, and background time is a no-op, since Android doesn't suspend an app the
+  moment it leaves the screen.
+- **The share sheet** is `ShareActivity` in the same module: "Add to Cue" takes a link or
+  text, says "Added to Today" and leaves, and the app adds it from its inbox the next time
+  it comes to the screen, as on iOS. Many apps share a link with a title in front of it;
+  the link is what's kept.
+- **Export** hands the file to Android's share sheet through `expo-sharing`.
+
+You'll need JDK 17 and the Android SDK (platform 37, build-tools 37, NDK 27.1, CMake 3.22),
+with `ANDROID_HOME` set:
+
+```sh
+pnpm prebuild:android
+cd android && ./gradlew assembleRelease   # app/build/outputs/apk/release/app-release.apk
+adb install -r app/build/outputs/apk/release/app-release.apk
+```
+
+Release builds are signed with the debug key, which is fine for your own phone. The
+emulator reaches a local sync server at `http://10.0.2.2:54321`; build with
+`CUE_ANDROID_CLEARTEXT=on` to allow plain HTTP for it. `CUE_ANDROID_PACKAGE` changes the
+application ID.
+
 ## Layout
 
 ```
@@ -227,7 +258,7 @@ src/app/settings/  the settings sheet: an index that pushes into a category
 src/core/       database adapter (expo-sqlite), optional sync lifecycle, app state, link previews, share inbox, export
 src/editor/     the day page: layout, rows, drag, swipe, toolbar, editing controller
 src/ui/         header and week strip, calendar, toast, theme (brand tokens)
-modules/        cue-native: caret-at-touch, background time, the share inbox (Swift)
+modules/        cue-native: caret-at-touch, background time, the share inbox (Swift and Kotlin)
 plugins/        share-extension: Cue in the share sheet (config plugin and Swift)
 e2e/            Maestro flows
 ```

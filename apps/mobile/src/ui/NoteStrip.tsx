@@ -1,6 +1,6 @@
 import { ScrollView, Pressable, StyleSheet, Text } from 'react-native'
 import * as Haptics from 'expo-haptics'
-import { SymbolView } from 'expo-symbols'
+import { SymbolView } from './Symbol'
 import type { ISODate } from '@shared/types'
 import { SCRATCH } from '@shared/notes'
 import { useNotePages, useNoteTitle } from '../core/notes'

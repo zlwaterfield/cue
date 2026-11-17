@@ -8,7 +8,9 @@ import { Row, Section, SettingsScreen } from '../../ui/SettingsList'
 export default function About() {
   const version = Constants.expoConfig?.version ?? '1.0.0'
   const reportIssue = (): void => {
-    void Linking.openURL(reportIssueUrl(`iPhone, version ${version} (iOS ${Platform.Version})`)).catch(() => {
+    void Linking.openURL(reportIssueUrl(
+      Platform.OS === 'ios' ? `iPhone, version ${version} (iOS ${Platform.Version})` : `Android, version ${version} (API ${Platform.Version})`
+    )).catch(() => {
       Alert.alert('Couldn’t open GitHub', 'Please try again.')
     })
   }

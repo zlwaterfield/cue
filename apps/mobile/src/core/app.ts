@@ -1,5 +1,5 @@
 import './polyfills'
-import { Appearance } from 'react-native'
+import { Appearance, Platform } from 'react-native'
 import Constants from 'expo-constants'
 import { ItemStore, type StoreBackend } from '@shared/itemStore'
 import { isTextOnlyChange, Repository } from '@shared/repository'
@@ -21,8 +21,11 @@ function syncConfig(): SyncConfig | null {
   return extra.supabaseUrl && extra.supabaseKey ? { url: extra.supabaseUrl, key: extra.supabaseKey } : null
 }
 
-/** Built with the Sign in with Apple capability (`CUE_APPLE_SIGN_IN`, see app.config.ts). */
-export const appleSignIn = extra.appleSignIn !== false
+/**
+ * Built with the Sign in with Apple capability (`CUE_APPLE_SIGN_IN`, see app.config.ts). Android
+ * signs in with email codes only.
+ */
+export const appleSignIn = Platform.OS === 'ios' && extra.appleSignIn !== false
 
 export const repo = new Repository(openDatabase())
 

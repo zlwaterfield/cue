@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
-import { SymbolView } from 'expo-symbols'
+import { SymbolView } from '../ui/Symbol'
 import * as Haptics from 'expo-haptics'
 import { shortDate } from '@shared/dates'
 import { collectLooseEnds, looseEndDays, looseEndsLabel, looseEndsRange } from '@shared/looseEnds'

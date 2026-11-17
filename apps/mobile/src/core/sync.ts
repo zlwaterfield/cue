@@ -10,6 +10,7 @@ import { SupabaseSync, type Account, type SessionStore, type SyncConfig } from '
 import type { SignInMethod, SyncResult, SyncState } from '@shared/types'
 import { backgroundTask } from '../../modules/cue-native'
 import { Store } from './store'
+import { device } from './device'
 
 /**
  * Sync on iPhone, as on the Mac: off by default, and Cue works the same either way. Until
@@ -59,7 +60,7 @@ const VERIFY_EVERY = 30 * 60_000
 
 const ENDED_MESSAGES: Record<SessionEnd, string> = {
   expired: 'Your sync session ended. Sign in again to keep syncing.',
-  deleted: 'Your account was deleted on another device. Notes on this iPhone stay here.'
+  deleted: `Your account was deleted on another device. Notes on this ${device} stay here.`
 }
 
 const NO_SERVER = 'Sync isn’t available in this build.'
@@ -246,7 +247,7 @@ export class MobileSync {
       if (code === 'ERR_REQUEST_CANCELED') return { ok: false, error: '' }
       console.warn('Sign in with Apple failed', error)
       // Most often there's no Apple Account on the phone, and its prompt was closed.
-      if (code === 'ERR_REQUEST_UNKNOWN') return { ok: false, error: 'Sign in with Apple didn’t finish. Check that this iPhone is signed in to an Apple Account, or use your email.' }
+      if (code === 'ERR_REQUEST_UNKNOWN') return { ok: false, error: `Sign in with Apple didn’t finish. Check that this ${device} is signed in to an Apple Account, or use your email.` }
       return { ok: false, error: SIGN_IN_FAILED }
     }
     return attempt(async () => {
