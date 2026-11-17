@@ -208,7 +208,7 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
       "operatingSystem": "macOS, iOS",
       "url": "https://www.usecue.today/",
       "downloadUrl": "https://www.usecue.today/download",
-      "softwareVersion": "1.0.0-beta.3",
+      "softwareVersion": "1.0.0",
       "releaseNotes": "https://github.com/zlwaterfield/cue/releases",
       "description": "Daily notes and to-dos for Mac and iPhone. Every day is a page: open it and type, with no project, tag or priority to choose first. Free, open source, works offline with no account, and has no tracking.",
       "isAccessibleForFree": true,
@@ -314,10 +314,18 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
         },
         {
           "@type": "Question",
+          "name": "Can I keep a note that isn’t about a day?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A little. Beside the days there’s one scratch page, for something you’ll paste, edit and probably throw away, and a few starred notes you keep and add to, like a reading list. They’re pages like any day. That’s all there is: Cue isn’t a notebook, and there are no folders to file notes in."
+          }
+        },
+        {
+          "@type": "Question",
           "name": "What doesn’t it do?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No projects, tags, priorities, folders, reminders, recurring tasks, attachments, collaboration or dashboards. If you want a project manager or a second brain, Cue is the wrong tool, and would rather say so than grow into one."
+            "text": "No projects, tags, priorities, folders, reminders, recurring tasks, attachments, collaboration or dashboards. If you want a project manager, a notebook or a second brain, Cue is the wrong tool, and would rather say so than grow into one."
           }
         }
       ]
@@ -334,7 +342,7 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
   </nav>
 
   <header>
-    <button class="status" type="button" data-egg="beta"><span class="status-text">Beta · my daily driver</span></button>
+    <button class="status" type="button" data-egg="since"><span class="status-text">1.0 · my daily driver</span></button>
     <h1 class="serif"><span class="h1-text">Every day is a page.</span><span class="caret" aria-hidden="true"></span></h1>
     <p class="next-line serif" aria-hidden="true" hidden><span class="typed"></span></p>
     <p class="lede">Daily notes and to-dos for Mac and iPhone.<br>
@@ -374,7 +382,9 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
           <div>
             <h3>The day is the only folder</h3>
             <p>Things belong to dates, not projects. No tags, priorities or dashboards.
-              Whatever didn’t get done moves to tomorrow with <kbd>⌘D</kbd>.</p>
+              Whatever didn’t get done moves to tomorrow with <kbd>⌘D</kbd>. Beside the days
+              sit one scratch page and a few notes you keep, and that’s all: Cue isn’t a
+              notebook.</p>
           </div>
           <div>
             <h3>Keyboard first</h3>
@@ -412,9 +422,9 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
 
     <section class="narrow prose">
       <h2 class="serif">Where it’s at</h2>
-      <p><strong>It’s in beta, and it’s free.</strong> Cue is my daily driver on my Mac and
+      <p><strong>It’s 1.0, and it’s free.</strong> Cue is my daily driver on my Mac and
         my iPhone, and it runs without any issues. The Mac app is a free download that works
-        offline with no account, and the iPhone app is in beta on TestFlight.</p>
+        offline with no account, and the iPhone app is on the App Store.</p>
       <p>Want the same notes on both? Sign in with Apple or your email and they sync, free as
         well. That’s the only part with a server in it — a Postgres database at Supabase, and
         the MCP endpoint, and nothing else. No tracking either way, and the code is open if
@@ -483,10 +493,17 @@ footer .symbol:hover .line { animation: write .7s steps(3, end); }
             test fails if it misses, measured on the real packaged app.</p>
         </div>
         <div>
+          <h3>Can I keep a note that isn’t about a day?</h3>
+          <p>A little. Beside the days there’s one scratch page, for something you’ll paste,
+            edit and probably throw away, and a few starred notes you keep and add to, like a
+            reading list. They’re pages like any day. That’s all there is: Cue isn’t a
+            notebook, and there are no folders to file notes in.</p>
+        </div>
+        <div>
           <h3>What doesn’t it do?</h3>
           <p>No projects, tags, priorities, folders, reminders, recurring tasks, attachments,
-            collaboration or dashboards. If you want a project manager or a second brain, Cue is
-            the wrong tool, and would rather say so than grow into one.</p>
+            collaboration or dashboards. If you want a project manager, a notebook or a second
+            brain, Cue is the wrong tool, and would rather say so than grow into one.</p>
         </div>
       </div>
     </section>

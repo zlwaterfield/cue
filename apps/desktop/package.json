@@ -1,7 +1,7 @@
 {
   "name": "cue",
   "productName": "Cue",
-  "version": "1.0.0-beta.3",
+  "version": "1.0.0",
   "packageManager": "pnpm@11.20.0",
   "private": true,
   "description": "A calm, keyboard-first daily notes and to-do app.",
@@ -44,6 +44,7 @@
     "bench": "node scripts/bench.mjs",
     "screenshots": "node scripts/screenshots.mjs",
     "og-video": "node scripts/og-video.mjs",
+    "x-carousel": "node scripts/x-carousel.mjs",
     "video": "node scripts/launch-video.mjs"
   },
   "engines": {

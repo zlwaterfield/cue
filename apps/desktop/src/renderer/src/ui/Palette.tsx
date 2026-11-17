@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { COMMANDS, shortcutKeys, type CommandGroup } from '@shared/commands'
 import { parseDateInput } from '@shared/dateParse'
-import { addDays, friendlyDate, nextWeekday, relativeLabel, shortDate, startOfWeek } from '@shared/dates'
+import { isNotePage, notePages, noteTitle } from '../notes/model'
+import { openNote } from '../notes/actions'
+import { addDays, friendlyDate, namedMoveDays, nextWeekday, relativeLabel, shortDate, startOfWeek } from '@shared/dates'
 import { matchRanges, searchTerms } from '@shared/text'
 import type { ISODate, ItemType, SearchResult } from '@shared/types'
 import { backend } from '../data/backend'
@@ -16,8 +18,8 @@ import { commandIcon, icons } from './icons'
 
 /**
  * ⌘K. One surface, three modes: commands (fuzzy), search (all notes), and date
- * (natural-language "go to" / "move to"). Everything is keyboard-driven; the mouse
- * works too.
+ * (natural-language "go to", ⌘J). Everything is keyboard-driven; the mouse works too.
+ * Move to (⇧⌘M) is its own window, in MoveTo.tsx; ⌘K still moves with "move to fri".
  */
 
 interface Entry {
@@ -33,16 +35,16 @@ interface Entry {
 
 type PaletteOverlay = Extract<NonNullable<Overlay>, { kind: 'palette' }>
 
-const GROUP_ORDER: CommandGroup[] = ['Item', 'Move', 'Navigate', 'General', 'Edit', 'Data']
+const GROUP_ORDER: CommandGroup[] = ['Item', 'Move', 'Navigate', 'Notes', 'General', 'Edit', 'Data']
 
 export function Palette() {
   const overlay = useStore(ui, (s) => s.overlay)
   if (!overlay || overlay.kind !== 'palette') return null
-  return <PalettePanel key={`${overlay.mode}:${overlay.dateAction ?? ''}`} overlay={overlay} />
+  return <PalettePanel key={overlay.mode} overlay={overlay} />
 }
 
 /** How far away a date is, unless its label already says so ("Today"). */
-function distance(date: ISODate, label: string, today: ISODate): string | undefined {
+export function distance(date: ISODate, label: string, today: ISODate): string | undefined {
   const relative = relativeLabel(date, today)
   return relative === label.toLowerCase() ? undefined : relative
 }
@@ -77,16 +79,6 @@ export function Highlight({ text, terms }: { text: string; terms: string[] }) {
   return <>{out}</>
 }
 
-/** The days Move to offers by name. */
-function namedMoveDays(today: ISODate, weekStartsOn: 0 | 1): Array<[string, ISODate]> {
-  return [
-    ['Today', today],
-    ['Tomorrow', addDays(today, 1)],
-    ['Next weekday', nextWeekday(today)],
-    ['Next week', addDays(startOfWeek(today, weekStartsOn), 7)]
-  ]
-}
-
 const SearchIcon = () => <>{icons.search}</>
 const CalendarIcon = () => <>{icons.calendar}</>
 const CommandIcon = () => <>{icons.next}</>
@@ -94,7 +86,6 @@ const CommandIcon = () => <>{icons.next}</>
 function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
   const today = useStore(ui, (s) => s.today)
   const settings = useStore(ui, (s) => s.settings)
-  const lastMoveDate = useStore(ui, (s) => s.lastMoveDate)
   const [query, setQuery] = useState(overlay.query ?? '')
   const [index, setIndex] = useState(0)
   // Results remember their query, so a query still in flight never reads as "No matches".
@@ -102,8 +93,6 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const hasTarget = useMemo(() => controller.targets().length > 0, [])
-  /** The day the lines being moved are on. */
-  const source = useMemo(() => itemStore.get(controller.targets()[0] ?? '')?.date, [])
   const mode = overlay.mode
 
   useLayoutEffect(() => {
@@ -136,19 +125,16 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
   }
 
   const runCommand = (id: string): void => {
-    if (id === 'go.date') return switchMode({ kind: 'palette', mode: 'date', dateAction: 'go' })
-    if (id === 'move.date') return switchMode({ kind: 'palette', mode: 'date', dateAction: 'move' })
+    if (id === 'go.date') return switchMode({ kind: 'palette', mode: 'date' })
     if (id === 'search.open') return switchMode({ kind: 'palette', mode: 'search', query: '' })
     controller.closeOverlay()
     controller.execute(id, 'palette')
   }
 
   const pickDate = (date: ISODate, action: 'go' | 'move'): void => {
+    if (action === 'move') return controller.moveToPicked(date)
     controller.closeOverlay()
-    if (action === 'go') return void controller.navigate({ mode: 'day', date })
-    // A day the named ones don't reach is offered again next time.
-    if (date !== source && !namedMoveDays(today, settings.weekStartsOn).some(([, named]) => named === date)) ui.set({ lastMoveDate: date })
-    void controller.moveTargets(date)
+    void controller.navigate({ mode: 'day', date })
   }
 
   const entries: Entry[] = useMemo(() => {
@@ -163,7 +149,8 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
             <Highlight text={r.text} terms={terms} />
           </span>
         ),
-        hint: friendlyDate(r.date, today),
+        // A line in a note says which note.
+        hint: isNotePage(r.date) ? noteTitle(r.date) : friendlyDate(r.date, today),
         run: () => {
           const match = matchRanges(r.text, terms)[0] ?? [0, 0]
           ui.set({ overlay: null })
@@ -175,11 +162,7 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
     }
 
     if (mode === 'date') {
-      const action = overlay.dateAction ?? 'go'
-      const parsed = parseDateInput(query, today, {
-        weekStartsOn: settings.weekStartsOn,
-        prefer: action === 'move' ? 'future' : 'nearest'
-      })
+      const parsed = parseDateInput(query, today, { weekStartsOn: settings.weekStartsOn, prefer: 'nearest' })
       const entry = (date: ISODate, label?: string): Entry => ({
         key: `${label ?? 'parsed'}:${date}`,
         date,
@@ -192,17 +175,15 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
           shortDate(date, today)
         ),
         hint: distance(date, label ?? '', today),
-        run: () => pickDate(date, action)
+        run: () => pickDate(date, 'go')
       })
       const quick = namedMoveDays(today, settings.weekStartsOn)
-      if (action === 'go') quick.splice(2, 0, ['Yesterday', addDays(today, -1)])
-      // The day picked last time comes first, so a run of lines can follow it, until it passes.
-      else if (lastMoveDate && lastMoveDate > today && !quick.some(([, date]) => date === lastMoveDate)) quick.unshift(['Last used', lastMoveDate])
+      quick.splice(2, 0, { label: 'Yesterday', date: addDays(today, -1) })
       const list: Entry[] = []
       if (parsed) list.push(entry(parsed))
-      // Each date once ("Next weekday" is often "Next week"), and never the day the lines are on.
-      const listed = new Set([parsed, action === 'move' ? source : undefined])
-      for (const [label, date] of quick) {
+      // Each date once ("Next weekday" is often "Next week").
+      const listed = new Set([parsed])
+      for (const { label, date } of quick) {
         if (listed.has(date)) continue
         if (query.trim() && fuzzyScore(query, label) === null) continue
         listed.add(date)
@@ -215,7 +196,11 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
     const syncAvailable = syncState.get().available
     const updatesAvailable = updateState.get().available
     const visible = COMMANDS.filter(
-      (c) => !c.paletteHidden && (!c.needsItem || hasTarget) && (!c.needsSync || syncAvailable) && (!c.needsUpdates || updatesAvailable)
+      (c) =>
+        !c.paletteHidden &&
+        (!c.needsItem || hasTarget) &&
+        (!c.needsSync || syncAvailable) &&
+        (!c.needsUpdates || updatesAvailable)
     )
     const tomorrow = addDays(today, 1)
     const hintFor = (id: string): string | undefined => {
@@ -275,6 +260,26 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
       else if (/^(move|mv|defer|push)\b/i.test(q)) list.push(move, go)
       else list.push(go, move)
     }
+    // A starred note opens by its name, the way "fri" opens Friday. "go to books" works too.
+    const name = q.replace(/^(go to|goto|open)\s+/i, '')
+    const named = notePages()
+      .slice(1) // scratch has its own command
+      .map((page) => ({ page, score: fuzzyScore(name, noteTitle(page)) }))
+      .filter((n): n is { page: ISODate; score: number } => n.score !== null)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+    for (const { page } of named) {
+      list.push({
+        key: `note:${page}`,
+        icon: icons.text,
+        title: `Go to ${noteTitle(page)}`,
+        hint: 'Starred note',
+        run: () => {
+          ui.set({ overlay: null })
+          openNote(page)
+        }
+      })
+    }
     list.push(...scored)
     list.push({
       key: 'search',
@@ -287,7 +292,7 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
       run: () => switchMode({ kind: 'palette', mode: 'search', query: q })
     })
     return list
-  }, [mode, query, found, today, settings.weekStartsOn, hasTarget, source, overlay.dateAction, lastMoveDate])
+  }, [mode, query, found, today, settings.weekStartsOn, hasTarget])
 
   const clamped = Math.min(index, Math.max(0, entries.length - 1))
 
@@ -321,9 +326,7 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
     mode === 'search'
       ? 'Search all notes'
       : mode === 'date'
-        ? overlay.dateAction === 'move'
-          ? 'Move to… try “fri”, “next mon”, “oct 31”'
-          : 'Go to… try “fri”, “next mon”, “oct 31”'
+        ? 'Go to… try “fri”, “next mon”, “oct 31”'
         : 'Type a command, a date, or search…'
 
   // "No matches" waits for this query's own results.
@@ -400,7 +403,7 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
               selected={highlightedDate}
               today={today}
               weekStartsOn={settings.weekStartsOn}
-              onPick={(date) => pickDate(date, overlay.dateAction ?? 'go')}
+              onPick={(date) => pickDate(date, 'go')}
             />
           )}
         </div>

@@ -107,6 +107,16 @@ export function nextWeekday(date: ISODate): ISODate {
   return d
 }
 
+/** The days Move to offers by name, in the order it lists them. */
+export function namedMoveDays(today: ISODate, weekStartsOn: 0 | 1): Array<{ label: string; date: ISODate }> {
+  return [
+    { label: 'Today', date: today },
+    { label: 'Tomorrow', date: addDays(today, 1) },
+    { label: 'Next weekday', date: nextWeekday(today) },
+    { label: 'Next week', date: addDays(startOfWeek(today, weekStartsOn), 7) }
+  ]
+}
+
 export function dateRange(from: ISODate, to: ISODate): ISODate[] {
   const out: ISODate[] = []
   for (let d = from; d <= to; d = addDays(d, 1)) out.push(d)
@@ -124,6 +134,10 @@ export function weekViewDates(today: ISODate, weekStartsOn: 0 | 1): ISODate[] {
 }
 
 /* ------------------------------------------------------------------ Labels */
+
+/** The days set aside for notes (`notes.ts`), which labels name rather than date. */
+const NOTES_FROM: ISODate = '1000-01-01'
+const NOTES_TO: ISODate = '1099-12-31'
 
 /** "Today", "Tomorrow", "Yesterday", or the weekday name. */
 export function relativeDayName(date: ISODate, today: ISODate): string {
@@ -177,8 +191,12 @@ export function relativeLabel(date: ISODate, today: ISODate): string {
   return -d < 14 ? `${-d} days ago` : -d < 60 ? `${Math.round(-d / 7)} weeks ago` : `${Math.round(-d / 30)} months ago`
 }
 
-/** Compact label for lists: "Today", "Tomorrow", "Yesterday", "Fri, Oct 23", "Mar 3, 2025". */
+/**
+ * Compact label for lists: "Today", "Tomorrow", "Yesterday", "Fri, Oct 23", "Mar 3, 2025".
+ * A note's page (`notes.ts`) has no date to show: "Scratch", or "Notes".
+ */
 export function friendlyDate(date: ISODate, today: ISODate): string {
+  if (date >= NOTES_FROM && date <= NOTES_TO) return date === NOTES_FROM ? 'Scratch' : 'Notes'
   const delta = diffDays(today, date)
   if (delta === 0) return 'Today'
   if (delta === 1) return 'Tomorrow'

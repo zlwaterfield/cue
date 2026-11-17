@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
+import { isNotePage } from '@shared/notes'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
@@ -9,7 +10,8 @@ import { metrics } from '../ui/theme'
 
 /** Go to any day. */
 export default function CalendarSheet() {
-  const date = useStore(ui, (s) => s.date)
+  // From a note there's no day selected; the calendar opens on today.
+  const date = useStore(ui, (s) => (isNotePage(s.date) ? s.today : s.date))
   return (
     <ScrollView contentContainerStyle={styles.sheet} keyboardShouldPersistTaps="handled">
       <SheetTitle title="Go to a day" />

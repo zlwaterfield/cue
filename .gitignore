@@ -15,3 +15,4 @@ playwright-report/
 # they also count as uncommitted changes, which now stop `pnpm release`.
 /pnpm-lock.yaml
 /pnpm-workspace.yaml
+__pycache__/

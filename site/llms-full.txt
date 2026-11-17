@@ -10,7 +10,7 @@ source, and no tracking.
 
 Site: https://www.usecue.today
 Source: https://github.com/zlwaterfield/cue
-Made by Zach Waterfield, Toronto, Canada. A personal project, in beta, used every day since
+Made by Zach Waterfield, Toronto, Canada. A personal project, used every day since
 October 17, 2026.
 
 ---
@@ -32,7 +32,8 @@ ready before I’ve finished thinking of what to write.
 ## What makes it different
 
 **The day is the only folder.** Things belong to dates, not projects. No tags, priorities or
-dashboards. Whatever didn’t get done moves to tomorrow with ⌘D.
+dashboards. Whatever didn’t get done moves to tomorrow with ⌘D. Beside the days sit one
+scratch page and a few notes you keep, and that’s all: Cue isn’t a notebook.
 
 **Keyboard first.** Tab nests, ⌘↩ completes, and ⌘K does everything else, including dates
 like “move to fri”. The mouse still works.
@@ -48,9 +49,9 @@ Cue stays small on purpose: no reminders, recurring tasks, collaboration or AI i
 
 ## Where it’s at
 
-It’s in beta, and it’s free. Cue is my daily driver on my Mac and my iPhone, and it runs
+It’s 1.0, and it’s free. Cue is my daily driver on my Mac and my iPhone, and it runs
 without any issues. The Mac app is a free download that works offline with no account, and
-the iPhone app is in beta on TestFlight.
+the iPhone app is on the App Store.
 
 Want the same notes on both? Sign in with Apple or your email and they sync, free as well.
 That’s the only part with a server in it: a Postgres database at Supabase, and the MCP
@@ -66,14 +67,14 @@ Free on your Mac and iPhone, with no account. Turn on sync whenever you like.
 ## Cue for Mac
 
 Works offline, totally free. No account, no sign-up: open it and start typing. Apple silicon
-Mac, signed and notarized. The download is 1.0.0-beta.3, a 122 MB .dmg, from
-https://github.com/zlwaterfield/cue/releases
+Mac, signed and notarized. The download is 1.0.0, a 122 MB .dmg:
+https://github.com/zlwaterfield/cue/releases/download/v1.0.0/Cue-1.0.0-arm64.dmg
 
 ## Cue for iPhone
 
 Today’s page in your pocket, on its own or synced with your Mac. The same core as the Mac
-app, built for touch. Free, no account needed, and in beta on TestFlight:
-https://testflight.apple.com/join/KyVXdDgz
+app, built for touch. Free, no account needed, and on the App Store:
+https://apps.apple.com/us/app/cue-daily-notes/id6824752126
 
 ## Accounts and privacy
 
@@ -173,19 +174,25 @@ items). A keystroke to a rendered frame is 1.5 ms, p95 3.7 ms. Searching all 36,
 takes 0.5 ms. Every number is checked against a budget by `pnpm bench`, on the real packaged
 app.
 
-**What doesn’t it do?** No projects, tags, priorities, folders, reminders, recurring tasks,
-attachments, collaboration, dashboards or AI writing your notes. That’s on purpose.
+**Can I keep a note that isn’t about a day?** A little. Beside the days there’s one scratch
+page, for something you’ll paste, edit and probably throw away, and a few starred notes you
+keep and add to, like a reading list. They’re pages like any day. That’s all there is: Cue
+isn’t a notebook, and there are no folders to file notes in.
+
+**What doesn’t it do?** No projects, tags, priorities, folders, a notebook, reminders,
+recurring tasks, attachments, collaboration, dashboards or AI writing your notes. That’s on
+purpose.
 
 **What are the shortcuts?** ⌘K command palette, ⌘F search, ⌘1/⌘2/⌘3 today/tomorrow/this
-week, ⌘[ and ⌘] previous and next day, ⌘J go to date, ⌘N new item, ⌘↩ complete, ⇧⌘↩ toggle
-bullet and to-do, Tab and ⇧Tab indent and outdent, ⌥↑ and ⌥↓ move, ⌘D move to tomorrow,
-⇧⌘D move to a date, ⌘Z undo, and ⌘/ for the whole list.
+week, ⌘4 notes, ⌘[ and ⌘] previous and next day, ⌘J go to date, ⌘N new item, ⌘↩ complete,
+⇧⌘↩ toggle bullet and to-do, Tab and ⇧Tab indent and outdent, ⌥↑ and ⌥↓ move, ⌘D move to
+tomorrow, ⇧⌘M move to a date, ⌘Z undo, and ⌘/ for the whole list.
 
 ---
 
 # Terms of Service — https://www.usecue.today/terms
 
-In short: Cue is free, in beta, and provided as it is. What you write belongs to you. Don’t
+In short: Cue is free and provided as it is. What you write belongs to you. Don’t
 misuse the service or other people’s accounts. You can export your notes and delete your
 account at any time.
 

@@ -1,7 +1,7 @@
 import { flushSync } from 'react-dom'
 import { COMMANDS_BY_ID } from '@shared/commands'
 import { uuidv7 } from '@shared/ids'
-import { addDays, friendlyDate, nextWeekday, startOfWeek, todayISO, weekViewDates } from '@shared/dates'
+import { addDays, friendlyDate, namedMoveDays, nextWeekday, startOfWeek, todayISO, weekViewDates } from '@shared/dates'
 import { collectLooseEnds, looseEndsRange, movedToTodayLabel } from '@shared/looseEnds'
 import { linesToMarkdown, parseMarkdownLines, type LineSpec } from '@shared/markdown'
 import type { ISODate, Item, ItemType, Settings } from '@shared/types'
@@ -17,6 +17,8 @@ import { commandFor, isMac } from './keys'
 import * as ops from '@shared/editor/ops'
 import { Tx } from '@shared/editor/tx'
 import { revert, UndoManager, type SelectionSnapshot, type UndoEntry } from '@shared/editor/undo'
+import { isNotePage, loadNotes, notePages, notes, SCRATCH } from '../notes/model'
+import { runNotesCommand, stepNote } from '../notes/actions'
 
 /**
  * The editor controller: owns focus, caret movement across items, block selection,
@@ -90,13 +92,18 @@ class EditorController {
     return view.mode === 'week' ? weekViewDates(today, settings.weekStartsOn) : [view.date]
   }
 
+  /** The view a page is shown in when something asks for that page alone. */
+  viewOf(date: ISODate): View {
+    return isNotePage(date) ? { mode: 'notes', date } : { mode: 'day', date }
+  }
+
   visibleDates(): ISODate[] {
     return this.datesFor(ui.get().view)
   }
 
   primaryDate(): ISODate {
     const { view, today } = ui.get()
-    return view.mode === 'day' ? view.date : today
+    return view.mode === 'week' ? today : view.date
   }
 
   private dateOf(id: string): ISODate | undefined {
@@ -237,7 +244,7 @@ class EditorController {
     if (snapshot.kind === 'blocks') {
       if (!itemStore.get(snapshot.anchor) || !itemStore.get(snapshot.focus)) return
       if (!this.visibleDates().includes(snapshot.date)) {
-        void this.navigate({ mode: 'day', date: snapshot.date }, { focus: snapshot })
+        void this.navigate(this.viewOf(snapshot.date), { focus: snapshot })
         return
       }
       this.selectBlocks(snapshot.date, snapshot.anchor, snapshot.focus)
@@ -246,7 +253,7 @@ class EditorController {
     const date = this.dateOf(snapshot.id)
     if (!date) return
     if (!this.visibleDates().includes(date)) {
-      void this.navigate({ mode: 'day', date }, { focus: snapshot })
+      void this.navigate(this.viewOf(date), { focus: snapshot })
       return
     }
     this.focusText(snapshot.id, snapshot.start, snapshot.end)
@@ -292,6 +299,12 @@ class EditorController {
       })
     }
     return changes.length > 0
+  }
+
+  /** Announce the action just committed, with Undo for exactly that action. */
+  toastUndo(message: string): void {
+    showToast(message, { undo: true })
+    this.toastEntry = this.undo.top()
   }
 
   /** The toast's Undo button: only undoes the action it announced. */
@@ -534,7 +547,7 @@ class EditorController {
       if (e.key === 'Escape') {
         e.preventDefault()
         this.closeOverlay()
-      } else if (command === 'palette.open' || command === 'search.open' || command === 'links.open' || command === 'help.shortcuts') {
+      } else if (command === 'palette.open' || command === 'search.open' || command === 'links.open' || command === 'move.date' || command === 'help.shortcuts') {
         e.preventDefault()
         this.execute(command, 'key')
       }
@@ -751,7 +764,7 @@ class EditorController {
     this.insertLines(date, null, lines)
   }
 
-  private insertLines(date: ISODate, afterId: string | null, lines: LineSpec[]): void {
+  insertLines(date: ISODate, afterId: string | null, lines: LineSpec[]): void {
     this.undo.seal()
     this.commit('Paste', (tx) => {
       const created = ops.insertLinesAfter(tx, date, afterId, lines)
@@ -760,7 +773,7 @@ class EditorController {
     })
   }
 
-  private markdownFor(ids: string[]): string {
+  markdownFor(ids: string[]): string {
     if (!ids.length) return ''
     const date = itemStore.get(ids[0])!.date
     const set = new Set(ids)
@@ -814,17 +827,22 @@ class EditorController {
 
   execute(id: string, source: 'key' | 'menu' | 'palette' = 'palette'): void {
     // A menu key equivalent and the page's own key handler can both fire for one
-    // press, in either order. Ignore the echo from the other source.
+    // press, in either order. Ignore the echo from the other source. A run from ⌘K has
+    // no echo, so a key straight after it (⌘K's Move to date…, then ⇧⌘M) still counts.
     const now = performance.now()
     const last = this.lastExecuted
-    if (source !== 'palette' && last.id === id && last.source !== source && now - last.at < 200) return
+    if (source !== 'palette' && last.source !== 'palette' && last.id === id && last.source !== source && now - last.at < 200) return
     this.lastExecuted = { id, at: now, source }
 
     // Menu commands act on the document, so an open overlay steps aside first.
-    const overlayCommands = ['palette.open', 'search.open', 'links.open', 'help.shortcuts', 'app.settings', 'app.about', 'edit.undo', 'edit.redo']
+    const overlayCommands = ['palette.open', 'search.open', 'links.open', 'move.date', 'help.shortcuts', 'app.settings', 'app.about', 'edit.undo', 'edit.redo']
     if (source === 'menu' && ui.get().overlay && COMMANDS_BY_ID[id] && !overlayCommands.includes(id)) this.closeOverlay()
 
     const { today } = ui.get()
+    if (id.startsWith('notes.')) {
+      runNotesCommand(id)
+      return
+    }
     switch (id) {
       case 'palette.open':
         this.toggleOverlay({ kind: 'palette', mode: 'commands' })
@@ -856,16 +874,25 @@ class EditorController {
       case 'go.week':
         void this.navigate({ mode: 'week' })
         return
+      case 'go.notes':
+        // The note last open, unless it has gone since (deleted, or a new one left blank).
+        void this.navigate({ mode: 'notes', date: notePages().includes(notes.get().last) ? notes.get().last : SCRATCH })
+        return
       case 'go.prevDay':
       case 'go.nextDay': {
         const view = ui.get().view
+        // On a note, the pair steps to the note before or after, as it does for days.
+        if (view.mode === 'notes') {
+          stepNote(id === 'go.prevDay' ? -1 : 1)
+          return
+        }
         const target = this.targets()[0]
         const base = view.mode === 'day' ? view.date : (target ? itemStore.get(target)!.date : today)
         void this.navigate({ mode: 'day', date: addDays(base, id === 'go.prevDay' ? -1 : 1) })
         return
       }
       case 'go.date':
-        this.openOverlay({ kind: 'palette', mode: 'date', dateAction: 'go' })
+        this.openOverlay({ kind: 'palette', mode: 'date' })
         return
       case 'looseEnds.toggle':
         void this.toggleLooseEnds()
@@ -887,7 +914,7 @@ class EditorController {
         return
       case 'move.date':
         if (!this.targets().length) return
-        this.openOverlay({ kind: 'palette', mode: 'date', dateAction: 'move' })
+        this.toggleOverlay({ kind: 'move' })
         return
       case 'export.markdown':
         void backend.exportMarkdown().then((r) => {
@@ -990,7 +1017,7 @@ class EditorController {
   }
 
   /** Where focus goes after the targeted rows leave their day (delete or move). */
-  private focusAfterRemoval(ids: string[]): ops.CaretFocus | SelectionSnapshot {
+  focusAfterRemoval(ids: string[]): ops.CaretFocus | SelectionSnapshot {
     const date = itemStore.get(ids[0])!.date
     const rows = itemStore.outline(date)
     // Children leave with their parents, so they can't receive the caret.
@@ -1019,6 +1046,18 @@ class EditorController {
       ops.remove(tx, ids)
       return focus
     })
+  }
+
+  /**
+   * Move to a day picked by hand: in Move to (⇧⌘M), or with "move to fri" in ⌘K. A day
+   * the named ones (Today, Tomorrow…) don't offer comes first in Move to next time.
+   */
+  moveToPicked(date: ISODate): void {
+    const source = itemStore.get(this.targets()[0] ?? '')?.date
+    const { today, settings } = ui.get()
+    this.closeOverlay()
+    if (date !== source && !namedMoveDays(today, settings.weekStartsOn).some((day) => day.date === date)) ui.set({ lastMoveDate: date })
+    void this.moveTargets(date)
   }
 
   async moveTargets(date: ISODate): Promise<void> {
@@ -1058,7 +1097,7 @@ class EditorController {
       showToast('Earlier to-dos are turned off in Settings')
       return
     }
-    const showsToday = view.mode === 'week' || view.date === today
+    const showsToday = view.mode === 'week' || (view.mode === 'day' && view.date === today)
     if (!showsToday) {
       await this.navigate({ mode: 'day', date: today })
       ui.set({ looseEndsOpen: true })
@@ -1116,7 +1155,8 @@ class EditorController {
     // A later navigation started while this one was loading; it wins.
     if (seq !== this.navigationSeq) return
     const current = ui.get().view
-    const changed = current.mode !== view.mode || (view.mode === 'day' && current.mode === 'day' && current.date !== view.date)
+    const changed = current.mode !== view.mode || (view.mode !== 'week' && current.mode !== 'week' && current.date !== view.date)
+    if (view.mode === 'notes') notes.set({ last: view.date })
     flushSync(() => {
       ui.set({ view, selection: { kind: 'none' } })
     })
@@ -1145,7 +1185,7 @@ class EditorController {
   /** Open a search result: its day (keeping the week view if it's visible), caret on the match. */
   async openItem(id: string, date: ISODate, match: [number, number]): Promise<void> {
     const inWeek = ui.get().view.mode === 'week' && this.datesFor({ mode: 'week' }).includes(date)
-    const view: View = inWeek ? { mode: 'week' } : { mode: 'day', date }
+    const view: View = inWeek ? { mode: 'week' } : this.viewOf(date)
     await this.navigate(view, { focus: { id, start: match[1] } })
     const el = this.els.get(id)
     if (el) flash(el, match[0], match[1])
@@ -1191,6 +1231,7 @@ class EditorController {
     const settings = await backend.getSettings()
     ui.set({ settings, today: todayISO() })
     await itemStore.ensureLoaded([...this.visibleDates(), addDays(ui.get().today, -1)])
+    await loadNotes()
 
     window.addEventListener('keydown', this.onGlobalKeyDown)
     document.addEventListener('selectionchange', this.onSelectionChange)

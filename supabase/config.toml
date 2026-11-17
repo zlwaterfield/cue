@@ -58,7 +58,10 @@ additional_redirect_urls = ["http://127.0.0.1:*/auth/callback"]
 
 [auth.email]
 enable_signup = true
-enable_confirmations = false
+# On, so `POST /auth/v1/signup` gives no session for an address its caller can't read mail
+# at (20261117000000_code_signup.sql). A new address's first code comes in the "Confirm
+# signup" email instead of the "Magic Link" one; both show the code.
+enable_confirmations = true
 max_frequency = "1s"
 otp_length = 6
 otp_expiry = 900

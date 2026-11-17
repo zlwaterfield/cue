@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen'
 import { addDays } from '@shared/dates'
 import { itemStore, sync } from '../core/app'
 import { receiveShared } from '../core/inbox'
+import { refreshNotes } from '../core/notes'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
@@ -40,6 +41,8 @@ export default function Day() {
     })
     void itemStore.ensureLoaded([addDays(today, -1), today, addDays(today, 1)]).then(() => {
       setReady(true)
+      // Scratch and the starred notes, on hand before the notes button is pressed.
+      refreshNotes()
       void SplashScreen.hideAsync()
       loaded = true
       invite()

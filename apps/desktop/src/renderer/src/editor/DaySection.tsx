@@ -5,11 +5,15 @@ import { controller, ghostId } from './controller'
 import { useOutline } from './hooks'
 import { ItemRow } from './ItemRow'
 import { LooseEnds } from './LooseEnds'
+import { isNotePage, noteTitle, SCRATCH } from '../notes/model'
 
 const START_TYPING = 'Start typing…'
 
 /** What an empty day says when it isn't focused. Focused, every blank line says "Start typing…". */
 function placeholderFor(date: ISODate, today: ISODate): string {
+  if (date === SCRATCH) return ''
+  // A new note's first line is its name.
+  if (isNotePage(date)) return 'Name this note'
   const delta = diffDays(today, date)
   if (delta === 0) return START_TYPING
   if (delta > 0) return 'Nothing planned'
@@ -39,7 +43,7 @@ const GhostRow = memo(function GhostRow({ date, today, empty }: { date: ISODate;
         suppressContentEditableWarning
         spellCheck
         role="textbox"
-        aria-label={`New line for ${longDate(date)}`}
+        aria-label={`New line for ${isNotePage(date) ? noteTitle(date) : longDate(date)}`}
         data-editable-id={id}
         data-placeholder={placeholderFor(date, today)}
         data-placeholder-focus={START_TYPING}
@@ -71,6 +75,41 @@ export const DaySection = memo(function DaySection({
   const classes = ['day', `is-${variant}`]
   if (delta === 0) classes.push('is-today')
   if (delta < 0) classes.push('is-past')
+
+  // Scratch and a starred note are pages too, with a name where a day has its date.
+  if (isNotePage(date)) {
+    const scratch = date === SCRATCH
+    const keep = (e: React.MouseEvent): void => e.preventDefault()
+    // A button acts on its own note, wherever the caret was.
+    const act = (command: string) => (): void => {
+      controller.focusText(ghostId(date), 0)
+      controller.execute(command)
+    }
+    return (
+      <section className={`day is-${variant} is-note ${scratch ? 'is-scratch' : 'is-starred'}`} data-day={date} aria-label={noteTitle(date)}>
+        <header className="day-head">
+          {scratch && <h2 className="day-title">Scratch</h2>}
+          {scratch && rows.length === 0 && <span className="day-sub">Type or paste anything. It stays until you clear it.</span>}
+          {rows.length > 0 && (
+            <span className="note-actions">
+              <button onMouseDown={keep} onClick={act('notes.copy')} title="Copy page  ⇧⌘C">
+                Copy
+              </button>
+              <button onMouseDown={keep} onClick={act('notes.discard')} title={`${scratch ? 'Clear scratch' : 'Delete note'}  ⌥⌘⌫`}>
+                {scratch ? 'Clear' : 'Delete'}
+              </button>
+            </span>
+          )}
+        </header>
+        <div className="rows">
+          {rows.map((row) => (
+            <ItemRow key={row.id} id={row.id} depth={row.depth} date={date} />
+          ))}
+          <GhostRow date={date} today={today} empty={rows.length === 0} />
+        </div>
+      </section>
+    )
+  }
 
   const openDay = (): void => {
     if (variant === 'week') void controller.navigate({ mode: 'day', date })

@@ -8,10 +8,6 @@
   Fast, quiet and keyboard-first.
 </p>
 
-> [!NOTE]
-> **Cue is in beta.** I use it every day on my Mac and iPhone as my daily driver, without
-> any issues. It's still young, so export now and then (File ▸ Export as Markdown).
-
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/week-dark.png">
   <img src="docs/images/week-light.png" alt="Cue's week view: today's notes, to-dos and nested bullets, with tomorrow below">
@@ -19,6 +15,7 @@
 
 Every day in Cue is a page of text, bullets and to-dos. Open the app and start typing into
 today. There are no projects, tags or priorities: just days, and what you wrote on them.
+Beside the days sit one scratch page and a few notes you keep; Cue isn't a notebook.
 
 - **The day is the only folder.** Things belong to dates. What didn't get done moves to
   tomorrow with ⌘D.
@@ -33,13 +30,26 @@ type (`- `, `[] `, `[x] `), and pasted Markdown lists become real nested items.
 
 **Organizing.** A week view with today on top, a day view for any date, and ⌘[ / ⌘] to step
 between them. Reorder with ⌥↑/⌥↓ or drag and drop, even onto another day. Move anything to
-tomorrow (⌘D) or any date (⇧⌘D), and select several lines to act on them together.
+tomorrow (⌘D) or any date (⇧⌘M, which offers the day you picked last first), and select several
+lines to act on them together.
 
 <p align="center">
-  <img src="docs/images/move-to-date.png" alt="Moving a to-do with ⇧⌘D: typing &quot;fri&quot; resolves to Fri, Oct 23 (in 5 days), with a calendar alongside" width="80%">
+  <img src="docs/images/move-to-date.png" alt="Move to, opened with ⇧⌘M: the to-do being moved at the top, &quot;fri&quot; read as Fri, Nov 13 (tomorrow), and a calendar alongside" width="80%">
 </p>
 
-**Finding.** ⌘K searches every command and understands dates ("move to fri", "go to oct 31").
+**Notes.** For what doesn't belong to a day: one scratch page to paste and edit something you'll
+probably throw away, and a few notes you star to keep and add to over time. They sit beside
+Today and Week (⌘4), one page at a time, and are pages like any day, with the same lines and
+shortcuts. ⌘E opens scratch from anywhere and takes you back to the line you left; ⇧⌘N starts
+a note, and its first line is its name. This is for a handful of notes, not a notebook.
+
+<p align="center">
+  <img src="docs/images/notes.png" alt="Notes, beside Today and Week: a starred note called Books to read, with Scratch and Gift ideas named above it" width="49%">
+  <img src="docs/images/notes-scratch.png" alt="Scratch, holding a draft email, with Copy and Clear beside its title" width="49%">
+</p>
+
+**Finding.** ⌘K searches every command, understands dates ("move to fri", "go to oct 31") and
+opens a starred note by its name.
 ⌘F searches every day you've written, ignoring case and accents. ⌘L lists every link you've
 written or shared, newest first, and finds one by what its page says (its title, description and
 the start of its text) as well as by the words around it.
@@ -65,7 +75,8 @@ and [docs/MCP.md](docs/MCP.md).
 **iPhone.** The same core as the Mac, built for touch: tap a bullet to make it a to-do, tap a
 box to check it, swipe to complete or send to tomorrow, and long-press to drag. Like the
 Mac, it needs no account; turn on sync to share notes with your Mac. Share a link from any app to add it to today, and a line
-that's only a link shows its page. The link button lists every link, like ⌘L on the Mac. See [apps/mobile/README.md](apps/mobile/README.md).
+that's only a link shows its page. The link button lists every link, like ⌘L on the Mac, and
+the notes button opens scratch and your starred notes. See [apps/mobile/README.md](apps/mobile/README.md).
 
 **Feel.** One calm column in monochrome graphite, system typography, and light and dark
 appearance. The caret is the brand: it holds still while you type and rests after ten idle
@@ -78,8 +89,12 @@ seconds.
 | Command palette | ⌘K |
 | Search | ⌘F |
 | Links | ⌘L |
-| Today · Tomorrow · This week | ⌘1 · ⌘2 · ⌘3 |
-| Previous / next day | ⌘[ · ⌘] |
+| Today · Tomorrow · This week · Notes | ⌘1 · ⌘2 · ⌘3 · ⌘4 |
+| Previous / next day (or note) | ⌘[ · ⌘] |
+| Scratch, and back | ⌘E |
+| New note | ⇧⌘N |
+| Clear scratch, or delete the open note | ⌥⌘⌫ |
+| Copy the whole page | ⇧⌘C |
 | Go to date | ⌘J |
 | New item | ⌘N, or just start typing |
 | Complete / reopen | ⌘↩ |
@@ -87,7 +102,7 @@ seconds.
 | Indent / outdent | Tab · ⇧Tab |
 | Move up / down | ⌥↑ · ⌥↓ |
 | Move to tomorrow | ⌘D |
-| Move to date | ⇧⌘D |
+| Move to date | ⇧⌘M |
 | Delete item | ⇧⌘⌫ |
 | Select lines | Esc, then ⇧↑ / ⇧↓ (⌘A twice for the whole day) |
 | Undo / redo | ⌘Z · ⇧⌘Z |
@@ -130,7 +145,7 @@ pnpm bench --check    # exits non-zero if anything misses its budget
 ## Getting started
 
 Download Cue from [usecue.today/download](https://www.usecue.today/download): the Mac app for
-Apple silicon, signed and notarized, and the iPhone beta on TestFlight. Both are free and work
+Apple silicon, signed and notarized, and the iPhone app on the App Store. Both are free and work
 offline with no account. Syncing them together needs an account (Sign in with Apple, or an
 emailed code), and that’s free as well.
 
@@ -166,7 +181,8 @@ server: your own Supabase project, set up as in [docs/SYNC.md](docs/SYNC.md).
 - With sync on, your notes are also stored on the sync server (Cue's, or your own if you
   build it yourself). Turning sync off keeps every note on your Mac, and you can delete the
   account from Settings.
-- File ▸ Export as Markdown writes one file per day; Export JSON Backup writes everything.
+- File ▸ Export as Markdown writes one file per day, and one per note in a `Notes` folder;
+  Export JSON Backup writes everything.
   On the iPhone, Settings → Your notes shares the same two: the Markdown as a zip, the
   backup as the file the Mac imports.
 - The hosted service's [Privacy Policy](https://www.usecue.today/privacy) and
@@ -196,8 +212,8 @@ making what's already here faster and more dependable. Nothing below is promised
 
 **Before the stable 1.0:** a stable storage format with tested migrations.
 
-**Not planned:** projects, tags, priorities, reminders, recurring tasks, attachments,
-collaboration, AI built into the app and dashboards.
+**Not planned:** projects, tags, priorities, folders or a notebook for notes, reminders,
+recurring tasks, attachments, collaboration, AI built into the app and dashboards.
 
 ## Contributing
 

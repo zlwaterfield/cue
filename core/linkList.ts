@@ -1,3 +1,4 @@
+import { isNotePage, notePageLabel } from './notes'
 import { addDays, diffDays, MONTHS, parts, startOfWeek, WEEKDAYS, weekday } from './dates'
 import { findLinks } from './links'
 import { searchTerms } from './text'
@@ -89,6 +90,7 @@ export function filterLinks(
  * "October 2025" in another year). Links on days after this week are "Coming up".
  */
 export function linkGroup(date: ISODate, today: ISODate, weekStartsOn: 0 | 1): string {
+  if (isNotePage(date)) return 'Notes'
   const week = startOfWeek(today, weekStartsOn)
   if (date >= addDays(week, 7)) return 'Coming up'
   if (date >= week) return 'This week'
@@ -99,6 +101,7 @@ export function linkGroup(date: ISODate, today: ISODate, weekStartsOn: 0 | 1): s
 
 /** The day beside a link: "Today", "Yesterday", "Thu" within a week, else "Oct 22" (the heading has the year). */
 export function linkDay(date: ISODate, today: ISODate): string {
+  if (isNotePage(date)) return notePageLabel(date)
   const delta = diffDays(today, date)
   if (delta === 0) return 'Today'
   if (delta === -1) return 'Yesterday'

@@ -19,6 +19,8 @@ const KEY = JSON.parse(Deno.env.get('SUPABASE_PUBLISHABLE_KEYS') ?? '{}').defaul
 /** The URL assistants connect to, which discovery must name exactly (CUE_MCP_URL when hosted). */
 const RESOURCE = Deno.env.get('CUE_MCP_URL') ?? `${PUBLIC}/functions/v1/mcp`
 const METADATA = `${RESOURCE}/.well-known/oauth-protected-resource`
+/** MCP no longer batches (2025-06-18); older clients that do send only a few at once. */
+const MAX_BATCH = 10
 
 // Browser-based clients (such as the MCP Inspector) call from other origins.
 const CORS = {
@@ -54,9 +56,14 @@ Deno.serve(async (request) => {
   } catch {
     return json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }, 400)
   }
+  const messages = Array.isArray(body) ? body : [body]
+  // Each message can make several database requests, all sent before anything has checked
+  // the token's signature, so one request mustn't carry an unbounded batch.
+  if (messages.length > MAX_BATCH) {
+    return json({ jsonrpc: '2.0', id: null, error: { code: -32600, message: `Send at most ${MAX_BATCH} messages at a time` } }, 400)
+  }
   const notes = new SupabaseNotes(API, KEY, token)
   try {
-    const messages = Array.isArray(body) ? body : [body]
     const replies = (await Promise.all(messages.map((m) => handleMessage(m, notes)))).filter((r) => r !== null)
     if (!replies.length) return new Response(null, { status: 202, headers: CORS })
     return json(Array.isArray(body) ? replies : replies[0])

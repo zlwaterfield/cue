@@ -15,6 +15,7 @@ export function Header() {
   // A day's own heading names it; the bar gives the month, like the calendar.
   let title: React.ReactNode
   if (view.mode === 'week') title = 'This week'
+  else if (view.mode === 'notes') title = 'Notes'
   else {
     const { year, month } = parts(view.date)
     title = (
@@ -26,14 +27,15 @@ export function Header() {
 
   const keep = (e: React.MouseEvent): void => e.preventDefault()
   const isToday = view.mode === 'day' && view.date === today
+  const [back, forward] = view.mode === 'notes' ? ['Previous note', 'Next note'] : ['Previous day', 'Next day']
 
   return (
     <header className="titlebar">
       <div className="titlebar-left">
-        <button className="icon-btn" onMouseDown={keep} onClick={() => controller.execute('go.prevDay')} title="Previous day  ⌘[" aria-label="Previous day">
+        <button className="icon-btn" onMouseDown={keep} onClick={() => controller.execute('go.prevDay')} title={`${back}  ⌘[`} aria-label={back}>
           <Chevron dir="left" />
         </button>
-        <button className="icon-btn" onMouseDown={keep} onClick={() => controller.execute('go.nextDay')} title="Next day  ⌘]" aria-label="Next day">
+        <button className="icon-btn" onMouseDown={keep} onClick={() => controller.execute('go.nextDay')} title={`${forward}  ⌘]`} aria-label={forward}>
           <Chevron dir="right" />
         </button>
         <button className="view-title" onMouseDown={keep} onClick={() => controller.execute('go.date')} title="Go to date  ⌘J">
@@ -47,6 +49,10 @@ export function Header() {
           </button>
           <button role="tab" aria-selected={view.mode === 'week'} className={view.mode === 'week' ? 'is-active' : ''} onMouseDown={keep} onClick={() => controller.execute('go.week')} title="This week  ⌘3">
             Week
+          </button>
+          {/* Scratch and the starred notes: the third place, beside Today and Week. */}
+          <button role="tab" aria-selected={view.mode === 'notes'} className={view.mode === 'notes' ? 'is-active' : ''} onMouseDown={keep} onClick={() => controller.execute('go.notes')} title="Notes  ⌘4">
+            Notes
           </button>
         </div>
         <SyncIndicator />

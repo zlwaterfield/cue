@@ -81,7 +81,7 @@ const MARKDOWN: Array<[string, string]> = [
 export function ShortcutsSheet() {
   const open = useStore(ui, (s) => s.overlay?.kind === 'shortcuts')
   if (!open) return null
-  const groups = ['General', 'Navigate', 'Item', 'Move', 'Edit'] as const
+  const groups = ['General', 'Navigate', 'Notes', 'Item', 'Move', 'Edit'] as const
   return (
     <Sheet title="Keyboard shortcuts" wide>
       <div className="shortcut-columns">
@@ -168,9 +168,8 @@ export function AboutSheet() {
         </picture>
         <div className="about-tagline">Every day is a page.</div>
         <div className="about-version">Version {__APP_VERSION__}</div>
-        <p className="about-beta">
-          Cue is in beta. I use it every day as my daily driver without any issues, but it's still young, so export
-          now and then.
+        <p className="about-note">
+          I use Cue every day as my daily driver without any issues. It's still young, so export now and then.
         </p>
         <div className="button-row">
           <button className="button" onClick={() => void backend.openExternal('https://github.com/zlwaterfield/cue')}>

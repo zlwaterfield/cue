@@ -9,9 +9,6 @@ drop, undo) are the files in [`../../core`](../../core). There's one implementat
 of how a line behaves and how a change merges, and the Mac's unit tests cover it. This
 folder holds what's specific to a phone: touch, the keyboard, and the app lifecycle.
 
-> [!NOTE]
-> Like the Mac app, this is in beta.
-
 ## How it differs from the Mac
 
 - **Sync works the Mac's way.** It's off by default, the notes live in SQLite on the phone,
@@ -37,7 +34,8 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 - **One day at a time**, with a week strip above it. Swipe the page (anywhere but on a
   line) for the next or previous day, tap a day to open it, swipe the strip for other weeks
   (opening on their first day, or on today in this week), or tap the month for a calendar
-  that also understands "fri", "oct 31", "in 3 days".
+  that also understands "fri", "oct 31", "in 3 days". In both, today is always the solid
+  circle; the open day, when it isn't today, is the soft one.
 
 ## Touch
 
@@ -57,6 +55,16 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 
 Every swipe and marker action is also in VoiceOver's actions rotor on each line, and
 VoiceOver reads lines in the day's order.
+
+## Notes
+
+The notes button in the header (beside links) opens scratch and the few starred notes, the
+Mac's Notes (⌘4). A note is shown where a day is, one at a time, and edits like one. While a
+note is open the bar says Notes and the week strip gives way to the notes there are; tap one
+to open it, or swipe the page as you would to turn a day. The plus at the end of the row
+starts a note, named by its first line. Beside a note's title: Share (the whole page as
+Markdown, where Copy is), and Clear or Delete (Undo is in the toast). The Today pill, or the notes
+button again, goes back to the day. What a note is lives in `../../core/notes.ts`.
 
 ## Links and the share sheet
 

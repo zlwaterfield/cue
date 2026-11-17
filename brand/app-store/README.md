@@ -10,7 +10,7 @@ round, and even the two screenshot slots don't share a size.
 
 Portrait, in upload order, at both of the iPhone sizes App Store Connect asks for.
 
-![The eight App Store images](overview.png)
+![The nine App Store images](overview.png)
 
 | # | Image | Headline | Screen |
 | --- | --- | --- | --- |
@@ -22,12 +22,15 @@ Portrait, in upload order, at both of the iPhone sizes App Store Connect asks fo
 | 6 | [06-search](store/06-search.png) | Find anything you've written. | Search for "priya" |
 | 7 | [07-dark](store/07-dark.png) | Just as calm after dark. | Friday, in dark |
 | 8 | [08-mac](store/08-mac.png) | Your iPhone and Mac, always in sync. | The same day on the phone and in the Mac's README screenshot |
+| 9 | [09-notes](store/09-notes.png) | Not everything belongs to a day. | A starred note, Books to read, with Scratch and Gift ideas beside it |
 
 `screens/` holds the plain screenshots, and `store/` and `store-6.3/` the images to
-upload — the same eight at two sizes, all PNGs without alpha. `screens/08-mac.png` has a
-second job: it is also the iPhone on the website's home page, and `screens/01-today.png`
-and `screens/07-dark.png` are what the dark version of it is derived from
-(`apps/desktop/scripts/phone-shots.py`), so changing those three changes the site too.
+upload — the same nine at two sizes, all PNGs without alpha. App Store Connect takes up
+to ten per size. Rebuild `overview.png` above with `python3 brand/app-store/overview.py`.
+`screens/08-mac.png` has a second job: it is also the iPhone on the website's home page,
+and `screens/01-today.png` and `screens/07-dark.png` are what the dark version of it is
+derived from (`apps/desktop/scripts/phone-shots.py`), so changing those three changes the
+site too.
 
 - **`store-6.3/`, 1206 × 2622.** The slot for 6.1" and 6.3" displays, which is the one
   Apple requires of an iPhone app. It takes 1179 × 2556 or 1206 × 2622 and nothing else,
@@ -41,8 +44,18 @@ and `screens/07-dark.png` are what the dark version of it is derived from
   [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/).
   Apple moves which slot it requires, so read that page before dropping a size.
 - App previews are optional and there are none. They are video, 886 × 1920 at 6.3".
-- The app's `supportsTablet` is on, so App Store Connect also asks for 13" iPad screenshots.
-  There are none yet.
+- The app's `supportsTablet` is on, so App Store Connect also asks for 13" iPad
+  screenshots. There is one, below.
+
+## iPad screenshot
+
+The iPad 12.9"/13" slot takes 2064 × 2752 or 2048 × 2732, portrait or landscape, and up to
+ten. [`ipad-13/01-today.png`](ipad-13/01-today.png) is one at 2064 × 2752: the first iPhone
+screenshot's headline and day, with the links from 05-links, on the iPad Pro 13", where the
+iPhone app runs as it is across the whole width. `ipad-13/screens/01-today.png` is the plain
+screen at the iPad's 2×. Rebuild both with `python3 brand/app-store/ipad-13/make.py`.
+
+<img src="ipad-13/01-today.png" alt="Every day is a page: the day on the iPad" width="360">
 
 ## Creative assets
 
@@ -69,12 +82,27 @@ graphite palette the screenshots use, and flattens the alpha channel.
 
 ## How the screens were made
 
-The screens are the iPhone app's own React Native screens, run through Expo's web target
-in Chrome at the iPhone 17 Pro Max's size (440 × 956 pt at 3×). They use SF Pro with iOS's
-tracking, SF Symbols drawn from SF Pro's outlines, and the iPhone's safe area. An
+The first eight screens are the iPhone app's own React Native screens, run through Expo's
+web target in Chrome at the iPhone 17 Pro Max's size (440 × 956 pt at 3×). They use SF Pro
+with iOS's tracking, SF Symbols drawn from SF Pro's outlines, and the iPhone's safe area. An
 example account was written into the app's database, and link previews came from the
 app's own parser. The iOS status bar, the sheet chrome and the held swipe were added
-around them.
+around them. They were taken before the header had its notes and link buttons, so they
+show only search and settings there.
+
+`09-notes` and the iPad screen were laid out in HTML instead, by `page.py` (used by
+`notes.py` and `ipad-13/make.py`; Pillow, Playwright and a Chrome or Chromium), from the
+same styles as the app's `apps/mobile/src` and with the browser line boxes the others have.
+Laid out at the iPhone's width, it puts every line of `01-today`'s day within 2 px (at 3×)
+of where that screenshot has it. The status bar, the search and settings buttons, the
+chevrons and the sites' icons are copied from `screens/01-today.png` and
+`screens/05-links.png`, and the link symbol from the 05-links headline; the notes symbol is
+drawn after SF Symbols' `note` and `note.text`. `09-notes` sits in the frame of
+`store/01-today.png`; the iPad is drawn in the same graphite, with the same paper and
+shadow. SF Pro isn't free to redistribute, so their text is set in Inter, tracked to SF
+Pro's widths and lowered to its baseline. To match the other screens exactly, run them on a
+Mac with SF Pro installed, with `page.py`'s `TEXT` and `DISPLAY` set to it and `TRACK` and
+`BASELINE` set for it.
 
 The headlines are set in Newsreader, the brand's display face, on the brand's graphite
 palette. The example sites, their icons and the post on X are made up.

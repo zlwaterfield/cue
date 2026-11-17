@@ -1,4 +1,6 @@
 import { dayToMarkdown } from './markdown'
+import { isNotePage, noteTitle, SCRATCH } from './notes'
+import { buildOutline } from './outline'
 import type { Item } from './types'
 
 /**
@@ -22,17 +24,34 @@ export function groupByDate(items: Item[]): Map<string, Item[]> {
 }
 
 export interface ExportFile {
-  /** `<year>/<date>.md`, oldest first. */
+  /** `<year>/<date>.md`, oldest first; then a note as `Notes/<its name>.md`. */
   path: string
   text: string
 }
 
-/** One Markdown file per day that has anything on it, oldest first. */
+/** One Markdown file per day that has anything on it, oldest first, then one per note. */
 export function markdownFiles(items: Item[]): ExportFile[] {
   const files: ExportFile[] = []
+  const notes: Array<[string, Item[]]> = []
   for (const [date, day] of [...groupByDate(items)].sort(([a], [b]) => (a < b ? -1 : 1))) {
     if (!day.some((i) => i.text.trim() !== '')) continue
-    files.push({ path: `${date.slice(0, 4)}/${date}.md`, text: dayToMarkdown(date, day) })
+    if (isNotePage(date)) notes.push([date, day])
+    else files.push({ path: `${date.slice(0, 4)}/${date}.md`, text: dayToMarkdown(date, day) })
+  }
+  const names = new Set<string>()
+  for (const [date, page] of notes) {
+    const live = page.filter((i) => !i.deleted)
+    const source = { outline: () => buildOutline(live), get: (id: string) => live.find((i) => i.id === id) }
+    const title = noteTitle(source, date)
+    // A name a file can have, and its own: two notes called the same get "Name 2".
+    const base = title.replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Untitled'
+    let name = base
+    for (let n = 2; names.has(name.toLowerCase()); n++) name = `${base} ${n}`
+    names.add(name.toLowerCase())
+    // A starred note's first line is its name, so it becomes the file's heading rather than repeating under it.
+    const first = date === SCRATCH ? undefined : live.find((i) => i.id === buildOutline(live)[0]?.id)
+    const body = first?.type === 'text' ? live.filter((i) => i !== first) : live
+    files.push({ path: `Notes/${name}.md`, text: dayToMarkdown(date, body).replace(/^# .*$/m, `# ${title}`) })
   }
   return files
 }

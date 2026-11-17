@@ -192,8 +192,11 @@ functions are in [`supabase/migrations`](../supabase/migrations).
 - **`sync_push`** takes a per-user advisory lock so that seq order is commit order. Without
   it, a reader could see seq 11 committed before seq 10 and skip 10 forever. It then does one
   set-based upsert that replaces a row only if the incoming version is newer. Malformed
-  records are skipped instead of failing the batch, so one bad row can't block a queue. It
-  sends one realtime hint per push, not one per row.
+  records are skipped instead of failing the batch, so one bad row can't block a queue. A
+  push of more than 1,000 records, or with a version more than a day ahead of the server's
+  clock, fails as a whole instead: a version that far ahead would pin its row against every
+  later edit, and move every device's clock there too. The device keeps those changes queued
+  and says sync is paused. It sends one realtime hint per push, not one per row.
 - **`sync_pull`** returns rows after a cursor, oldest first, in pages of up to 1,000.
 - **`sync_delete_account`** deletes the user, and their rows cascade.
 
@@ -213,8 +216,10 @@ functions are in [`supabase/migrations`](../supabase/migrations).
 - LWW is per *item*. If one device completes a to-do while another edits its text, one change
   wins. The upgrade path is per-field versions merged field by field, a contained change in
   `applyRemote` and `sync_push` with the same record format.
-- A device whose clock is far in the future wins every conflict until real time catches up.
-  This is standard for HLCs. A server-side bound on accepted versions would close it.
+- A device whose clock runs ahead wins every conflict until real time catches up. This is
+  standard for HLCs. The server accepts versions at most a day ahead (`sync_push`), so a fast
+  clock wins for a day at most, and a clock further ahead can't push until it's fixed and
+  real time has caught up with its versions.
 - Tombstones are never compacted yet. Once every device has pulled a deletion, the server can
   clear its text.
 
@@ -223,8 +228,11 @@ functions are in [`supabase/migrations`](../supabase/migrations).
 1. Create a Supabase project and apply the migration: `npx supabase link`, then
    `npx supabase db push`. You can also paste
    `supabase/migrations/*_sync.sql` into the SQL editor.
-2. **Auth → Providers → Email**: enable it, and allow new users to sign up. Set the email
-   OTP length to 6 (the iPhone's code field takes six digits) and its expiry to 900 s.
+2. **Auth → Providers → Email**: enable it, and allow new users to sign up. Turn on
+   **Confirm email**: otherwise `POST /auth/v1/signup` hands a session to anyone who names
+   an address, before its owner has read a code (`supabase/migrations/*_code_signup.sql`).
+   Set the email OTP length to 6 (the iPhone's code field takes six digits) and its expiry
+   to 900 s.
 3. **Auth → Email Templates**: paste `supabase/templates/sign-in-code.html` into both "Magic
    Link" and "Confirm signup", with the subject "Your Cue sign-in code". `supabase/config.toml`
    sets them only for the local stack, and `db push` doesn't send them, so paste the file
@@ -289,8 +297,9 @@ npx supabase stop
   That test replays 400 random offline edits, moves, deletes and reconnects, then checks that
   every replica ends with exactly the newest write of every item.
 - **`apps/desktop/tests/integration`** runs the real protocol against Supabase. It covers sign-in by
-  emailed code, starting Sign in with Apple with a PKCE challenge, refusing an Apple token
-  it can't verify, realtime delivery (about 30 ms after the typing pause, locally), no echo
+  emailed code for a new address and a returning one, a password signup getting no session
+  and no password, no password once signed in, starting Sign in with Apple with a PKCE
+  challenge, refusing an Apple token it can't verify, realtime delivery (about 30 ms after the typing pause, locally), no echo
   downloads, account isolation under RLS, LWW and skipping malformed records, reading a
   range of days, a gap-free feed under concurrent pushes, 5,000 items (up ~0.2 s, down
   ~0.1 s locally), session restore, account deletion, and a device noticing its account was
