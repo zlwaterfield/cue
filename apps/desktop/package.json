@@ -45,6 +45,7 @@
     "screenshots": "node scripts/screenshots.mjs",
     "og-video": "node scripts/og-video.mjs",
     "x-carousel": "node scripts/x-carousel.mjs",
+    "ph-gallery": "node scripts/ph-gallery.mjs",
     "video": "node scripts/launch-video.mjs"
   },
   "engines": {

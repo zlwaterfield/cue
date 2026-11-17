@@ -24,6 +24,7 @@
     "screenshots": "pnpm -C apps/desktop screenshots",
     "og-video": "pnpm -C apps/desktop og-video",
     "x-carousel": "pnpm -C apps/desktop x-carousel",
+    "ph-gallery": "pnpm -C apps/desktop ph-gallery",
     "video": "pnpm -C apps/desktop video"
   },
   "engines": {
