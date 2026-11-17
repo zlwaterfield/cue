@@ -252,6 +252,10 @@ emulator reaches a local sync server at `http://10.0.2.2:54321`; build with
 `CUE_ANDROID_CLEARTEXT=on` to allow plain HTTP for it. `CUE_ANDROID_PACKAGE` changes the
 application ID.
 
+CI builds the release APK for any change to this app or `core`
+([`.github/workflows/android.yml`](../../.github/workflows/android.yml)). It only compiles it;
+running it needs an emulator or a phone.
+
 ## Layout
 
 ```
