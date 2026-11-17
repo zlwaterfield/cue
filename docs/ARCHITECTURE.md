@@ -15,7 +15,7 @@ live elsewhere: [SYNC.md](SYNC.md) for sync, [MCP.md](MCP.md) for the assistant 
 | `core/` | The shared core: data model, SQLite schema, repository, clock, sync, MCP server, every editing operation. Imported as `@shared/*` by both apps and by relative path from the MCP function. |
 | `apps/desktop/` | The Mac app: Electron main process, preload bridge, React renderer, and the unit, integration and end-to-end tests for everything, `core/` included. |
 | `apps/mobile/` | The iPhone app: Expo / React Native, the same core in one JavaScript runtime. |
-| `supabase/` | The sync server: Postgres migrations (`items`, `sync_push`, `sync_pull`, realtime hints, terms), the `mcp` Edge Function, the sign-in email template. |
+| `supabase/` | The sync server: Postgres migrations (`items`, `sync_push` and the limits on what a push may carry, `sync_pull`, realtime hints, terms, sign-up by emailed code), the `mcp` Edge Function, the sign-in email template. |
 | `site/` | usecue.today: static HTML, the OAuth consent page, and the `/mcp` proxy (`site/vercel.json`). |
 | `brand/` | Brand kit: tokens (`brand/tokens/tokens.json`, `tokens.css`, `contrast.md`), icon, store art, video. |
 | `docs/` | This page, [SYNC.md](SYNC.md), [MCP.md](MCP.md), [ACCEPTANCE.md](ACCEPTANCE.md). |
@@ -43,7 +43,7 @@ The root `package.json` has no dependencies. Its scripts forward to `apps/deskto
                │ the CueBridge in core/types.ts)
 ┌──────────────┴──────────── Renderer, React (src/renderer/src) ─────────┐
 │  main.tsx            boot: controller.init, render, focus, ready       │
-│  App.tsx             the week or day column and the overlays           │
+│  App.tsx             the week, day or notes column and the overlays    │
 │  data/backend.ts     window.cue, or an in-memory stand-in in a browser │
 │  store/items.ts      the ItemStore instance (core/itemStore.ts)        │
 │  store/ui.ts         Store<T>, view, selection, overlay, toast         │
@@ -52,8 +52,9 @@ The root `package.json` has no dependencies. Its scripts forward to `apps/deskto
 │  editor/controller.ts  focus, keys, selection, undo, every command     │
 │  editor/ItemRow, DaySection, LinkLine, LooseEnds   rendering           │
 │  editor/dom, caret, keys, pointer, highlights, hooks   DOM helpers     │
-│  ui/       Palette, Sheets (settings, shortcuts, about), Chrome        │
-│            (header, toast, save status), Calendar, Links,              │
+│  notes/model, actions, NoteStrip   scratch and the starred notes       │
+│  ui/       Palette, MoveTo, Sheets (settings, shortcuts, about),       │
+│            Chrome (header, toast, save status), Calendar, Links,       │
 │            SyncSettings, AssistantsSettings, icons                     │
 │  styles/app.css      every style, brand tokens as CSS variables        │
 └────────────────────────────────────────────────────────────────────────┘
@@ -83,6 +84,7 @@ Scripts in `apps/desktop/scripts/`: `dev.mjs`, `release.mjs` (sign, notarize, st
    looseEnds.ts    unfinished to-dos from the last 30 days, shown on Today
    links.ts        finding links, parsing page previews, fetchPage
    linkList.ts     the Links list: collectLinks, filterLinks, grouping
+   notes.ts        scratch and the starred notes: pages kept on days in 1000–1099
    sync/engine.ts  SyncEngine: push the outbox, pull the feed, retry
    sync/supabase.ts  SupabaseSync: auth, sync_push/sync_pull, realtime hints
    sync/memoryServer.ts  in-memory reference server for tests
@@ -99,8 +101,9 @@ Scripts in `apps/desktop/scripts/`: `dev.mjs`, `release.mjs` (sign, notarize, st
 
 `apps/mobile/src/core/app.ts` builds the same `Repository` and `ItemStore` over expo-sqlite
 (`src/core/db.ts`), with sync in `src/core/sync.ts` (`MobileSync`). The editor is
-`src/editor/controller.ts` (`Editor`), and the screens are in `src/app/`. The folder layout
-is in [apps/mobile/README.md](../apps/mobile/README.md#layout).
+`src/editor/controller.ts` (`Editor`), and the screens are in `src/app/`. Notes are
+`src/core/notes.ts` (the list of them) and `src/ui/NoteStrip.tsx`. The folder layout is in
+[apps/mobile/README.md](../apps/mobile/README.md#layout).
 
 `supabase/functions/mcp/index.ts` is a Deno Edge Function that hands each JSON-RPC message
 to `core/mcp/server.ts`. `supabase/functions/mcp/deno.json` maps the core's
@@ -153,6 +156,7 @@ lifecycle on the phone ([apps/mobile/README.md](../apps/mobile/README.md)).
 2. `src/renderer/src/main.tsx` `boot()`: `controller.init()` reads settings
    (`settings:get`) and runs `itemStore.ensureLoaded` for the visible days and yesterday.
    `ensureLoaded` calls `backend.loadDates`, which goes `items:load` → `repo.loadDates`.
+   Then `loadNotes()` (`notes/model.ts`) loads scratch and every starred note the same way.
    `init` also wires the window listeners, `backend.onCommand` and
    `backend.onItemsChanged`. Then `boot` calls `initSync()` and `initUpdates()`, renders
    `<App />`, and calls `controller.focusDefault()` and `backend.markInteractive()`.
@@ -161,7 +165,9 @@ lifecycle on the phone ([apps/mobile/README.md](../apps/mobile/README.md)).
 4. Moving to another day goes through `controller.navigate(view)`: `itemStore.ensureLoaded`
    for the new dates, `ui.set({ view })`, focus, then `prefetch` for the neighbouring
    days. `DaySection` renders the rows from `useOutline(date)` (`buildOutline` in
-   `core/outline.ts`), with `LooseEnds` at the top of today.
+   `core/outline.ts`), with `LooseEnds` at the top of today. A view is the week, one day,
+   or one note (`{ mode: 'notes', date }`; `viewOf` picks day or note for a date). A note
+   renders through the same `DaySection`, under the `NoteStrip`.
 
 ### Sync, both ways
 
@@ -171,8 +177,11 @@ Off until someone signs in. The full protocol is in [SYNC.md](SYNC.md).
    `SyncEngine.localChange` (`core/sync/engine.ts`). That pushes at once for structural
    edits, or after the typing pause. `run()` → `pushAll()` reads
    `repo.pendingChanges(500)`, calls `transport.push` (`SupabaseSync.push` → the
-   `sync_push` RPC in `supabase/migrations/`), then `repo.acknowledge(batch)` and moves the
-   `sync_cursor` meta.
+   `sync_push` RPC in `supabase/migrations/`), then `repo.acknowledge(batch)`. If the
+   server's `before` equals the local `sync_cursor`, nothing arrived from other devices
+   since the last pull, so the cursor moves to `after` and the device skips pulling its own
+   changes back. Otherwise the cursor stays put and a pull follows, so another device's
+   edits are never skipped.
 2. **Hint.** `sync_push` sends a `changed` broadcast with the new `seq` on the account's
    private channel `sync:<user id>`. Every other device hears it through
    `SupabaseSync.listen`, which `SyncService.begin` wired to `engine.remoteChange(seq)`.
@@ -197,13 +206,13 @@ account never loads the client. Account changes reach the renderer as `sync:stat
   `rollover`. `MobileSync` runs the same `SyncEngine` with its own timings. Its
   `onRemoteChanges` goes straight to `itemStore.applyExternal`.
 - **MCP.** An assistant POSTs JSON-RPC to `/mcp`. The site proxies it to
-  `supabase/functions/mcp/index.ts`, which checks the bearer token, builds
-  `SupabaseNotes(API, KEY, token)` and calls `handleMessage` (`core/mcp/server.ts`). Reads
-  go through PostgREST as the user, so row-level security applies. A write builds a `Tx`
-  over the day's items and runs `insertLinesAfter` or `moveToDate`. The local `commit`
-  stamps the changes with the function's own `HybridLogicalClock`, and
-  `SupabaseNotes.push` sends them to `sync_push`. The realtime hint from step 2 above then
-  brings them to every device. See [MCP.md](MCP.md).
+  `supabase/functions/mcp/index.ts`, which checks the bearer token, refuses a batch of more
+  than 10 messages, builds `SupabaseNotes(API, KEY, token)` and calls `handleMessage`
+  (`core/mcp/server.ts`). Reads go through PostgREST as the user, so row-level security
+  applies. A write builds a `Tx` over the day's items and runs `insertLinesAfter` or
+  `moveToDate`. The local `commit` stamps the changes with the function's own
+  `HybridLogicalClock`, and `SupabaseNotes.push` sends them to `sync_push`. The realtime
+  hint from step 2 above then brings them to every device. See [MCP.md](MCP.md).
 
 ## Where to make common changes
 
@@ -214,19 +223,20 @@ Deno. Its tests are the Mac's unit tests.
 
 | To… | Change | Notes |
 | --- | --- | --- |
-| Add a command or shortcut | `core/commands.ts` (`COMMANDS`), then its `case` in `EditorController.execute` (`apps/desktop/src/renderer/src/editor/controller.ts`). Put it in a menu in `apps/desktop/src/main/menu.ts` (`buildMenu`). An icon goes in `ui/icons.tsx`. | The palette (`ui/Palette.tsx`), keymap (`editor/keys.ts`, `commandFor`) and ⌘/ sheet (`ShortcutsSheet` in `ui/Sheets.tsx`) read `COMMANDS` themselves. Only `Mod+` shortcuts become menu accelerators (`toAccelerator`). Check the "Keyboard and menus" rules below. |
+| Add a command or shortcut | `core/commands.ts` (`COMMANDS`), then its `case` in `EditorController.execute` (`apps/desktop/src/renderer/src/editor/controller.ts`). A `notes.*` command goes to `runNotesCommand` in `renderer/src/notes/actions.ts` instead. Put it in a menu in `apps/desktop/src/main/menu.ts` (`buildMenu`). An icon goes in `ui/icons.tsx`. | The palette (`ui/Palette.tsx`), keymap (`editor/keys.ts`, `commandFor`) and ⌘/ sheet (`ShortcutsSheet` in `ui/Sheets.tsx`) read `COMMANDS` themselves. Only `Mod+` shortcuts become menu accelerators (`toAccelerator`). Check the "Keyboard and menus" rules below. |
 | Change an editing operation | `core/editor/ops.ts`, and `core/editor/tx.ts` if a draft needs a new primitive. Wire keys in `onItemKeyDown` / `onBlockKeyDown` (Mac) and `apps/mobile/src/editor/controller.ts` (iPhone). | Both apps and the MCP tools run these. Test in `apps/desktop/tests/unit/ops.test.ts`, with undo in `undo.test.ts`. |
 | Change undo | `core/editor/undo.ts` (`UndoManager`, `revert`, `GROUPS`) and `commit` / `replay` in each controller. | |
 | Add an item field | `Item` in `core/types.ts`. In `core/repository.ts`: `validateItem`, `COLUMNS`, `ItemRow`, `toItem`, `write`, `sameContent` and `isTextOnlyChange`. Also `Tx.create` / `Tx.netChanges` (`core/editor/tx.ts`) and `GROUPS` in `undo.ts`. | Also needs a SQLite migration (next row) and a server migration. The server side is the `items` table, `sync_push` and `sync_pull` in a new `supabase/migrations/<timestamp>_*.sql`, plus the column lists in `SupabaseSync.pullDates` (`core/sync/supabase.ts`) and `COLUMNS` in `core/mcp/notes.ts`. Then `core/portability.ts` / `core/markdown.ts` if export should carry it. |
 | Change the SQLite schema | Append a new entry to `MIGRATIONS` in `core/sqlite.ts`. Never edit an old one. | Both apps run `migrate` at open. A database newer than the app refuses to open. Tests: `repository.test.ts`. |
 | Add a bridge (IPC) method | Its type in `CueBridge` (`core/types.ts`), the `ipcRenderer` call in `apps/desktop/src/preload/index.ts`, `ipcMain.handle(...)` in `registerIpc` (`apps/desktop/src/main/index.ts`), and the stand-in in `MemoryBackend` (`renderer/src/data/backend.ts`). | Keep it narrow and typed. Coerce arguments in main (`String(url)`). Main-to-renderer events use `broadcast(channel, …)` and a `subscribe` in the preload. |
-| Change sync or merge behaviour | `core/sync/engine.ts` (when and what to push or pull), `core/repository.ts` (`applyRemote`, `pendingChanges`, `acknowledge`), `core/sync/supabase.ts` (transport, auth, realtime), and `supabase/migrations/` (server functions). Account lifecycle is in `apps/desktop/src/main/sync/service.ts` and `apps/mobile/src/core/sync.ts`. | Read [SYNC.md](SYNC.md) first. Tests: `sync.test.ts` (against `MemorySyncServer`), `syncService.test.ts`, `supabaseErrors.test.ts`, `supabaseFetch.test.ts`, and `tests/integration/supabase.test.ts` / `pnpm test:sync` against a local Supabase. |
+| Change sync or merge behaviour | `core/sync/engine.ts` (when and what to push or pull), `core/repository.ts` (`applyRemote`, `pendingChanges`, `acknowledge`), `core/sync/supabase.ts` (transport, auth, realtime), and `supabase/migrations/` (server functions). Account lifecycle is in `apps/desktop/src/main/sync/service.ts` and `apps/mobile/src/core/sync.ts`. | Read [SYNC.md](SYNC.md) first. `sync_push` refuses a whole push of more than 1,000 records, or with a version more than a day ahead of the server's clock (`*_sync_push_limits.sql`), so keep `batchSize` (500) under 1,000. Tests: `sync.test.ts` (against `MemorySyncServer`), `syncService.test.ts`, `supabaseErrors.test.ts`, `supabaseFetch.test.ts`, and `tests/integration/supabase.test.ts` / `pnpm test:sync` against a local Supabase. |
 | Add a setting | `Settings` and `DEFAULT_SETTINGS` in `core/types.ts`, and the per-field check in `Repository.getSettings`. The Mac control is in `SettingsSheet` (`ui/Sheets.tsx`, through `controller.updateSettings`), the iPhone one in `apps/mobile/src/app/settings/` (through `updateSettings` in `src/core/app.ts`). | Settings live in the `meta` table and aren't synced. |
 | Change styling or colours | `apps/desktop/src/renderer/src/styles/app.css` (Mac) and `apps/mobile/src/ui/theme.ts` (iPhone). | Colours are copies of `brand/tokens/tokens.json`. Change the tokens first; `tests/unit/tokens.test.ts` fails if the copies drift. Recheck contrast in `brand/tokens/contrast.md`. |
 | Change the MCP tools | `TOOLS` and `INSTRUCTIONS` in `core/mcp/server.ts`, and reads in `core/mcp/notes.ts`. If a new core module is imported, map it in `supabase/functions/mcp/deno.json`. | Writes must go through `ops` and `commit` so they land like a typed edit. Tests: `tests/unit/mcp.test.ts`, plus `tests/integration/mcp.test.ts` against a local Supabase. Update the tools table in [MCP.md](MCP.md). |
 | Add a unit test | `apps/desktop/tests/unit/<area>.test.ts` (Vitest, plain Node; `helpers.ts` has fixtures). | These cover `core/` for both apps. Run with `pnpm test`. |
 | Add an end-to-end test | `apps/desktop/tests/e2e/<area>.spec.ts`, using `launch()` from `tests/e2e/app.ts` (a throwaway data directory per run). iPhone flows go in `apps/mobile/e2e/*.yaml` (Maestro). | Run with `pnpm test:e2e` (builds `--mode test`, then Playwright), and `pnpm test:sync` for the sync spec. |
 | Release or packaging | `apps/desktop/electron-builder.yml`, `apps/desktop/scripts/release.mjs` and `upload-release.mjs`, the version in `apps/desktop/package.json`, and `src/main/updates.ts` for self-update. The iPhone side is `apps/mobile/app.config.ts` and `scripts/testflight.mjs`. | Only `pnpm release` builds turn on updates (`CUE_UPDATES`, `__CUE_UPDATES__` in `electron.vite.config.mts`). The sync server is baked in from `.env.production.local`. |
+| Change notes | `core/notes.ts` (what a note is, its page, its name, the order), `apps/desktop/src/renderer/src/notes/` (`model.ts`, `actions.ts`, `NoteStrip.tsx`) and `apps/mobile/src/core/notes.ts` / `src/ui/NoteStrip.tsx`. Where a note stands in for a date: `friendlyDate` (`core/dates.ts`), `linkGroup` / `linkDay` (`core/linkList.ts`), `markdownFiles` (`core/portability.ts`) and `pageName` (`core/mcp/server.ts`). | The 1000–1099 range is repeated in `core/dates.ts` and `core/mcp/server.ts`, which don't import `core/notes.ts`. Keep the three in step. Tests: `tests/unit/notes.test.ts`, `tests/e2e/notes.spec.ts`, and `apps/mobile/e2e/notes.yaml`. |
 | Change link previews or the Links list | `core/links.ts` (parsing, `fetchPage`), `core/linkList.ts`, `apps/desktop/src/main/links.ts` (cache, `links:preview`, `links:list`), `renderer/src/store/links.ts`, `ui/Links.tsx`, and `apps/mobile/src/core/links.ts`. | Previews are a local cache (`links.sqlite`), never synced. |
 
 ## Decisions
@@ -379,13 +389,14 @@ Shortcut deviations from the brief:
   outline derivation, Markdown, the repository (versions, outbox, tombstones, LWW,
   restart, backup round-trip, five-year performance), sync convergence between replicas,
   the sync service and transport errors, every structural editor operation and undo,
-  loose ends, rollover, links and link previews, the MCP server, export and zip, updates,
-  and the brand tokens' copies. These are the tests for `core/`, so they cover the iPhone
-  app's data and editing too.
+  loose ends, rollover, notes, links and link previews, the MCP server, export and zip,
+  updates, and the brand tokens' copies. These are the tests for `core/`, so they cover
+  the iPhone app's data and editing too.
 - `pnpm test:e2e`: Playwright driving the real Electron app with a throwaway data
   directory. Covers the north-star flow, persistence across restart and SIGKILL,
   undo/redo of each action type, keyboard reordering, block selection, paste, search,
-  the palette, drag and drop, links, loose ends, the window chrome and the brand.
+  the palette, Move to, drag and drop, links, loose ends, notes, the window chrome and the
+  brand.
 - `pnpm test:sync`: the integration tests and the sync end-to-end spec, against the local
   Supabase stack ([SYNC.md](SYNC.md)).
 - iPhone: `pnpm typecheck` in `apps/mobile`, and the Maestro flows in `apps/mobile/e2e`
