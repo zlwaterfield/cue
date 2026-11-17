@@ -112,8 +112,9 @@ On a project already set up for sync ([SYNC.md](SYNC.md#setting-up-a-server)):
    Supabase URL, which is what the local stack uses. The function
    checks tokens itself, so it can send the `401` that starts sign-in. It imports
    `core` directly; `supabase/functions/mcp/deno.json` maps the extensionless imports
-   Deno needs spelled out. If a new shared import fails with "Module not found", add it
-   there.
+   Deno needs spelled out. A shared import missing from it stops the function booting with
+   "Module not found"; `pnpm test` checks the map and names the entry to add
+   (`apps/desktop/tests/unit/mcpFunction.test.ts`).
 3. **Auth → OAuth Server:** turn it on, set the authorization path to `/oauth/consent`, and
    allow dynamic client registration.
 4. **Auth → URL Configuration:** set the Site URL to `https://www.usecue.today`, where the

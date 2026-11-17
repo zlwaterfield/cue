@@ -5,9 +5,12 @@
     "../../../core/dates": "../../../core/dates.ts",
     "../../../core/editor/tx": "../../../core/editor/tx.ts",
     "../../../core/ids": "../../../core/ids.ts",
+    "../../../core/linkList": "../../../core/linkList.ts",
     "../../../core/links": "../../../core/links.ts",
     "../../../core/markdown": "../../../core/markdown.ts",
+    "../../../core/notes": "../../../core/notes.ts",
     "../../../core/outline": "../../../core/outline.ts",
+    "../../../core/text": "../../../core/text.ts",
     "../../../core/types": "../../../core/types.ts"
   }
 }
