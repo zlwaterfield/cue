@@ -111,11 +111,16 @@ function Month({
                 void Haptics.selectionAsync()
                 onPick(day)
               }}
-              accessibilityLabel={longDate(day)}
+              accessibilityLabel={isToday ? `Today, ${longDate(day)}` : longDate(day)}
               accessibilityState={{ selected: isSelected }}
             >
-              <View style={[styles.circle, isSelected && { backgroundColor: c.accent }, !isSelected && isToday && { borderWidth: 1, borderColor: c.lineStrong }]}>
-                <Text style={[styles.day, { color: isSelected ? c.onAccent : inMonth ? c.text : c.text3 }, isToday && styles.today]} maxFontSizeMultiplier={1.3}>
+              {/* Today keeps the solid circle wherever you are, so the eye finds it at once; the
+                  picked day, when it isn't today, gets a soft one. As in the week strip. */}
+              <View style={[styles.circle, isToday ? { backgroundColor: c.accent } : isSelected && { backgroundColor: c.accentSoft }]}>
+                <Text
+                  style={[styles.day, { color: isToday ? c.onAccent : inMonth ? c.text : c.text3 }, (isToday || isSelected) && styles.strong]}
+                  maxFontSizeMultiplier={1.3}
+                >
                   {parts(day).day}
                 </Text>
               </View>
@@ -184,10 +189,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     paddingBottom: 4
   },
+  // A day's dot sits closer to its own number than to the row below.
   cell: {
     width: `${100 / 7}%`,
     alignItems: 'center',
-    paddingVertical: 2
+    paddingVertical: 4
   },
   circle: {
     width: 36,
@@ -200,14 +206,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontVariant: ['tabular-nums']
   },
-  today: {
+  strong: {
     fontWeight: '700'
   },
   dot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    marginTop: 1
+    marginTop: 4
   }
 })
 
