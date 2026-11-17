@@ -10,6 +10,10 @@ on:
   push:
     branches: [main]
 
+# Checks only read the code, so the token can't write to the repository.
+permissions:
+  contents: read
+
 # A later push to a branch makes the earlier run's answer moot.
 concurrency:
   group: ci-${{ github.ref }}

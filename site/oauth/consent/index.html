@@ -81,6 +81,7 @@ li span { display: block; }
   <section id="consent" hidden>
     <h1>Connect <span class="client"></span> to Cue?</h1>
     <p><span class="client"></span> will be able to read your days and to-dos, add and edit lines, check things off and move them to other days. It can’t delete anything.</p>
+    <p class="small">Allowing sends you back to <strong class="destination"></strong>. Only allow it if that’s where you started connecting.</p>
     <p class="small">Signed in as <span class="account"></span>. <button class="link" data-action="switch">Not you?</button></p>
     <p class="error" role="alert"></p>
     <div class="row"><button class="secondary" data-action="deny">Cancel</button><button class="primary" data-action="allow">Allow</button></div>
@@ -148,12 +149,36 @@ async function start() {
   return authorizationId ? request() : connections()
 }
 
+/**
+ * Where an assistant asked to be sent, or null if it's nowhere a page should go. Anyone can
+ * register an assistant (dynamic registration, docs/MCP.md) and name it anything, so its
+ * address, not its name, says who it is, and an address that runs script would run it on
+ * this page, which holds the person's whole session.
+ */
+function destination(url) {
+  try {
+    const parsed = new URL(url)
+    return ['javascript:', 'data:', 'vbscript:', 'blob:', 'file:'].includes(parsed.protocol) ? null : parsed
+  } catch {
+    return null
+  }
+}
+
+function leave(url) {
+  if (!destination(url)) return finish('Can’t connect this assistant', 'It asked to be sent somewhere Cue won’t send you.')
+  location.replace(url)
+}
+
 async function request() {
   const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(authorizationId)
   if (error) return finish('This link has expired', 'Go back to your assistant and connect again.')
   // Already allowed before: straight back to the assistant.
-  if (!data.authorization_id) return location.replace(data.redirect_url)
-  for (const el of all('.client')) el.textContent = data.client.name || new URL(data.redirect_uri).host
+  if (!data.authorization_id) return leave(data.redirect_url)
+  const to = destination(data.redirect_uri)
+  if (!to) return finish('Can’t connect this assistant', 'It asked to be sent somewhere Cue won’t send you.')
+  const where = ['https:', 'http:'].includes(to.protocol) ? to.host : to.host ? `${to.protocol}//${to.host}` : to.protocol
+  for (const el of all('.client')) el.textContent = data.client.name || where
+  $('.destination').textContent = where
   show('consent')
 }
 
@@ -162,7 +187,7 @@ async function decide(allow) {
   const { data, error } = await decision.call(supabase.auth.oauth, authorizationId, { skipBrowserRedirect: true })
   if (error) return fail('consent', 'That didn’t work. Go back to your assistant and connect again.')
   finish(allow ? 'Connected' : 'Not connected', 'Taking you back…')
-  location.replace(data.redirect_url)
+  leave(data.redirect_url)
 }
 
 async function connections() {

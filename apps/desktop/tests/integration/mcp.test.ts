@@ -157,6 +157,9 @@ describe.skipIf(!syncServer)('MCP server', { timeout: 30_000 }, () => {
     for (const deleted of ['t', 'TRUE', 'yes', 'on', '1', ' true ']) {
       expect((await rpc('sync_push', { records: [{ ...tombstone, deleted }] })).status, `deleted: ${JSON.stringify(deleted)}`).toBe(403)
     }
+    // Nor blank a line with a version no device could ever beat (20261118000000_sync_push_limits.sql).
+    const frozen = { ...line, text: '', version: 'zzzzzzzzzz-zzzz-zzzzzzzzzzzzz' }
+    expect((await rpc('sync_push', { records: [frozen] })).status).toBe(400)
     // The account and the line are still there.
     await mac.engine.sync()
     expect(mac.repo.get(line.id)?.deleted).toBe(false)
