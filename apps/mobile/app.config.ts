@@ -12,6 +12,10 @@ import type { ExpoConfig } from 'expo/config'
  * have App Groups builds without it with CUE_SHARE_EXTENSION=off. Sign in with Apple needs
  * a paid Apple Developer team too; a free Personal Team builds with CUE_APPLE_SIGN_IN=off,
  * which leaves sign-in to email codes.
+ *
+ * The same app builds for Android (README.md, "Android"), with email codes only.
+ * CUE_ANDROID_PACKAGE changes its application ID, and CUE_ANDROID_CLEARTEXT=on lets it reach
+ * a development sync server over plain HTTP.
  */
 const appleSignIn = process.env.CUE_APPLE_SIGN_IN !== 'off'
 
@@ -45,6 +49,14 @@ const config: ExpoConfig = {
     adaptiveIcon: { foregroundImage: './assets/icon.png', backgroundColor: '#FFFFFF' },
     // The editor keeps its own toolbar above the keyboard (react-native-keyboard-controller).
     softwareKeyboardLayoutMode: 'resize',
+    // Cue needs the network and haptics, nothing more. Drawing over other apps is for the
+    // development menu (debug builds keep it), and exports go to the app's own cache and leave
+    // through the share sheet, so expo-file-system's old storage permissions aren't wanted.
+    blockedPermissions: [
+      'android.permission.SYSTEM_ALERT_WINDOW',
+      'android.permission.READ_EXTERNAL_STORAGE',
+      'android.permission.WRITE_EXTERNAL_STORAGE'
+    ],
     // A development sync server on this computer (http://10.0.2.2:54321 from the emulator) is
     // plain HTTP; release builds talk to the hosted project over HTTPS.
     ...(process.env.CUE_ANDROID_CLEARTEXT === 'on' ? { usesCleartextTraffic: true } : {})

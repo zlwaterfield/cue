@@ -110,6 +110,7 @@ export class Editor {
     this.carets.clear()
     this.stripped.clear()
     this.pending = null
+    this.handoff = null
     if (this.frame) cancelAnimationFrame(this.frame)
     this.frame = 0
     this.following = null

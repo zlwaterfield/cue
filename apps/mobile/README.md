@@ -225,7 +225,7 @@ The same app builds for Android from this folder. Everything but a handful of pl
 details is shared:
 
 - **Icons** are SF Symbols on iOS and the nearest Material Symbol on Android
-  (`src/ui/Symbol.tsx`; a new icon needs an entry in its map).
+  (`src/ui/Symbol.tsx`; an icon without an entry in its map doesn't typecheck).
 - **Sign-in** is email codes only: there's no Sign in with Apple on Android.
 - **`modules/cue-native`** has a Kotlin side: caret-at-touch uses the text view's own
   offset lookup, and background time is a no-op, since Android doesn't suspend an app the
@@ -235,6 +235,8 @@ details is shared:
   it comes to the screen, as on iOS. Many apps share a link with a title in front of it;
   the link is what's kept.
 - **Export** hands the file to Android's share sheet through `expo-sharing`.
+- **Permissions** are the network and haptics, nothing more: `app.config.ts` blocks the
+  ones Expo and expo-file-system would add by default.
 
 You'll need JDK 17 and the Android SDK (platform 37, build-tools 37, NDK 27.1, CMake 3.22),
 with `ANDROID_HOME` set:

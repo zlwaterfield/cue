@@ -1,17 +1,14 @@
-import { SymbolView as ExpoSymbolView, type SFSymbol, type SymbolViewProps, type SymbolWeight } from 'expo-symbols'
-import type { AndroidSymbol } from 'expo-symbols'
+import { SymbolView as ExpoSymbolView, type AndroidSymbol, type SFSymbol as AnySFSymbol, type SymbolViewProps, type SymbolWeight } from 'expo-symbols'
 import medium from 'expo-symbols/androidWeights/medium'
 import regular from 'expo-symbols/androidWeights/regular'
 import semiBold from 'expo-symbols/androidWeights/semiBold'
 
-export type { SFSymbol }
-
 /**
  * The app's icons are SF Symbols. iOS draws them as they are; Android has no SF Symbols, so
  * each one is drawn as its nearest Material Symbol (the font expo-symbols ships for Android).
- * A name missing here draws nothing on Android, so add any new icon to this map.
+ * Only the symbols named here can be used, so a new icon gets its Android twin as it's added.
  */
-const MATERIAL: Partial<Record<SFSymbol, AndroidSymbol>> = {
+const MATERIAL = {
   'arrow.turn.down.right': 'subdirectory_arrow_right',
   'arrow.uturn.backward': 'undo',
   briefcase: 'work',
@@ -38,7 +35,10 @@ const MATERIAL: Partial<Record<SFSymbol, AndroidSymbol>> = {
   sunrise: 'wb_twilight',
   trash: 'delete',
   xmark: 'close'
-}
+} as const satisfies Partial<Record<AnySFSymbol, AndroidSymbol>>
+
+/** An SF Symbol the app uses, which has a Material Symbol for Android. */
+export type SFSymbol = keyof typeof MATERIAL
 
 /** Material Symbols come in fewer weights; heavier SF weights use the semibold font. */
 function androidWeight(weight: SymbolWeight | undefined) {

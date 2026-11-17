@@ -4,3 +4,6 @@
 /.expo/
 /expo-env.d.ts
 .env*.local
+# Gradle's output when the local module builds for Android
+/modules/*/android/build/
+/modules/*/android/.gradle/
