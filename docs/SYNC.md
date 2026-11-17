@@ -223,8 +223,11 @@ functions are in [`supabase/migrations`](../supabase/migrations).
 1. Create a Supabase project and apply the migration: `npx supabase link`, then
    `npx supabase db push`. You can also paste
    `supabase/migrations/*_sync.sql` into the SQL editor.
-2. **Auth → Providers → Email**: enable it, and allow new users to sign up. Set the email
-   OTP length to 6 (the iPhone's code field takes six digits) and its expiry to 900 s.
+2. **Auth → Providers → Email**: enable it, and allow new users to sign up. Turn on
+   **Confirm email**: otherwise `POST /auth/v1/signup` hands a session to anyone who names
+   an address, before its owner has read a code (`supabase/migrations/*_code_signup.sql`).
+   Set the email OTP length to 6 (the iPhone's code field takes six digits) and its expiry
+   to 900 s.
 3. **Auth → Email Templates**: paste `supabase/templates/sign-in-code.html` into both "Magic
    Link" and "Confirm signup", with the subject "Your Cue sign-in code". `supabase/config.toml`
    sets them only for the local stack, and `db push` doesn't send them, so paste the file
@@ -289,8 +292,9 @@ npx supabase stop
   That test replays 400 random offline edits, moves, deletes and reconnects, then checks that
   every replica ends with exactly the newest write of every item.
 - **`apps/desktop/tests/integration`** runs the real protocol against Supabase. It covers sign-in by
-  emailed code, starting Sign in with Apple with a PKCE challenge, refusing an Apple token
-  it can't verify, realtime delivery (about 30 ms after the typing pause, locally), no echo
+  emailed code for a new address and a returning one, a password signup getting no session
+  and no password, no password once signed in, starting Sign in with Apple with a PKCE
+  challenge, refusing an Apple token it can't verify, realtime delivery (about 30 ms after the typing pause, locally), no echo
   downloads, account isolation under RLS, LWW and skipping malformed records, reading a
   range of days, a gap-free feed under concurrent pushes, 5,000 items (up ~0.2 s, down
   ~0.1 s locally), session restore, account deletion, and a device noticing its account was
