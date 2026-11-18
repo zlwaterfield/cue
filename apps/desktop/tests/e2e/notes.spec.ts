@@ -11,7 +11,7 @@ test.afterEach(async () => {
   await cue.app.close()
 })
 
-const tabs = (page: Page) => page.locator('.note-strip button').allTextContents()
+const tabs = (page: Page) => page.locator('.note-strip button:not(.note-new)').allTextContents()
 const open = (page: Page) => page.locator('.note-strip button.is-active')
 const lines = (page: Page) => page.locator('.day .row:not(.is-ghost) .text').allTextContents()
 
@@ -36,14 +36,14 @@ test('⇧⌘N starts a note, named by its first line', async () => {
   await expect(page.getByRole('tab', { name: 'Notes' })).toHaveAttribute('aria-selected', 'true')
   // Not a note until something is written on it, but it has its place in the row.
   await expect(open(page)).toHaveText('New note')
-  expect(await tabs(page)).toEqual(['Scratch', 'New note', '+'])
+  expect(await tabs(page)).toEqual(['Scratch', 'New note'])
   await expect(page.locator('.day .row.is-ghost .text')).toHaveAttribute('data-placeholder', 'Name this note')
 
   await page.keyboard.type('Books to read')
   await page.keyboard.press('Enter')
   await page.keyboard.type('[] Middlemarch')
   await expect(open(page)).toHaveText('Books to read')
-  expect(await tabs(page)).toEqual(['Scratch', 'Books to read', '+'])
+  expect(await tabs(page)).toEqual(['Scratch', 'Books to read'])
   expect(await lines(page)).toEqual(['Books to read', 'Middlemarch'])
 
   // The name follows its line.
@@ -77,13 +77,13 @@ test('a new note left blank makes nothing', async () => {
   await page.keyboard.press('Meta+4')
   // ⌘4 has no last note to reopen, so it's scratch.
   await expect(open(page)).toHaveText('Scratch')
-  expect(await tabs(page)).toEqual(['Scratch', '+'])
+  expect(await tabs(page)).toEqual(['Scratch'])
 
   // The plus at the end of the row is the same command.
   await page.locator('.note-strip .note-new').click()
   await expect(open(page)).toHaveText('New note')
   await page.keyboard.type('Gift ideas')
-  expect(await tabs(page)).toEqual(['Scratch', 'Gift ideas', '+'])
+  expect(await tabs(page)).toEqual(['Scratch', 'Gift ideas'])
 })
 
 test('deleting a note and clearing scratch both undo', async () => {
@@ -94,7 +94,7 @@ test('deleting a note and clearing scratch both undo', async () => {
 
   await page.keyboard.press('Meta+Alt+Backspace')
   await expect(open(page)).toHaveText('Scratch')
-  expect(await tabs(page)).toEqual(['Scratch', '+'])
+  expect(await tabs(page)).toEqual(['Scratch'])
   await page.keyboard.press('Meta+z')
   await expect(open(page)).toHaveText('Gift ideas')
 
@@ -117,7 +117,7 @@ test('notes are still there after a restart, and stay out of the days', async ()
   cue = await launch(dataDir)
   await expect(cue.page.locator('.day .row:not(.is-ghost)')).toHaveCount(0)
   await cue.page.keyboard.press('Meta+4')
-  expect(await tabs(cue.page)).toEqual(['Scratch', '1:1 with Priya', '+'])
+  expect(await tabs(cue.page)).toEqual(['Scratch', '1:1 with Priya'])
   expect(await lines(cue.page)).toEqual(['still scratch'])
 })
 
@@ -138,7 +138,7 @@ test('the title bar says where you are, and ⌘[ ⌘] stop at the first and last
   await newNote(page, 'Older')
   await newNote(page, 'Newer')
   // Scratch first, then the newest note.
-  expect(await tabs(page)).toEqual(['Scratch', 'Newer', 'Older', '+'])
+  expect(await tabs(page)).toEqual(['Scratch', 'Newer', 'Older'])
   await expect(page.locator('.view-title')).toHaveText('Notes')
   await expect(page.getByRole('button', { name: 'Previous note' })).toBeVisible()
 
@@ -204,7 +204,7 @@ test('the heading buttons act on their own note', async () => {
   await expect(open(page)).toHaveText('Scratch')
   await expect(page.locator('.toast')).toContainText('Deleted “Reading list”')
   await page.locator('.toast-action').click()
-  expect(await tabs(page)).toEqual(['Scratch', 'Reading list', '+'])
+  expect(await tabs(page)).toEqual(['Scratch', 'Reading list'])
 
   await page.keyboard.press('Meta+e')
   await page.keyboard.type('junk')

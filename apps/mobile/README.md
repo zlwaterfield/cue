@@ -34,8 +34,14 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 - **One day at a time**, with a week strip above it. Swipe the page (anywhere but on a
   line) for the next or previous day, tap a day to open it, swipe the strip for other weeks
   (opening on their first day, or on today in this week), or tap the month for a calendar
-  that also understands "fri", "oct 31", "in 3 days". In both, today is always the solid
-  circle; the open day, when it isn't today, is the soft one.
+  that also understands "fri", "oct 31", "in 3 days". In both, the open day is the solid
+  circle and today, when it isn't open, keeps a ring: the Mac's calendar marks days the
+  same way.
+- **Two tabs and search, at the bottom.** Today and Notes float over the page in Liquid
+  Glass (iOS 26; a plain capsule before it), with search in its own circle beside them.
+  Today is lit only on today, so from any other day it is the way back. The top bar keeps
+  the month, links and settings. The keyboard covers the tabs while you write, and its own
+  toolbar takes over.
 
 ## Touch
 
@@ -58,13 +64,12 @@ VoiceOver reads lines in the day's order.
 
 ## Notes
 
-The notes button in the header (beside links) opens scratch and the few starred notes, the
+The Notes tab opens scratch and the few starred notes, the
 Mac's Notes (⌘4). A note is shown where a day is, one at a time, and edits like one. While a
 note is open the bar says Notes and the week strip gives way to the notes there are; tap one
 to open it, or swipe the page as you would to turn a day. The plus at the end of the row
 starts a note, named by its first line. Beside a note's title: Share (the whole page as
-Markdown, where Copy is), and Clear or Delete (Undo is in the toast). The Today pill, or the notes
-button again, goes back to the day. What a note is lives in `../../core/notes.ts`.
+Markdown, where Copy is), and Clear or Delete (Undo is in the toast). The Today tab goes back to the day. What a note is lives in `../../core/notes.ts`.
 
 ## Links and the share sheet
 
@@ -227,7 +232,7 @@ src/app/        screens (Expo Router): day, sign-in, search, links, move, calend
 src/app/settings/  the settings sheet: an index that pushes into a category
 src/core/       database adapter (expo-sqlite), optional sync lifecycle, app state, link previews, share inbox, export
 src/editor/     the day page: layout, rows, drag, swipe, toolbar, editing controller
-src/ui/         header and week strip, calendar, toast, theme (brand tokens)
+src/ui/         header and week strip, tab bar, calendar, toast, theme (brand tokens)
 modules/        cue-native: caret-at-touch, background time, the share inbox (Swift)
 plugins/        share-extension: Cue in the share sheet (config plugin and Swift)
 e2e/            Maestro flows

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler'
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
@@ -10,7 +10,7 @@ import { addDays, dateRange, longDate, MONTHS, parts, startOfWeek, weekday, WEEK
 import { indicator, INDICATOR_DELAY, INDICATOR_FADE } from '@shared/sync/status'
 import { isNotePage } from '@shared/notes'
 import type { ISODate } from '@shared/types'
-import { itemStore, sync } from '../core/app'
+import { sync } from '../core/app'
 import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
@@ -37,9 +37,11 @@ const shiftWeek = (weeks: number): void => {
 }
 
 /**
- * The top of the screen: the month (tap for a calendar), notes, links, search and settings, and
- * a week strip. On a note the bar says Notes, and the strip is the notes there are. Tap a day to open it; swipe the strip for the previous or next week. Sync stays
- * out of sight unless it needs attention, as on the Mac.
+ * The top of the screen: the month (tap for a calendar), links and settings, and a week
+ * strip. On a note the bar says Notes, and the strip is the notes there are. Tap a day to
+ * open it; swipe the strip for the previous or next week. Today, Notes and search are the
+ * tabs at the bottom (`TabBar`). Sync stays out of sight unless it needs attention, as on
+ * the Mac.
  */
 export function Header() {
   const c = useColors()
@@ -47,9 +49,6 @@ export function Header() {
   const today = useStore(ui, (s) => s.today)
   const note = isNotePage(date)
   const { year, month } = parts(note ? today : date)
-  const isToday = date === today
-  // Beside the Today pill there's less room: this year's months go without their year.
-  const showYear = isToday || year !== parts(today).year
 
   return (
     <View style={[styles.header, { backgroundColor: c.bg }]}>
@@ -70,28 +69,14 @@ export function Header() {
             {/* At the largest text sizes the month gives way, so the buttons stay on screen. */}
             <Text style={[styles.monthText, { color: c.text }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
               {MONTHS[month - 1]}
-              {showYear && <Text style={{ color: c.text3 }}> {year}</Text>}
+              <Text style={{ color: c.text3 }}> {year}</Text>
             </Text>
             <SymbolView name="chevron.down" size={12} weight="semibold" tintColor={c.text3} />
           </Pressable>
         )}
         <View style={styles.actions}>
-          <SyncIndicator compact={!isToday} />
-          {!isToday && (
-            <Pressable
-              onPress={() => void editor.goTo(today)}
-              style={[styles.todayPill, { borderColor: c.lineStrong }]}
-              accessibilityRole="button"
-              hitSlop={6}
-            >
-              <Text style={[styles.todayText, { color: c.text }]} maxFontSizeMultiplier={1.3}>
-                Today
-              </Text>
-            </Pressable>
-          )}
-          <IconButton icon={note ? 'note.text' : 'note'} label="Notes" active={note} onPress={() => void editor.toggleNotes()} />
+          <SyncIndicator />
           <IconButton icon="link" label="Links" onPress={() => router.push('/links')} />
-          <IconButton icon="magnifyingglass" label="Search" onPress={() => router.push('/search')} />
           <IconButton icon="person.crop.circle" label="Settings" onPress={() => router.push('/settings')} />
         </View>
       </View>
@@ -100,37 +85,20 @@ export function Header() {
   )
 }
 
-function IconButton({ icon, label, active, onPress }: { icon: SFSymbol; label: string; active?: boolean; onPress: () => void }) {
+function IconButton({ icon, label, onPress }: { icon: SFSymbol; label: string; onPress: () => void }) {
   const c = useColors()
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={active === undefined ? undefined : { selected: active }}
       hitSlop={8}
-      style={styles.icon}
+      style={({ pressed }) => [styles.icon, pressed && { backgroundColor: c.bgHover }]}
       testID={`header-${label.toLowerCase()}`}
     >
-      <SymbolView name={icon} size={ICON_SIZE} tintColor={active ? c.text : c.text2} />
+      <SymbolView name={icon} size={ICON_SIZE} tintColor={c.text2} />
     </Pressable>
   )
-}
-
-/** Days with something written get a dot. Reads the loaded days, so it follows every edit and sync. */
-function useMarked(days: ISODate[]): Set<ISODate> {
-  useEffect(() => {
-    void itemStore.ensureLoaded(days)
-  }, [days])
-  const subscribe = useMemo(
-    () => (listener: () => void) => {
-      const offs = days.map((d) => itemStore.subscribeDate(d, listener))
-      return () => offs.forEach((off) => off())
-    },
-    [days]
-  )
-  const key = useSyncExternalStore(subscribe, () => days.map((d) => (itemStore.outline(d).length ? '1' : '0')).join(''))
-  return useMemo(() => new Set(days.filter((_, i) => key[i] === '1')), [days, key])
 }
 
 function WeekStrip({ date, today }: { date: ISODate; today: ISODate }) {
@@ -138,7 +106,6 @@ function WeekStrip({ date, today }: { date: ISODate; today: ISODate }) {
   const weekStartsOn = useStore(ui, (s) => s.settings.weekStartsOn)
   const start = startOfWeek(date, weekStartsOn)
   const days = useMemo(() => dateRange(start, addDays(start, 6)), [start])
-  const marked = useMarked(days)
   const { width } = useWindowDimensions()
   const offset = useSharedValue(0)
 
@@ -193,17 +160,16 @@ function WeekStrip({ date, today }: { date: ISODate; today: ISODate }) {
               <Text style={[styles.weekday, { color: isToday ? c.text : c.text2 }]} maxFontSizeMultiplier={1.3}>
                 {WEEKDAYS[weekday(day)].slice(0, 1)}
               </Text>
-              {/* Today keeps the solid circle on every day you open, so it's found at a glance; the
-                  open day, when it isn't today, gets a soft one (the title below names it). */}
-              <View style={[styles.dayNumber, isToday ? { backgroundColor: c.accent } : selected && { backgroundColor: c.accentSoft }]}>
+              {/* The open day is the solid circle; today, when it isn't open, keeps a ring.
+                  The calendar marks days the same way, here and on the Mac. */}
+              <View style={[styles.dayNumber, selected ? { backgroundColor: c.accent } : isToday && { borderWidth: 1.5, borderColor: c.text3 }]}>
                 <Text
-                  style={[styles.dayText, { color: isToday ? c.onAccent : c.text }, (isToday || selected) && styles.strongDay]}
+                  style={[styles.dayText, { color: selected ? c.onAccent : c.text }, (isToday || selected) && styles.strongDay]}
                   maxFontSizeMultiplier={DAY_MAX_FONT_SCALE}
                 >
                   {parts(day).day}
                 </Text>
               </View>
-              <View style={[styles.dot, { backgroundColor: marked.has(day) && !selected ? c.text3 : 'transparent' }]} />
             </Pressable>
           )
         })}
@@ -229,17 +195,17 @@ function useHeld(active: boolean, ms: number): boolean {
 /**
  * Sync shows only when it can't keep up: offline, paused, or the first download onto
  * this phone. A long sync fades in "Syncing…"; quick ones never take space. The words
- * are the Mac title bar's (`shared/sync/status`). Beside the Today pill, and during the
- * first download (the page itself says "Getting your notes…"), only the dot shows, as in
- * a narrow Mac window; VoiceOver still reads the words.
+ * are the Mac title bar's (`shared/sync/status`). During the first download (the page
+ * itself says "Getting your notes…") only the dot shows, as in a narrow Mac window;
+ * VoiceOver still reads the words.
  */
-function SyncIndicator({ compact }: { compact: boolean }) {
+function SyncIndicator() {
   const c = useColors()
   const state = useStore(sync.state, (s) => s)
   const shown = indicator(state)
   const held = useHeld(!!shown?.delayed, INDICATOR_DELAY)
   if (!shown || (shown.delayed && !held)) return null
-  const dotOnly = compact || (state.downloading && state.status !== 'offline' && state.status !== 'error')
+  const dotOnly = state.downloading && state.status !== 'offline' && state.status !== 'error'
   return (
     <Animated.View entering={shown.delayed ? FadeIn.duration(INDICATOR_FADE) : undefined}>
       <Pressable
@@ -298,19 +264,9 @@ const styles = StyleSheet.create({
   icon: {
     width: ICON_BUTTON,
     height: ICON_BUTTON,
+    borderRadius: ICON_BUTTON / 2,
     alignItems: 'center',
     justifyContent: 'center'
-  },
-  todayPill: {
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    borderRadius: 14,
-    paddingHorizontal: 11,
-    paddingVertical: 4,
-    marginRight: 4
-  },
-  todayText: {
-    fontSize: 14,
-    fontWeight: '600'
   },
   // As on the Mac: a dot and weight 500 when sync needs a word, plain for a long sync.
   sync: {
@@ -336,10 +292,9 @@ const styles = StyleSheet.create({
   syncAttention: {
     fontWeight: '500'
   },
-  // The dot's room under the circle comes out of here, so the header keeps its height.
   strip: {
     flexDirection: 'row',
-    paddingBottom: 4
+    paddingBottom: 8
   },
   day: {
     flex: 1,
@@ -365,11 +320,5 @@ const styles = StyleSheet.create({
   },
   strongDay: {
     fontWeight: '700'
-  },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    marginTop: 6
   }
 })

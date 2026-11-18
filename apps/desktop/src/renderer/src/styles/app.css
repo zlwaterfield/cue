@@ -87,7 +87,22 @@ body {
 button {
   font: inherit;
   color: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
   cursor: default;
+}
+
+/* Whatever takes a click says so: a pointer, and a change on hover. The rows of a palette,
+   a to-do's box and a week's day titles are clickable without being buttons. */
+.palette-item,
+.row.is-todo .marker,
+.loose-marker,
+.day-title.is-link,
+label[for],
+select {
+  cursor: pointer;
 }
 
 /* An outline, not a shadow: it shows on a selected segment and never reads as one. */
@@ -206,6 +221,10 @@ button:focus-visible {
   height: 24px;
 }
 
+.kbd-btn:hover {
+  color: var(--text);
+}
+
 .kbd-btn {
   border: 0.5px solid var(--line-strong);
   background: transparent;
@@ -238,6 +257,10 @@ button:focus-visible {
 
 .segmented button:hover {
   color: var(--text);
+}
+
+.segmented button:not(.is-active):hover {
+  background: var(--bg-hover);
 }
 
 .segmented button.is-active {
@@ -924,6 +947,12 @@ body.is-selecting .row .text {
   width: min(620px, calc(100vw - 48px));
 }
 
+/* Beside a calendar the list still has a palette's width to itself. */
+.palette.is-date,
+.palette.is-move {
+  width: min(680px, calc(100vw - 48px));
+}
+
 .palette-input {
   display: flex;
   align-items: center;
@@ -1032,7 +1061,6 @@ body.is-selecting .row .text {
 .links-item {
   align-items: flex-start;
   padding: 7px 10px;
-  cursor: default;
 }
 
 .links-icon {
@@ -1243,11 +1271,12 @@ kbd.is-text {
   height: 12px;
 }
 
-/* Calendar */
+/* Calendar. The day the list has picked is the solid circle; today, when it isn't that
+   day, keeps a ring. The iPhone's calendar and week strip mark days the same way. */
 .calendar {
   flex: none;
-  width: 236px;
-  padding: 12px 14px 14px;
+  width: 284px;
+  padding: 14px 18px 18px;
   border-left: 1px solid var(--line);
 }
 
@@ -1255,12 +1284,16 @@ kbd.is-text {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  height: 28px;
+  margin-bottom: 8px;
+  /* The month lines up with the first column's numbers, the arrows with the last. */
+  padding: 0 0 0 9px;
 }
 
 .calendar-title {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
+  letter-spacing: -0.005em;
 }
 
 .calendar-title .muted {
@@ -1268,32 +1301,37 @@ kbd.is-text {
   font-weight: 500;
 }
 
+.calendar-nav {
+  display: flex;
+  gap: 2px;
+}
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 1px;
+  row-gap: 2px;
 }
 
 .calendar-label {
   text-align: center;
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--text-2);
-  padding: 4px 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  padding: 2px 0 6px;
 }
 
 .calendar-day {
-  position: relative;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   justify-self: center;
   border: 0;
   padding: 0;
   border-radius: 50%;
   background: transparent;
-  font-size: 12px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--text);
+  transition: background-color 100ms ease;
 }
 
 .calendar-day:hover {
@@ -1305,33 +1343,17 @@ kbd.is-text {
 }
 
 .calendar-day.is-today {
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .calendar-day.is-today:not(.is-selected) {
-  box-shadow: inset 0 0 0 1px var(--line-strong);
-}
-
-.calendar-day.has-items::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: 3px;
-  width: 3px;
-  height: 3px;
-  margin-left: -1.5px;
-  border-radius: 50%;
-  background: var(--text-3);
+  box-shadow: inset 0 0 0 1.5px var(--text-3);
 }
 
 .calendar-day.is-selected {
   background: var(--accent);
   color: var(--on-accent);
-}
-
-.calendar-day.is-selected::after {
-  background: var(--on-accent);
-  opacity: 0.7;
+  font-weight: 600;
 }
 
 /* Sheets */
@@ -1456,6 +1478,10 @@ kbd.is-text {
 
 .settings-rail button:hover {
   color: var(--text);
+}
+
+.settings-rail button:not(.is-active):hover {
+  background: var(--bg-hover);
 }
 
 .settings-rail button.is-active {
@@ -1878,42 +1904,51 @@ kbd.is-text {
 
 /* ---------------------------------------------------------------- Notes */
 
-/* The notes there are, above the one that's open. */
+/* The notes there are, above the one that's open: a row of tabs, the open one filled in.
+   A tab's padding hangs in the margin, so its name starts on the column's edge. */
 .note-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px 18px;
-  padding: 14px 0 0;
-  margin-bottom: -6px;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 0 0;
+  margin: 0 -10px -4px;
 }
 
 .note-strip button {
   border: 0;
   background: none;
-  padding: 2px 0;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 7px;
   max-width: 220px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-3);
+  color: var(--text-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: color 120ms ease;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease;
 }
 
 .note-strip button:hover {
   color: var(--text);
-}
-
-.note-strip .note-new {
-  font-size: 15px;
-  line-height: 1;
-  padding: 2px 4px;
+  background: var(--bg-hover);
 }
 
 .note-strip button.is-active {
   color: var(--text);
-  font-weight: 600;
+  background: var(--bg-subtle);
+}
+
+.note-strip .note-new {
+  width: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .day.is-scratch .day-sub {
@@ -1923,18 +1958,25 @@ kbd.is-text {
 .note-actions {
   margin-left: auto;
   display: flex;
-  gap: 14px;
+  gap: 2px;
   align-self: center;
+  /* The last button's label ends on the column's edge. */
+  margin-right: -8px;
 }
 
 .note-actions button {
   border: 0;
   background: none;
-  padding: 0;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 6px;
   font-size: 12.5px;
   color: var(--text-2);
   opacity: 0;
-  transition: opacity 120ms ease;
+  transition:
+    opacity 120ms ease,
+    color 120ms ease,
+    background-color 120ms ease;
 }
 
 .day.is-note:hover .note-actions button,
@@ -1945,9 +1987,7 @@ kbd.is-text {
 
 .note-actions button:hover {
   color: var(--text);
-  text-decoration: underline;
-  text-decoration-color: var(--line-strong);
-  text-underline-offset: 3px;
+  background: var(--bg-hover);
 }
 
 /* A starred note is named by its first line, so that line is set as its heading, with the
@@ -1962,7 +2002,7 @@ kbd.is-text {
 .day.is-starred .note-actions {
   position: absolute;
   right: 0;
-  top: 12px;
+  top: 8px;
   z-index: 1;
 }
 

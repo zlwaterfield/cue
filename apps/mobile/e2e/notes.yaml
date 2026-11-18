@@ -1,13 +1,13 @@
-# Notes on the phone: the notes button opens scratch, the plus starts a note named by its
+# Notes on the phone: the Notes tab opens scratch, the plus starts a note named by its
 # first line, the strip switches between notes, and Delete can be undone.
 appId: app.cue
 name: Notes
 ---
 - runFlow: subflows/launch.yaml
 
-# The notes button, beside links: scratch, with the notes there are where the week was.
+# The Notes tab, at the bottom: scratch, with the notes there are where the week was.
 - tapOn:
-    id: header-notes
+    id: tab-notes
 - assertVisible:
     id: "note-Scratch"
 - assertVisible: "Type or paste anything. It stays until you clear it."
@@ -49,8 +49,9 @@ name: Notes
 - assertVisible:
     id: "note-Books to read"
 
-# The Today pill leaves notes for the day.
-- tapOn: "Today"
+# The Today tab leaves notes for the day.
+- tapOn:
+    id: tab-today
 - assertVisible:
     id: "day-title"
     text: "Today"

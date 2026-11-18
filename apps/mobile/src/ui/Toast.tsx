@@ -5,9 +5,10 @@ import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
 import { TOOLBAR_SPACE } from '../editor/Toolbar'
+import { tabBarSpace } from './TabBar'
 import { useColors } from './theme'
 
-/** A quiet confirmation after a move or a delete, with Undo. Sits above the keyboard. */
+/** A quiet confirmation after a move or a delete, with Undo. Sits above the keyboard, or the tabs. */
 export function Toast() {
   const c = useColors()
   const toast = useStore(ui, (s) => s.toast)
@@ -16,9 +17,10 @@ export function Toast() {
   const keyboard = useAnimatedKeyboard()
   // In dark the toast is close to the page, so a hairline gives it an edge.
   const dark = useColorScheme() === 'dark'
-  // Above the keyboard and the toolbar on it, or above the home indicator.
+  // Above the keyboard and the toolbar on it, or above the tabs.
+  const resting = tabBarSpace(insets.bottom) + 10
   const lift = useAnimatedStyle(() => ({
-    bottom: keyboard.height.value > 0 ? keyboard.height.value + TOOLBAR_SPACE + 10 : insets.bottom + 12
+    bottom: keyboard.height.value > 0 ? keyboard.height.value + TOOLBAR_SPACE + 10 : resting
   }))
   if (!toast) return null
   return (
