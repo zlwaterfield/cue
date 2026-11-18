@@ -3,6 +3,8 @@
 # The rest stay local, because they need hardware or a server this runner hasn't got. The
 # end-to-end tests (`pnpm test:e2e`) drive the packaged Mac app, the sync and MCP tests
 # (`pnpm test:sync`) need a local Supabase, and `pnpm bench` measures a real machine.
+#
+# Packaging the Mac app is build.yml, and releasing it is release.yml.
 name: CI
 
 on:

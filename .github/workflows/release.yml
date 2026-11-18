@@ -1,0 +1,115 @@
+# Releases the Mac app: `pnpm release` (sign, notarize, staple) and `pnpm release:upload`
+# (GitHub release v<version>, with the DMG and what the updater reads), on a runner instead
+# of your own Mac. Run it from the Actions tab, on main, once the version in
+# apps/desktop/package.json has been raised.
+#
+# It always makes a draft, to look over and publish on GitHub. Nothing reaches people until
+# then: the updater only sees published releases. Publishing stays a person's decision, as
+# the "Publish? [y/N]" is when the script runs at a terminal.
+#
+# Repository secrets it needs (Settings ▸ Secrets and variables ▸ Actions):
+#   APPLE_CERTIFICATE           the "Developer ID Application" certificate and its private
+#                               key, exported from Keychain Access as a .p12, then base64:
+#                                 base64 -i DeveloperID.p12 | pbcopy
+#   APPLE_CERTIFICATE_PASSWORD  the password given to that export
+#   APPLE_ID                    the Apple ID that notarizes
+#   APPLE_APP_PASSWORD          an app-specific password for it (account.apple.com)
+#   APPLE_TEAM_ID               the team ID
+#   CUE_SUPABASE_URL            the hosted sync server, as in .env.production.local
+#   CUE_SUPABASE_KEY
+#   ANTHROPIC_API_KEY           optional: Claude writes the release notes. Without it,
+#                               GitHub lists the commits.
+name: Release
+
+on:
+  workflow_dispatch:
+
+# Creating the release, and the tag with it.
+permissions:
+  contents: write
+
+# One release at a time, and never cut one short halfway through.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  mac-app:
+    name: Mac app
+    # Releases are cut from main, so the tag lands on what was reviewed and merged.
+    if: github.ref == 'refs/heads/main'
+    # Apple silicon, with Xcode 26: electron-builder compiles build/Cue.icon with its actool.
+    runs-on: macos-26
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      # The whole history and its tags: the notes cover what changed since the last release.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # Both read the pnpm version from the root package.json's `packageManager`.
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+
+      # Cheap next to notarizing, and nothing broken should get that far.
+      - run: pnpm typecheck
+      - run: pnpm test
+
+      # `pnpm release` looks in the keychain for the certificate and for a notarytool
+      # profile, as it does on your Mac. This gives the runner a keychain of its own that
+      # holds both, and makes it the default so they're found without being named.
+      - name: Set up signing
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_APP_PASSWORD APPLE_TEAM_ID; do
+            if [ -z "${!name}" ]; then echo "::error::The $name secret isn't set."; exit 1; fi
+          done
+
+          keychain="$RUNNER_TEMP/release.keychain-db"
+          keychain_password="$(openssl rand -base64 24)"
+          certificate="$RUNNER_TEMP/certificate.p12"
+
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+
+          echo -n "$APPLE_CERTIFICATE" | base64 --decode -o "$certificate"
+          security import "$certificate" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          rm "$certificate"
+          # Lets codesign use the key without a dialog nobody is there to answer.
+          security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" > /dev/null
+
+          security list-keychains -d user -s "$keychain"
+          security default-keychain -s "$keychain"
+
+          xcrun notarytool store-credentials cue-notary \
+            --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD"
+
+      - name: Build, sign and notarize
+        env:
+          CUE_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CUE_SUPABASE_URL: ${{ secrets.CUE_SUPABASE_URL }}
+          CUE_SUPABASE_KEY: ${{ secrets.CUE_SUPABASE_KEY }}
+        run: pnpm release
+
+      - name: Upload to GitHub as a draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: pnpm release:upload --draft
+
+      - name: Remove the keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/release.keychain-db" || true

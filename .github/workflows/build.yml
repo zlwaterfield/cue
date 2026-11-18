@@ -1,0 +1,58 @@
+# Builds the Mac app the way `pnpm dist` does on your own Mac, and keeps the DMG as an
+# artifact of the run, so a pull request can be tried without checking it out.
+#
+# The build is ad-hoc signed, has no sync server and doesn't update itself: a Mac that
+# downloads it has to be told to open it (right-click ▸ Open). The signed, notarized build
+# people download comes from the Release workflow (release.yml).
+name: Build
+
+on:
+  pull_request:
+    paths:
+      - apps/desktop/**
+      - core/**
+      - .github/workflows/build.yml
+  push:
+    branches: [main]
+    paths:
+      - apps/desktop/**
+      - core/**
+      - .github/workflows/build.yml
+  workflow_dispatch:
+
+# The build only reads the code, so the token can't write to the repository.
+permissions:
+  contents: read
+
+# A later push to a branch makes the earlier run's answer moot.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mac-app:
+    name: Mac app
+    # Apple silicon, with Xcode 26: electron-builder compiles build/Cue.icon with its actool.
+    runs-on: macos-26
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v7
+      # Both read the pnpm version from the root package.json's `packageManager`.
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm dist
+      # The ad-hoc signature has to hold, or the app won't launch on Apple silicon at all.
+      - run: codesign --verify --deep --strict --verbose=2 release/mac-arm64/Cue.app
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Cue-${{ github.sha }}
+          path: apps/desktop/release/*.dmg
+          if-no-files-found: error
+          retention-days: 14
