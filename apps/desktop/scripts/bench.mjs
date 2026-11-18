@@ -1,7 +1,7 @@
 /**
  * Cue performance benchmark. Prints a Markdown report.
  *
- *   pnpm bench                 # uses release/mac-arm64/Cue.app if built, else out/
+ *   pnpm bench                 # uses the packaged app in release/ if built, else out/
  *   pnpm bench --runs 9        # startup samples per dataset (default 7)
  *   pnpm bench --years 5       # size of the large dataset (default 5)
  *   pnpm bench --check         # exit non-zero if any result misses its budget
@@ -36,7 +36,10 @@ const option = (name, fallback) => {
 const RUNS = Number(option('runs', 7))
 const CHECK = args.includes('--check')
 const YEARS = Number(option('years', 5))
-const packaged = 'release/mac-arm64/Cue.app/Contents/MacOS/Cue'
+// Where `pnpm package` leaves the app for this Mac: electron-builder names the folder for
+// the architecture, except x64, its default.
+const bundle = process.arch === 'arm64' ? 'release/mac-arm64/Cue.app' : 'release/mac/Cue.app'
+const packaged = `${bundle}/Contents/MacOS/Cue`
 const appPath = option('app', existsSync(packaged) ? packaged : null)
 const electronPath = createRequire(import.meta.url)('electron')
 const target = appPath ? { exe: appPath, args: [] } : { exe: electronPath, args: ['.'] }
@@ -279,8 +282,8 @@ row('UI code', `${Math.round(jsBytes / 1024)} KB`, `${Math.round(jsGzip / 1024)}
 row(`Database, ${YEARS} years`, mb(statSync(join(large.dir, 'cue.sqlite')).size), 'SQLite, one file')
 const dmg = existsSync('release') ? readdirSync('release').find((f) => f.endsWith('.dmg')) : null
 if (dmg) row('Download (.dmg)', mb(statSync(join('release', dmg)).size), 'Electron runtime included')
-if (existsSync('release/mac-arm64/Cue.app')) {
-  const kb = Number(execFileSync('du', ['-sk', 'release/mac-arm64/Cue.app'], { encoding: 'utf8' }).split(/\s/)[0])
+if (existsSync(bundle)) {
+  const kb = Number(execFileSync('du', ['-sk', bundle], { encoding: 'utf8' }).split(/\s/)[0])
   row('Installed app', mb(kb * 1024), '')
 }
 

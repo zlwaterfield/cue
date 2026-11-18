@@ -29,11 +29,16 @@ mac:
   # Icon Composer source (brand/app-icon/ICON-COMPOSER.md). electron-builder compiles it
   # with Xcode 26's actool into Assets.car for macOS 26 and a generated icon.icns for older macOS.
   icon: build/Cue.icon
+  # One build for Apple silicon and one for Intel, rather than a universal app that would
+  # double the download for both. Nothing native ships (no runtime dependencies), so the x64
+  # build needs only Electron's x64 binary, which electron-builder fetches on any Mac. Both
+  # zips go in one latest-mac.yml, and the updater takes the one for the Mac it's on.
+  # `pnpm package` (--dir) builds only the architecture of the Mac it runs on.
   target:
     - target: dmg
-      arch: [arm64]
+      arch: [arm64, x64]
     - target: zip
-      arch: [arm64]
+      arch: [arm64, x64]
   darkModeSupport: true
   # Ad-hoc signed ("-") so local builds verify and run without an Apple Developer account.
   # `pnpm release` signs with your Developer ID instead and notarizes (scripts/release.mjs).
@@ -48,6 +53,11 @@ mac:
     NSSupportsAutomaticGraphicsSwitching: true
 dmg:
   title: Cue
+  # Names the architecture in both downloads: Cue-<version>-arm64.dmg and Cue-<version>-x64.dmg.
+  # Left to itself electron-builder drops it for x64, and a bare Cue-<version>.dmg reads as
+  # the download for every Mac. (The x64 zip keeps its default, Cue-<version>-mac.zip: only
+  # the updater reads it, and it tells the two apart by "arm64" in the name.)
+  artifactName: ${productName}-${version}-${arch}.${ext}
   # Brand kit DMG (brand/dmg): 540 × 380, 128 px icons, retina TIFF background.
   background: build/dmg-background.tiff
   iconSize: 128

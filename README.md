@@ -155,14 +155,14 @@ Updates… is in the Cue menu and in ⌘K.
 
 ### Build it yourself
 
-Build Cue from source on an Apple silicon Mac with Node 24+ and pnpm:
+Build Cue from source on a Mac, Apple silicon or Intel, with Node 24+ and pnpm:
 
 ```sh
 git clone https://github.com/zlwaterfield/cue.git
 cd cue
 pnpm install:all   # the Mac app and the iPhone app, each with its own lockfile
 pnpm dev           # run the Mac app with hot reload
-pnpm package       # or build apps/desktop/release/mac-arm64/Cue.app
+pnpm package       # or build Cue.app, in apps/desktop/release/mac-arm64 (mac on Intel)
 ```
 
 Development builds run as "Cue Dev" and keep their data separate from the packaged app, so

@@ -2,8 +2,8 @@
  * `pnpm release:upload`: put the build from `pnpm release` on GitHub as release v<version>,
  * so people can download it from https://github.com/zlwaterfield/cue/releases/latest.
  *
- * It uploads the DMG people download, plus the zip, its blockmap and latest-mac.yml that an
- * auto-updater reads. The release is tagged at the commit the build was made from
+ * It uploads the two DMGs people download, one for Apple silicon and one for Intel, plus each
+ * one's zip and blockmap and the latest-mac.yml that the updater reads. The release is tagged at the commit the build was made from
  * (release/build.json), which has to be committed and pushed, and a version like 1.0.0-beta.1
  * is marked as a pre-release. It needs the GitHub CLI signed in (`gh auth login`).
  *
@@ -20,27 +20,29 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import Anthropic from '@anthropic-ai/sdk'
-import { capture, dmg, fail, manifest, out, root, run, succeeds, uploads, version } from './common.mjs'
+import { builds, capture, fail, manifest, out, root, run, succeeds, uploads, version } from './common.mjs'
 
 const draft = process.argv.includes('--draft')
 const dryRun = process.argv.includes('--dry-run')
 const newNotes = process.argv.includes('--new-notes')
 const tag = `v${version}`
 
-// The build: all four files `pnpm release` leaves in release/, for this version.
+// The build: every file `pnpm release` leaves in release/, for this version.
 const missing = uploads.filter((file) => !existsSync(join(out, file)))
 if (missing.length) fail(`release/ is missing ${missing.join(', ')}. Build Cue ${version} with \`pnpm release\` first.`)
 if (!readFileSync(join(out, manifest), 'utf8').includes(`version: ${version}\n`)) {
   fail(`release/${manifest} is for another version. Build Cue ${version} again with \`pnpm release\`.`)
 }
 
-// Only a signed, notarized DMG goes up: `pnpm dist` makes one that Gatekeeper blocks.
-const dmgPath = join(out, dmg)
-if (
-  !succeeds('spctl', ['--assess', '--type', 'open', '--context', 'context:primary-signature', dmgPath]) ||
-  !succeeds('xcrun', ['stapler', 'validate', dmgPath])
-) {
-  fail(`${dmg} isn't signed and notarized. Build it with \`pnpm release\`, not \`pnpm dist\`.`)
+// Only signed, notarized DMGs go up: `pnpm dist` makes ones that Gatekeeper blocks.
+for (const { dmg } of builds) {
+  const dmgPath = join(out, dmg)
+  if (
+    !succeeds('spctl', ['--assess', '--type', 'open', '--context', 'context:primary-signature', dmgPath]) ||
+    !succeeds('xcrun', ['stapler', 'validate', dmgPath])
+  ) {
+    fail(`${dmg} isn't signed and notarized. Build it with \`pnpm release\`, not \`pnpm dist\`.`)
+  }
 }
 
 if (!succeeds('gh', ['auth', 'status'])) fail('Sign in to GitHub first with `gh auth login`.')

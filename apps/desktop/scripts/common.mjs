@@ -15,16 +15,20 @@ export const root = resolve(import.meta.dirname, '..')
 export const out = join(root, 'release')
 export const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 
-// What electron-builder makes from electron-builder.yml: a DMG to download, a zip for the
-// updater, the blockmap that lets it download only what changed, and latest-mac.yml, the
-// manifest that tells it a new version exists. Apple Silicon only, as the `mac.target` says.
-export const app = join(out, 'mac-arm64/Cue.app')
-export const dmg = `Cue-${version}-arm64.dmg`
-export const zip = `Cue-${version}-arm64-mac.zip`
-export const blockmap = `${zip}.blockmap`
+// What electron-builder makes from electron-builder.yml, once for each architecture in its
+// `mac.target`: a DMG to download, a zip for the updater and the blockmap that lets it
+// download only what changed. The names are electron-builder's: x64 is its default
+// architecture, so it leaves it out of the app's folder and the zip's name, and the DMG has
+// it only because `dmg.artifactName` asks.
+export const builds = [
+  { arch: 'arm64', mac: 'Apple silicon', app: join(out, 'mac-arm64/Cue.app'), dmg: `Cue-${version}-arm64.dmg`, zip: `Cue-${version}-arm64-mac.zip` },
+  { arch: 'x64', mac: 'Intel', app: join(out, 'mac/Cue.app'), dmg: `Cue-${version}-x64.dmg`, zip: `Cue-${version}-mac.zip` }
+]
+// The manifest that tells the updater a new version exists. One file lists both zips, and the
+// updater takes the one for the Mac it's on.
 export const manifest = 'latest-mac.yml'
-// In the order they go on the GitHub release, download first.
-export const uploads = [dmg, zip, blockmap, manifest]
+// In the order they go on the GitHub release, downloads first.
+export const uploads = [...builds.map((build) => build.dmg), ...builds.flatMap((build) => [build.zip, `${build.zip}.blockmap`]), manifest]
 
 /** Stop with an explanation and nothing else — no stack trace, which never helps here. */
 export function fail(message) {
