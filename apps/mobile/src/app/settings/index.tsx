@@ -29,7 +29,7 @@ export default function Settings() {
     return () => clearInterval(timer)
   }, [])
 
-  const version = Constants.expoConfig?.version ?? '1.0.0'
+  const version = Constants.expoConfig?.version ?? '1.0.1'
   const footnote = state.needsSignIn
     ? (state.message ?? undefined)
     : state.email

@@ -20,7 +20,7 @@ const config: ExpoConfig = {
   slug: 'cue',
   scheme: 'cue',
   // The same version as the Mac app. The App Store only takes numbers here.
-  version: '1.0.0',
+  version: '1.0.1',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
   icon: './assets/icon.png',
