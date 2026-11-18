@@ -27,10 +27,14 @@ Portrait, in upload order, at both of the iPhone sizes App Store Connect asks fo
 `screens/` holds the plain screenshots, and `store/` and `store-6.3/` the images to
 upload — the same nine at two sizes, all PNGs without alpha. App Store Connect takes up
 to ten per size. Rebuild `overview.png` above with `python3 brand/app-store/overview.py`.
-`screens/08-mac.png` has a second job: it is also the iPhone on the website's home page,
-and `screens/01-today.png` and `screens/07-dark.png` are what the dark version of it is
-derived from (`apps/desktop/scripts/phone-shots.py`), so changing those three changes the
-site too.
+Three of the screens have a second job on the website's home page: its iPhone
+(`apps/desktop/scripts/phone-shots.py`) takes its status bar and symbols from
+`screens/01-today.png`, and measures its dark version from `screens/01-today.png` and
+`screens/07-dark.png`, so changing those changes the site too.
+
+These images show the app as it was at 1.0. Since then Today, Notes and search have moved
+to tabs at the bottom, the top bar holds only links and settings, and the week strip and
+calendar have lost their dots; the screens need capturing again before the next upload.
 
 - **`store-6.3/`, 1206 × 2622.** The slot for 6.1" and 6.3" displays, which is the one
   Apple requires of an iPhone app. It takes 1179 × 2556 or 1206 × 2622 and nothing else,

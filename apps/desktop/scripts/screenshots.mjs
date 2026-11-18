@@ -5,7 +5,10 @@
  *
  * Launches the built app against a throwaway data folder, writes a realistic day
  * with the keyboard, captures light and dark views, and frames each capture as a
- * macOS window (scripts/frame.swift).
+ * macOS window (scripts/frame.swift on a Mac, scripts/frame.py with Pillow elsewhere).
+ *
+ * It runs off a Mac too (under `xvfb-run` on Linux), where the shortcuts are on Control
+ * and the text is set in whatever the system font falls back to.
  */
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync } from 'node:fs'
@@ -18,18 +21,23 @@ const OUT = resolve(import.meta.dirname, '../../..', 'docs/images')
 const raw = mkdtempSync(join(tmpdir(), 'cue-shots-'))
 mkdirSync(OUT, { recursive: true })
 
+const mac = process.platform === 'darwin'
 const app = await electron.launch({
-  args: ['.'],
+  // Windows are drawn at 2x whatever the display is.
+  args: ['.', '--force-device-scale-factor=2', ...(mac ? [] : ['--no-sandbox'])],
   env: { ...process.env, CUE_USER_DATA: mkdtempSync(join(tmpdir(), 'cue-shots-data-')), CUE_E2E: '1' }
 })
 const page = await app.firstWindow()
 await page.waitForSelector('.day')
-await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1000, 700))
+await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1000, 700))
 await page.waitForTimeout(200)
+// A Mac's scrollbars stay out of sight until you scroll; elsewhere they are drawn, so hide them.
+if (!mac) await page.addStyleTag({ content: '::-webkit-scrollbar { display: none }' })
 
 const type = (text) => page.keyboard.type(text)
+// Shortcuts are written as on the Mac; elsewhere ⌘ is Control and ⌘→ is End.
 const press = async (...keys) => {
-  for (const key of keys) await page.keyboard.press(key)
+  for (const key of keys) await page.keyboard.press(mac ? key : key === 'Meta+ArrowRight' ? 'End' : key.replace('Meta+', 'Control+'))
 }
 
 // Today
@@ -87,7 +95,9 @@ const shoot = async (name, scheme) => {
   await page.waitForTimeout(250)
   const file = join(raw, `${name}.png`)
   await page.screenshot({ path: file })
-  execFileSync('swift', ['scripts/frame.swift', file, join(OUT, `${name}.png`), scheme])
+  const framed = join(OUT, `${name}.png`)
+  if (mac) execFileSync('swift', ['scripts/frame.swift', file, framed, scheme])
+  else execFileSync('python3', ['scripts/frame.py', file, framed, scheme])
   console.log(`wrote ${join(OUT, `${name}.png`)}`)
 }
 
@@ -139,7 +149,7 @@ await shoot('notes-command', 'light')
 await press('Escape')
 
 // The shortcuts sheet scrolls below ~950 px; give it room to show everything.
-await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1000, 960))
+await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1000, 960))
 await press('Meta+/')
 await shoot('shortcuts', 'dark')
 await press('Escape')
