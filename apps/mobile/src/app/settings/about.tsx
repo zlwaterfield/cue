@@ -6,7 +6,7 @@ import { Row, Section, SettingsScreen } from '../../ui/SettingsList'
 
 /** Where to report something, and the terms you signed up to. */
 export default function About() {
-  const version = Constants.expoConfig?.version ?? '1.0.0'
+  const version = Constants.expoConfig?.version ?? '1.0.1'
   const reportIssue = (): void => {
     void Linking.openURL(reportIssueUrl(`iPhone, version ${version} (iOS ${Platform.Version})`)).catch(() => {
       Alert.alert('Couldn’t open GitHub', 'Please try again.')
