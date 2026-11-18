@@ -121,4 +121,33 @@ describe('request timeouts', () => {
     expect(sent).toBeInstanceOf(OfflineError)
     expect((sent as Error).message).toBe('Can’t reach the sync server. Check your connection.')
   })
+
+  it('reports an expired token that can’t be refreshed as offline, and sends nothing signed out', async () => {
+    vi.useFakeTimers()
+    const store = memoryStore()
+    const expired = Math.floor(Date.now() / 1000) - 60
+    store.set('session', JSON.stringify({ access_token: 'old', refresh_token: 'refresh', expires_at: expired, expires_in: 3600, token_type: 'bearer', user: { id: 'u' } }))
+    const sent: string[] = []
+    const client = new SupabaseSync(
+      {
+        url: 'http://sync.test',
+        key: 'key',
+        fetch: async (input) => {
+          const url = String(input)
+          sent.push(url)
+          if (url.includes('/auth/v1/')) throw new TypeError('fetch failed')
+          return new Response('{"message":"permission denied for function sync_pull","code":"42501"}', { status: 401 })
+        }
+      },
+      store
+    )
+    const calls = Promise.all([client.push([]), client.pull(0, 100), client.pullDates('2026-01-01', '2026-01-02')].map((call) => call.catch((error: Error) => error)))
+    let given = false
+    void calls.then(() => { given = true })
+    for (let step = 0; step < 10 && !given; step++) await vi.advanceTimersByTimeAsync(10_000)
+    for (const outcome of await calls) expect(outcome).toBeInstanceOf(OfflineError)
+    expect(sent.filter((url) => url.includes('/rest/v1/'))).toEqual([])
+    // The session is kept for when the connection returns.
+    expect(store.get('session')).not.toBeNull()
+  })
 })

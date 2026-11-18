@@ -44,6 +44,8 @@ export const AUTH_TIMEOUT = 10_000
 export const REQUEST_TIMEOUT = 20_000
 export const MIN_BYTES_PER_MS = 4
 
+const UNREACHABLE = 'Can’t reach the sync server. Check your connection.'
+
 /**
  * Give every request a deadline, covering the whole response, body included, so a
  * connection that stalls halfway can't hang sync. A sync request has two windows: until
@@ -242,13 +244,28 @@ export class SupabaseSync implements SyncTransport {
 
   /* ------------------------------------------------------------- Transport */
 
+  /**
+   * An expired token is refreshed before a request goes out. If that refresh can't reach
+   * the auth server (a Mac just woken, an iPhone back from the background), supabase-js
+   * remembers the failure for a minute and meanwhile sends requests signed out, which the
+   * server refuses like an ended session. That is a lost connection, so say so instead of
+   * sending the request. With no session at all the request goes out, and its refusal
+   * leads to `checkSession`.
+   */
+  private async ready(): Promise<void> {
+    const { data, error } = await this.client.auth.getSession()
+    if (!data.session && error && !sessionGone(error)) throw new OfflineError(UNREACHABLE)
+  }
+
   async push(records: Item[]): Promise<PushResult> {
+    await this.ready()
     const { data, error, status } = await this.client.rpc('sync_push', { records })
     if (error) throw transportError(error, status)
     return data as PushResult
   }
 
   async pull(since: number, limit: number): Promise<PullResult> {
+    await this.ready()
     const { data, error, status } = await this.client.rpc('sync_pull', { since, max_rows: limit })
     if (error) throw transportError(error, status)
     return data as PullResult
@@ -256,6 +273,7 @@ export class SupabaseSync implements SyncTransport {
 
   /** A date range straight from the table; row-level security limits it to this account. */
   async pullDates(from: ISODate, to: ISODate): Promise<Item[]> {
+    await this.ready()
     const { data, error, status } = await this.client
       .from('items')
       .select('id,date,parentId:parent_id,position,type,text,done,createdAt:created_at,updatedAt:updated_at,deleted,version')
@@ -307,7 +325,7 @@ const SESSION_CODES = ['PGRST301', 'PGRST303', '28000']
 /** What a failed request means, in words. The raw error goes to the console, never the UI. */
 export function transportError(error: { message: string; code?: string }, status: number): SyncError {
   // postgrest-js reports a failed fetch (no network, DNS, TLS, a timeout) as status 0.
-  if (status === 0) return new OfflineError('Can’t reach the sync server. Check your connection.')
+  if (status === 0) return new OfflineError(UNREACHABLE)
   // The only foreign key is the account itself: it no longer exists.
   if (error.code === '23503') return new SessionError('deleted')
   if (status === 401 || status === 403 || SESSION_CODES.includes(error.code ?? '')) return new SessionError('expired')
@@ -333,7 +351,7 @@ function account(user: { id: string; email?: string } | null, method: SignInMeth
 function friendlyAuthError(error: { message: string; code?: string; status?: number; name?: string }, method: SignInMethod = 'email'): SyncError {
   if ((error.status ?? 0) >= 500) return new SyncError('The sync server isn’t responding. Try again in a moment.')
   if (error.name === 'AuthRetryableFetchError' || error.status === 0) {
-    return new OfflineError('Can’t reach the sync server. Check your connection.')
+    return new OfflineError(UNREACHABLE)
   }
   if (method === 'apple') {
     if (error.code === 'provider_disabled') return new SyncError('This sync server doesn’t offer Sign in with Apple. Use your email instead.')
