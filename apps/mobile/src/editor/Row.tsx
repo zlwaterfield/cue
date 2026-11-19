@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Linking, StyleSheet, TextInput, View, useWindowDimensions, type TextInputInstance } from 'react-native'
+import { Linking, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native'
 import { GestureDetector, useCompetingGestures, usePanGesture, useTapGesture } from 'react-native-gesture-handler'
 import Animated, { useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
@@ -13,13 +13,14 @@ import { focusAt } from '../../modules/cue-native'
 import { useStore } from '../core/store'
 import { itemStore } from '../core/app'
 import { showToast, ui } from '../core/ui'
+import { usePaneWidth } from '../ui/pane'
 import { colors, metrics, useColors } from '../ui/theme'
 import { editor } from './controller'
-import { beginDrag, drag, dragTop, resetDrag, scrollState, updateDrag } from './drag'
+import { beginDrag, drag, dragTop, resetDrag, scrollStateOf, updateDrag } from './drag'
 import { useItem } from './hooks'
 import { LinkIcon, LinkLine } from './LinkLine'
 import { Marker } from './Marker'
-import { swipe, SWIPE_ACT, SWIPE_DELETE_FRACTION, SWIPE_HOME, type SwipeKind } from './Swipe'
+import { swipe, SWIPE_ACT, SWIPE_HOME, swipeDeleteDistance, type SwipeKind } from './Swipe'
 
 const LIFT_DELAY = 340
 /** Where a line not in its day's layout waits, out of sight. */
@@ -126,7 +127,8 @@ export const Row = memo(function Row({
   const c = useColors()
   const focused = useStore(ui, (s) => s.focusedId === id)
   const today = useStore(ui, (s) => s.today)
-  const { width } = useWindowDimensions()
+  const width = usePaneWidth()
+  const scrollState = scrollStateOf(date)
   const layout = editor.layout(date)
   const geometry = layout.geometry
   const input = useRef<TextInputInstance | null>(null)
@@ -219,7 +221,7 @@ export const Row = memo(function Row({
 
   const liftStart = (e: { absoluteY: number }): void => {
     'worklet'
-    if (beginDrag(date, id, geometry.value, e.absoluteY)) {
+    if (beginDrag(date, id, geometry.value, e.absoluteY, scrollState.value.y)) {
       scheduleOnRN(haptic, 'lift')
       scheduleOnRN(lifted)
     }
@@ -227,7 +229,7 @@ export const Row = memo(function Row({
   const liftMove = (e: { translationX: number; translationY: number; absoluteY: number }): void => {
     'worklet'
     if (drag.value.id !== id) return
-    if (updateDrag(e.translationX, e.translationY, e.absoluteY)) scheduleOnRN(haptic, 'tick')
+    if (updateDrag(e.translationX, e.translationY, e.absoluteY, scrollState.value.y)) scheduleOnRN(haptic, 'tick')
   }
   const liftEnd = (): void => {
     'worklet'
@@ -259,7 +261,7 @@ export const Row = memo(function Row({
 
   /* -------------------------------------------------------------- Swipe */
 
-  const deleteAt = width * SWIPE_DELETE_FRACTION
+  const deleteAt = swipeDeleteDistance(width)
   const swipeGesture = usePanGesture({
     enabled: !ghost && !focused,
     activeOffsetX: [-14, 14],

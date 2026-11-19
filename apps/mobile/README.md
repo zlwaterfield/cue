@@ -43,6 +43,36 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
   the month, links and settings. The keyboard covers the tabs while you write, and its own
   toolbar takes over.
 
+## iPhone Duo
+
+Cue fills both displays and keeps its place when the phone is opened or closed.
+
+- **The side the system keeps.** On either display the status bar and Dynamic Island run
+  down one edge, and which edge depends on how the phone is held and which half of a Split
+  View Cue is in. The day reads each side's inset on its own (`src/ui/pane.tsx`) and lays the
+  header, week strip, lines and toast out in the width that's left; the page's colour still
+  runs to every edge. The toolbar stays as wide as the keyboard it rides on.
+- **Sheets and modals** aren't told about that strip (a presented screen's own safe area
+  has no sides), and on the open display they float clear of it. `ClearOfSides`, applied to
+  every pushed screen in `src/app/_layout.tsx`, measures where the screen is and gives up
+  only what lies under the strip.
+- **Opening or closing mid-sentence** re-wraps every line, so the page finds the line being
+  edited again once the lines have their new heights (`DayPage`).
+- **Two days where there's room.** When a day can be at least 360 pt wide beside another
+  (an open iPhone Duo, an iPad), the next day is open beside the one selected: the same
+  days in the same order, with one more in sight. They meet in the middle of the window,
+  which on an open Duo is the fold, so neither lies across it; the day on the status bar's
+  side is the narrower. Either page turns both, by one day. Closed, the first of the two
+  is the day on screen. A note keeps a single column, no wider than a line reads well.
+  Each page has its own scroll position and reveal (`scrollStateOf`, `editor.scrolls`),
+  and `editor.showing(date)` is how the editor asks whether a day is on screen.
+- Sizes come from the pane a view is in, never the window or a device: the swipe-to-delete
+  distance, the week strip's margins and the toast all follow `usePaneWidth()`.
+
+Checked on the iPhone Duo simulator (Xcode 27.2): closed, open, half open, and folding
+with the keyboard up; and, side by side, writing, reordering and turning from the second
+day. Not yet: Split View on each side, the open display in portrait, and an iPad.
+
 ## Touch
 
 | | |

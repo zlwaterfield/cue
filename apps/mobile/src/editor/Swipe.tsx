@@ -1,6 +1,7 @@
-import { StyleSheet, useColorScheme, useWindowDimensions } from 'react-native'
+import { StyleSheet, useColorScheme } from 'react-native'
 import Animated, { interpolate, makeMutable, useAnimatedStyle, type SharedValue } from 'react-native-reanimated'
 import { SymbolView, type SFSymbol } from 'expo-symbols'
+import { usePaneWidth } from '../ui/pane'
 import { metrics, useColors } from '../ui/theme'
 import type { DayGeometry } from './layout'
 
@@ -33,6 +34,18 @@ export const swipe = {
 export const SWIPE_ACT = 72
 /** Deleting takes a deliberate, long swipe, well past where tomorrow arms. */
 export const SWIPE_DELETE_FRACTION = 2 / 3
+
+/**
+ * How far left a line is swiped before letting go deletes it, on a page `width` wide.
+ *
+ * TODO(you): on an iPhone this is 2/3 of the page, about 260 pt. An open iPhone Duo's page
+ * is 867 pt wide, where 2/3 is a 578 pt drag: further than a thumb goes. For now the page
+ * is treated as no wider than the text column.
+ */
+export function swipeDeleteDistance(width: number): number {
+  'worklet'
+  return Math.min(width, metrics.column) * SWIPE_DELETE_FRACTION
+}
 /**
  * iOS's own destructive red, the one hue outside the graphite brand: an armed delete
  * should be impossible to mistake for tomorrow.
@@ -49,8 +62,7 @@ const ADVANCE_ICONS: SFSymbol[] = ['checklist', 'checkmark', 'arrow.uturn.backwa
 export function SwipeUnderlay({ geometry }: { geometry: SharedValue<DayGeometry> }) {
   const c = useColors()
   const red = useColorScheme() === 'dark' ? DELETE_RED.dark : DELETE_RED.light
-  const { width } = useWindowDimensions()
-  const deleteAt = width * SWIPE_DELETE_FRACTION
+  const deleteAt = swipeDeleteDistance(usePaneWidth())
   // Styles only re-run for shared values they read themselves, so each passes them in.
   const deleting = (x: number, leaving: SwipeLeaving): boolean => {
     'worklet'
