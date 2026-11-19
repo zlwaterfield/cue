@@ -25,7 +25,7 @@ import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { metrics, useColors } from '../ui/theme'
 import { editor } from './controller'
-import { drag, scrollState, updateDrag } from './drag'
+import { drag, scrollStateOf, updateDrag } from './drag'
 import { TOOLBAR_SPACE } from './Toolbar'
 import { useArriving, useOutline } from './hooks'
 import { LooseEnds } from './LooseEnds'
@@ -37,6 +37,8 @@ const AnimatedScrollView = Animated.createAnimatedComponent(GestureScrollView)
 /** Scroll while a dragged line is held this close to the top or bottom edge. */
 const EDGE = 80
 const MAX_SPEED = 16
+/** After the page changes width, long enough for its lines to wrap and report their heights. */
+const RESETTLE_AFTER = 350
 
 /** Swiping a page off its lines turns the day: left for the next, as a swiped line goes to tomorrow. */
 const TURN_AT = 60
@@ -49,7 +51,8 @@ const turnPage = (date: ISODate, days: number, shift: SharedValue<number>): void
   void Haptics.selectionAsync()
   turning = days
   // A note turns to the note before or after it; at either end the page springs back.
-  const turned = isNotePage(date) ? editor.stepNote(days < 0 ? -1 : 1) : editor.goTo(addDays(date, days))
+  // Beside another day, either page turns both: on from the first of the two.
+  const turned = isNotePage(date) ? editor.stepNote(days < 0 ? -1 : 1) : editor.goTo(addDays(ui.get().date, days))
   turned.catch(() => {
     turning = 0
     shift.value = withSpring(0, SWIPE_HOME)
@@ -104,6 +107,7 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
   const today = useStore(ui, (s) => s.today)
   const { height: screenHeight } = useWindowDimensions()
   const layout = editor.layout(date)
+  const scrollState = scrollStateOf(date)
   const scrollRef = useAnimatedRef<Animated.ScrollView>()
   const keyboard = useAnimatedKeyboard()
   const contentTop = useRef(0)
@@ -111,10 +115,13 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
   const arriving = useArriving(date)
 
   const shift = useSharedValue(turning * TURN_IN)
+  // Beside another day, a page can stay on screen when the day is turned (the second
+  // becomes the first): it comes back from where the turn left it, like one arriving.
+  const open = useStore(ui, (s) => s.date)
   useEffect(() => {
     turning = 0
     if (shift.value) shift.value = withTiming(0, { duration: 220, easing: Easing.out(Easing.cubic) })
-  }, [shift])
+  }, [shift, open])
   const slide = useAnimatedStyle(() => ({
     transform: [{ translateX: shift.value }],
     opacity: interpolate(Math.abs(shift.value), [0, TURN_OUT], [1, 0.35], 'clamp')
@@ -149,13 +156,31 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
   })
 
   const frame = useRef<ViewInstance>(null)
-  const onViewport = useCallback((e: LayoutChangeEvent) => {
-    const height = e.nativeEvent.layout.height
-    // Where the page is on screen, for scrolling at the edges during a drag.
-    frame.current?.measureInWindow((_x, y) => {
-      scrollState.value = { ...scrollState.value, viewportTop: y, viewportHeight: height }
-    })
-  }, [])
+  const viewport = useRef({ width: 0, height: 0 })
+  const resettle = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const onViewport = useCallback(
+    (e: LayoutChangeEvent) => {
+      const { width, height } = e.nativeEvent.layout
+      // Where the page is on screen, for scrolling at the edges during a drag.
+      frame.current?.measureInWindow((_x, y) => {
+        scrollState.value = { ...scrollState.value, viewportTop: y, viewportHeight: height }
+      })
+      // The page changed shape under a line being edited (an iPhone Duo opened or closed,
+      // Split View): its text wraps differently now, so where the page was scrolled to no
+      // longer means anything, and can be past the end. Find the line again once the lines
+      // have their new heights.
+      const was = viewport.current
+      viewport.current = { width, height }
+      if (!was.width || was.width === width) return
+      if (resettle.current) clearTimeout(resettle.current)
+      resettle.current = setTimeout(() => {
+        const id = ui.get().focusedId
+        if (id) editor.scroller?.reveal(date, id)
+      }, RESETTLE_AFTER)
+    },
+    [date]
+  )
+  useEffect(() => () => void (resettle.current && clearTimeout(resettle.current)), [])
 
   // Keep a dragged line moving when it's held at an edge.
   useFrameCallback(() => {
@@ -171,13 +196,12 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
     if (y === s.y) return
     scrollTo(scrollRef, 0, y, false)
     scrollState.value = { ...s, y }
-    updateDrag(d.translationX, d.translationY, d.absoluteY)
+    updateDrag(d.translationX, d.translationY, d.absoluteY, y)
   })
 
   useEffect(() => {
-    editor.scroller = {
-      reveal: (target, id) => {
-        if (target !== date) return
+    const forget = editor.scrolls(date, {
+      reveal: (_target, id) => {
         const frame = layout.frameOf(id)
         if (!frame) return
         const s = scrollState.value
@@ -193,7 +217,7 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
         if (bottom > s.y + visible - 12) scrollRef.current?.scrollTo({ y: bottom - visible + 28, animated: true })
         else if (top < s.y + 8) scrollRef.current?.scrollTo({ y: Math.max(0, top - 16), animated: true })
       }
-    }
+    })
     // iOS scrolls a line above the keyboard when it opens, but not above the toolbar.
     const shown = Keyboard.addListener('keyboardDidShow', () => {
       const id = ui.get().focusedId
@@ -202,8 +226,11 @@ export const DayPage = memo(function DayPage({ date }: { date: ISODate }) {
     // Opened from search: bring the line into view once this day is laid out.
     const flash = ui.get().flash
     if (flash && itemStore.get(flash.id)?.date === date) requestAnimationFrame(() => editor.scroller?.reveal(date, flash.id))
-    return () => shown.remove()
-  }, [date, layout, scrollRef])
+    return () => {
+      shown.remove()
+      forget()
+    }
+  }, [date, layout, scrollRef, scrollState])
 
   // Worklets get shared values, not the layout object that holds them.
   const geometry = layout.geometry

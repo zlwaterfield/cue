@@ -80,7 +80,10 @@ export class Editor {
   private stripped = new Map<string, string>()
   /** The old today's page after midnight, until it can follow to the new today. */
   private following: ISODate | null = null
-  scroller: Scroller | null = null
+  /** One per page on screen: where there's room, two days are open side by side. */
+  private scrollers = new Map<ISODate, Scroller>()
+  /** Bring a line into view on whichever page on screen it's on. */
+  readonly scroller: Scroller = { reveal: (date, id) => this.scrollers.get(date)?.reveal(date, id) }
 
   constructor() {
     itemStore.onReset(() => this.reset())
@@ -108,6 +111,20 @@ export class Editor {
   }
 
   /* ============================================================== Days */
+
+  /** A page on screen says how its lines are scrolled into view. Returns how to take that back. */
+  scrolls(date: ISODate, scroller: Scroller): () => void {
+    this.scrollers.set(date, scroller)
+    return () => {
+      if (this.scrollers.get(date) === scroller) this.scrollers.delete(date)
+    }
+  }
+
+  /** The day is on screen: the one opened, or the next, when it's shown beside it. */
+  showing(date: ISODate): boolean {
+    const { date: open, spread } = ui.get()
+    return date === open || (spread && !isNotePage(open) && date === addDays(open, 1))
+  }
 
   layout(date: ISODate): DayLayout {
     let layout = this.layouts.get(date)
@@ -205,7 +222,7 @@ export class Editor {
   async show(id: string, date: ISODate): Promise<void> {
     await this.goTo(date)
     ui.set({ flash: { id, at: Date.now() } })
-    this.scroller?.reveal(date, id)
+    this.scroller.reveal(date, id)
   }
 
   /**
@@ -285,7 +302,7 @@ export class Editor {
     if (!input.isFocused()) input.focus()
     input.setSelection(pending.start, pending.end)
     const date = itemStore.get(pending.id)?.date ?? this.ghostDate(pending.id)
-    if (date) this.scroller?.reveal(date, pending.id)
+    if (date) this.scroller.reveal(date, pending.id)
   }
 
   onFocus(id: string): void {
@@ -321,7 +338,7 @@ export class Editor {
     if (snapshot.kind !== 'text') return
     const item = itemStore.get(snapshot.id)
     if (!item) return
-    if (item.date !== ui.get().date) {
+    if (!this.showing(item.date)) {
       void this.goTo(item.date).then(() => this.focus(snapshot.id, snapshot.start, snapshot.end))
       return
     }
@@ -400,7 +417,8 @@ export class Editor {
   private onExternal(applied: Item[]): void {
     const id = ui.get().focusedId
     const record = id ? applied.find((item) => item.id === id) : undefined
-    if (!id || !record || itemStore.get(id)?.date === ui.get().date) return
+    const now = id ? itemStore.get(id)?.date : undefined
+    if (!id || !record || (now && this.showing(now))) return
     const caret = this.carets.get(id) ?? { start: record.text.length, end: record.text.length }
     this.leave(id)
     Keyboard.dismiss()
@@ -698,9 +716,9 @@ export class Editor {
     }
     if (!last) return
     const id = last
-    if (ui.get().date === today) {
+    if (this.showing(today)) {
       ui.set({ flash: { id, at: Date.now() } })
-      requestAnimationFrame(() => this.scroller?.reveal(today, id))
+      requestAnimationFrame(() => this.scroller.reveal(today, id))
     } else {
       showToast(texts.length === 1 ? 'Added to today from Share' : `Added ${texts.length} to today from Share`)
     }

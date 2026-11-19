@@ -1,4 +1,4 @@
-import { makeMutable } from 'react-native-reanimated'
+import { makeMutable, type SharedValue } from 'react-native-reanimated'
 import { metrics } from '../ui/theme'
 import { clampDepth, insertionIndex, prefixTops, subtreeEnd, type OutlineRow } from '@shared/editor/geometry'
 import type { DayGeometry } from './layout'
@@ -66,10 +66,30 @@ const IDLE: DragState = {
 
 export const drag = makeMutable<DragState>(IDLE)
 
-/** The day page's scroll position and visible area, in screen coordinates. */
-export const scrollState = makeMutable({ y: 0, viewportTop: 0, viewportHeight: 0, maxY: 0 })
+/** A page's scroll position and visible area, in screen coordinates. */
+export interface ScrollState {
+  y: number
+  viewportTop: number
+  viewportHeight: number
+  maxY: number
+}
 
-export function beginDrag(date: string, id: string, g: DayGeometry, absoluteY: number): boolean {
+const scrollStates = new Map<string, SharedValue<ScrollState>>()
+
+/**
+ * Each page scrolls on its own: where there's room for two days side by side, a line
+ * dragged or revealed on one mustn't be measured against the other's scroll position.
+ */
+export function scrollStateOf(date: string): SharedValue<ScrollState> {
+  let state = scrollStates.get(date)
+  if (!state) {
+    state = makeMutable<ScrollState>({ y: 0, viewportTop: 0, viewportHeight: 0, maxY: 0 })
+    scrollStates.set(date, state)
+  }
+  return state
+}
+
+export function beginDrag(date: string, id: string, g: DayGeometry, absoluteY: number, scrollY: number): boolean {
   'worklet'
   const from = g.index[id]
   // The last row is the day's blank line, which isn't an item.
@@ -105,7 +125,7 @@ export function beginDrag(date: string, id: string, g: DayGeometry, absoluteY: n
     restEnd: restTops.length ? restTops[restTops.length - 1] + restHeights[restHeights.length - 1] : 0,
     translationX: 0,
     translationY: 0,
-    startScroll: scrollState.value.y,
+    startScroll: scrollY,
     dy: 0,
     index: from,
     depth: g.depths[from],
@@ -115,11 +135,11 @@ export function beginDrag(date: string, id: string, g: DayGeometry, absoluteY: n
 }
 
 /** Recompute the drop target. Returns true if it changed (for a haptic tick). */
-export function updateDrag(translationX: number, translationY: number, absoluteY: number): boolean {
+export function updateDrag(translationX: number, translationY: number, absoluteY: number, scrollY: number): boolean {
   'worklet'
   const d = drag.value
   if (!d.active || d.dropping) return false
-  const dy = translationY + (scrollState.value.y - d.startScroll)
+  const dy = translationY + (scrollY - d.startScroll)
   const center = d.startTop + dy + d.rootHeight / 2
   const index = insertionIndex(d.restTops, d.restHeights, center)
   const depth = clampDepth(d.rest, index, d.baseDepth + Math.round(translationX / metrics.indent))

@@ -1,7 +1,7 @@
-import { Dimensions } from 'react-native'
 import { makeMutable, type SharedValue } from 'react-native-reanimated'
 import type { ISODate } from '@shared/types'
 import { itemStore } from '../core/app'
+import { pane } from '../ui/pane'
 import { metrics } from '../ui/theme'
 import { prefixTops } from '@shared/editor/geometry'
 
@@ -31,7 +31,7 @@ const EMPTY: DayGeometry = { ids: [], depths: [], heights: [], tops: [], index: 
 
 /** A first guess at a line's height, until it reports its real one. */
 function estimate(text: string, depth: number): number {
-  const width = Math.min(Dimensions.get('window').width, metrics.column) - 2 * metrics.gutter
+  const width = Math.min(pane.width || metrics.column, metrics.column) - 2 * metrics.gutter
   const textWidth = width - depth * metrics.indent - metrics.marker
   const perLine = Math.max(10, Math.floor(textWidth / (metrics.fontSize * 0.5)))
   const lines = Math.max(1, Math.ceil(text.length / perLine))

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, useColorScheme, useWindowDimensions } from 'react-native'
+import { Pressable, StyleSheet, Text, useColorScheme } from 'react-native'
 import Animated, { FadeInDown, FadeOutDown, useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useStore } from '../core/store'
@@ -6,6 +6,7 @@ import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
 import { TOOLBAR_SPACE } from '../editor/Toolbar'
 import { tabBarSpace } from './TabBar'
+import { usePaneWidth } from './pane'
 import { useColors } from './theme'
 
 /** A quiet confirmation after a move or a delete, with Undo. Sits above the keyboard, or the tabs. */
@@ -13,7 +14,7 @@ export function Toast() {
   const c = useColors()
   const toast = useStore(ui, (s) => s.toast)
   const insets = useSafeAreaInsets()
-  const { width } = useWindowDimensions()
+  const width = usePaneWidth()
   const keyboard = useAnimatedKeyboard()
   // In dark the toast is close to the page, so a hairline gives it an edge.
   const dark = useColorScheme() === 'dark'

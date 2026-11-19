@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler'
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
@@ -15,6 +15,7 @@ import { useStore } from '../core/store'
 import { ui } from '../core/ui'
 import { editor } from '../editor/controller'
 import { NoteStrip } from './NoteStrip'
+import { usePaneWidth } from './pane'
 import { metrics, useColors } from './theme'
 
 const DAY_MAX_FONT_SCALE = 1.3
@@ -106,7 +107,7 @@ function WeekStrip({ date, today }: { date: ISODate; today: ISODate }) {
   const weekStartsOn = useStore(ui, (s) => s.settings.weekStartsOn)
   const start = startOfWeek(date, weekStartsOn)
   const days = useMemo(() => dateRange(start, addDays(start, 6)), [start])
-  const { width } = useWindowDimensions()
+  const width = usePaneWidth()
   const offset = useSharedValue(0)
 
   useEffect(() => {

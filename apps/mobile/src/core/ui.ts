@@ -12,6 +12,8 @@ export interface UIState {
   today: ISODate
   /** The day on screen. */
   date: ISODate
+  /** There's room for two days: the next one is open beside it (app/index.tsx decides). */
+  spread: boolean
   settings: Settings
   /** The line being edited (an item id, or a day's blank last line). */
   focusedId: string | null
@@ -32,6 +34,7 @@ const today = todayISO()
 export const ui = new Store<UIState>({
   today,
   date: today,
+  spread: false,
   settings: DEFAULT_SETTINGS,
   focusedId: null,
   keyboard: false,
