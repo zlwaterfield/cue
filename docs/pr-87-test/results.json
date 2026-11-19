@@ -1,0 +1,110 @@
+[
+  {
+    "name": "iPhone 402pt: one day",
+    "ok": true
+  },
+  {
+    "name": "main @951 strip left: content runs under the strip (the bug)",
+    "ok": true,
+    "detail": "leftmost content x=0"
+  },
+  {
+    "name": "PR @951 strip left: two days",
+    "ok": true,
+    "detail": "[{\"x\":84,\"w\":391.5},{\"x\":476.5,\"w\":474.5}]"
+  },
+  {
+    "name": "PR: nothing under the strip",
+    "ok": true,
+    "detail": "leftmost content x=84"
+  },
+  {
+    "name": "PR: days meet at the middle of the window (475.5)",
+    "ok": true,
+    "detail": "second page starts x=476.5"
+  },
+  {
+    "name": "PR: page widths 391.5 / 475.5",
+    "ok": true,
+    "detail": "391.5 / 474.5"
+  },
+  {
+    "name": "PR: shows today and tomorrow",
+    "ok": true,
+    "detail": "Thursday, November 19 | Friday, November 20"
+  },
+  {
+    "name": "typing on the second day adds a line there",
+    "ok": true
+  },
+  {
+    "name": "ticking a to-do on the second day",
+    "ok": true,
+    "detail": "Completed to-do"
+  },
+  {
+    "name": "picking Sat 21 opens Sat 21 + Sun 22",
+    "ok": true,
+    "detail": "November 21 | November 22"
+  },
+  {
+    "name": "swiping the second page left turns both by one day (Fri 20 + Sat 21)",
+    "ok": true,
+    "detail": "Friday, November 20 | November 21"
+  },
+  {
+    "name": "closed (402pt): back to one day, the first of the two",
+    "ok": true,
+    "detail": "Thursday, November 19"
+  },
+  {
+    "name": "closed: the line being edited keeps focus and is on screen",
+    "ok": true,
+    "detail": "{\"v\":\"Renew passport: before the trip\",\"y\":417,\"vh\":874}"
+  },
+  {
+    "name": "opened again: two days, edit kept, still focused",
+    "ok": true,
+    "detail": "Renew passport: before the trip"
+  },
+  {
+    "name": "Notes tab: single column, no wider than 680",
+    "ok": true,
+    "detail": "[{\"x\":84,\"w\":680}]"
+  },
+  {
+    "name": "Search (full-width modal): field clear of the strip",
+    "ok": true,
+    "detail": "search field x=122"
+  },
+  {
+    "name": "strip right: two days, nothing under the strip",
+    "ok": true,
+    "detail": "rightmost content x=867"
+  },
+  {
+    "name": "strip right: still meet at the middle; right page is the narrower",
+    "ok": true,
+    "detail": "475.5 / 390.5"
+  },
+  {
+    "name": "threshold: 887pt wide, strip 84 → first page 359.5pt → 1 day(s)",
+    "ok": true,
+    "detail": "1"
+  },
+  {
+    "name": "  single day beside a strip keeps clear of it",
+    "ok": true,
+    "detail": "x=84"
+  },
+  {
+    "name": "threshold: 889pt wide, strip 84 → first page 360.5pt → 2 day(s)",
+    "ok": true,
+    "detail": "2"
+  },
+  {
+    "name": "iPad 1024pt: two days, 512 / 512",
+    "ok": true,
+    "detail": "[{\"x\":0,\"w\":512},{\"x\":513,\"w\":511}]"
+  }
+]
