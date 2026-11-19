@@ -31,4 +31,5 @@ and takes it in Chrome at 2x. The Mac windows are the README screenshots in `doc
 and the iPhones are the plain App Store screens in `brand/app-store/screens`, in the same
 frame `brand/app-store/creative/make.py` draws. The headlines are set in Newsreader on
 the brand's graphite palette. Pass part of a file name to render only that image, such as
-`pnpm x-carousel 03`.
+`pnpm x-carousel carousel/03`. The same script writes the design polish post's images,
+in [`../x-polish`](../x-polish).

@@ -1,7 +1,9 @@
 /**
- * Renders the images for a post on X into brand/social/x-carousel/.
+ * Renders the images for a post on X: the 1.0 post's into brand/social/x-carousel/, and
+ * the design polish post's into brand/social/x-polish/.
  *
- *   pnpm x-carousel
+ *   pnpm x-carousel            both sets
+ *   pnpm x-carousel polish     one set, or one image: any part of "<set>/<file name>"
  *
  * X shows a post's images as a carousel, and crops any image outside its shapes:
  * about 3:4 to 4:3 on the web and 3:4 to 20:17 in the iPhone app. App Store
@@ -11,6 +13,10 @@
  * Lays each image out in HTML from the Mac screenshots in docs/images and the
  * iPhone screens in brand/app-store/screens, at 720 × 900 CSS pixels, and takes
  * it at 2x: 1440 × 1800. Needs a Chrome to drive (CHROME_CHANNEL picks another).
+ *
+ * The polish set's iPhones are not App Store screens: they are the screens
+ * scripts/phone-shots.py draws in the app's current layout, kept beside the images
+ * (`python3 scripts/phone-shots.py --screens ../../brand/social/x-polish/screens`).
  */
 import { mkdirSync, readFileSync, rmSync, writeFileSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -20,14 +26,16 @@ import { chromium } from '@playwright/test'
 
 // Both belong to the repository, and the working directory is this app's folder.
 const REPO = resolve(import.meta.dirname, '../../..')
-const OUT = resolve(REPO, 'brand/social/x-carousel')
+const OUT = (set) => resolve(REPO, 'brand/social', set)
 const W = 720
 const H = 900
 const SCALE = 2
 
 const file = (path) => pathToFileURL(resolve(REPO, path)).href
 const MAC = (name) => file(`docs/images/${name}`)
-const PHONE = (name) => file(`brand/app-store/screens/${name}`)
+// An App Store screen by its file name, or any other screen by its path from the repository's root.
+const POLISH = (name) => `brand/social/x-polish/screens/${name}`
+const PHONE = (name) => file(name.includes('/') ? name : `brand/app-store/screens/${name}`)
 
 // Brand palette, from brand/README.md and brand/tokens.
 const LIGHT = { ink: '#1C1C1E', text2: '#6C6C72', top: '#EFEFF1', bottom: '#EAEAEC', bezel: '#1C1C1E' }
@@ -96,6 +104,7 @@ ${art.join('\n')}
 // so the iPhone goes there, in front, where it covers none of it.
 const SLIDES = [
   {
+    set: 'x-carousel',
     name: '01-out-of-beta.png',
     theme: LIGHT,
     copy: {
@@ -107,36 +116,77 @@ const SLIDES = [
       phone('01-today.png', { left: 446, top: 492, width: 222, lifted: true })]
   },
   {
+    set: 'x-carousel',
     name: '02-mac-move.png',
     theme: LIGHT,
     copy: { top: 64, eyebrow: 'On the Mac', headline: 'Move anything<br>to any day.' },
     art: [mac('move-to-date.png', { left: 34, top: 320, s: 0.84 })]
   },
   {
+    set: 'x-carousel',
     name: '03-iphone-swipe.png',
     theme: LIGHT,
     copy: { top: 64, eyebrow: 'On the iPhone', headline: 'Not today? Swipe it<br>to tomorrow.' },
     art: [phone('02-swipe.png', { left: 170, top: 262, width: 380 })]
   },
   {
+    set: 'x-carousel',
     name: '04-dark.png',
     theme: DARK,
     copy: { top: 64, eyebrow: 'On the iPhone and Mac', headline: 'Just as calm<br>after dark.' },
     art: [mac('week-dark.png', { left: 40, top: 300, s: 0.76 }),
       phone('07-dark.png', { left: 446, top: 372, width: 222, lifted: true })]
+  },
+  // The design polish: a roomier calendar and tabbed notes on the Mac, tabs at the bottom
+  // of the iPhone.
+  {
+    set: 'x-polish',
+    name: '01-polish.png',
+    theme: LIGHT,
+    copy: {
+      top: 62, lockup: true, size: 64,
+      headline: 'A little polish.',
+      sub: 'A roomier calendar and tidier notes on the Mac.<br>Today and Notes at your thumb on the iPhone.'
+    },
+    art: [mac('week-light.png', { left: 52, top: 380, s: 0.72 }),
+      phone(POLISH('today.png'), { left: 446, top: 404, width: 222, lifted: true })]
+  },
+  {
+    set: 'x-polish',
+    name: '02-mac-calendar.png',
+    theme: LIGHT,
+    copy: { top: 64, eyebrow: 'On the Mac', headline: 'A calendar with<br>room to breathe.' },
+    // Narrower than the 1.0 set's: Move to is wider now, and its calendar has to fit.
+    art: [mac('move-to-date.png', { left: 30, top: 330, s: 0.78 })]
+  },
+  {
+    set: 'x-polish',
+    name: '03-iphone-tabs.png',
+    theme: LIGHT,
+    copy: { top: 64, eyebrow: 'On the iPhone', headline: 'Today and Notes,<br>a thumb away.' },
+    art: [phone(POLISH('today.png'), { left: 80, top: 300, width: 250 }),
+      phone(POLISH('notes.png'), { left: 377, top: 300, width: 250 })]
+  },
+  {
+    set: 'x-polish',
+    name: '04-mac-notes.png',
+    theme: LIGHT,
+    copy: { top: 64, eyebrow: 'On the Mac', headline: 'Every note<br>gets a tab.' },
+    // The whole window, so the tabs on the left and Copy and Delete on the right both show.
+    art: [mac('notes.png', { left: 20, top: 340, s: 0.68 })]
   }
 ]
 
 const only = process.argv.slice(2)
-mkdirSync(OUT, { recursive: true })
 const scratch = mkdtempSync(join(tmpdir(), 'cue-x-'))
 const browser = await chromium.launch({
   channel: process.env.CHROME_CHANNEL ?? 'chrome',
-  args: ['--force-color-profile=srgb', '--font-render-hinting=none', '--disable-lcd-text']
+  args: [...(process.platform === 'linux' ? ['--no-sandbox'] : []), '--force-color-profile=srgb', '--font-render-hinting=none', '--disable-lcd-text']
 })
 try {
   for (const slide of SLIDES) {
-    if (only.length && !only.some((o) => slide.name.includes(o))) continue
+    if (only.length && !only.some((o) => `${slide.set}/${slide.name}`.includes(o))) continue
+    mkdirSync(OUT(slide.set), { recursive: true })
     const html = join(scratch, slide.name.replace('.png', '.html'))
     writeFileSync(html, page(slide))
     const pg = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: SCALE })
@@ -147,9 +197,9 @@ try {
     if (!(await pg.evaluate(() => document.fonts.check('60px Newsreader')))) {
       throw new Error('Newsreader did not load')
     }
-    await pg.screenshot({ path: join(OUT, slide.name) })
+    await pg.screenshot({ path: join(OUT(slide.set), slide.name) })
     await pg.close()
-    console.log(`${slide.name}  ${W * SCALE} × ${H * SCALE}`)
+    console.log(`${slide.set}/${slide.name}  ${W * SCALE} × ${H * SCALE}`)
   }
 } finally {
   await browser.close()

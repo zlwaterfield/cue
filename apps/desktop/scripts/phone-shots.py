@@ -3,6 +3,11 @@ Writes the home page's iPhone shot, light and dark (Pillow, Playwright and a Chr
 Chromium).
 
     python3 apps/desktop/scripts/phone-shots.py
+    python3 apps/desktop/scripts/phone-shots.py --screens <folder>
+
+With `--screens` it also writes the light screens at full size, `today.png` and
+`notes.png` (1320 × 2868), which is where the images for X get their iPhones
+(`scripts/x-carousel.mjs`).
 
 The phone holds the same day as the Mac window behind it on the page
 (`scripts/screenshots.mjs`), so when that day's lines change, change `LINES` here too.
@@ -110,15 +115,18 @@ def tone_curve(light, dark, channel):
     return np.clip(np.round(curve), 0, 255).astype(np.uint8)
 
 
-def header(p, top):
-    """The bar (ui/Header.tsx): the month, then links and settings."""
+def header(p, top, notes=False):
+    """The bar (ui/Header.tsx): the month, or Notes, then links and settings."""
     bar, mid = top + 2, top + 24
-    month, year = MONTH.split(' ')
-    chevron = page.piece('chevron.down')
-    p.add(f'<div class="bar" style="top:{bar}px">{page.t(month)}'
-          f'<span class="t" style="color:{C["text3"]}">&nbsp;{year}</span>'
-          f'<img src="{page.png_uri(chevron)}" alt="" style="width:{chevron.width / page.SCALE:.3f}px;'
-          f'height:{chevron.height / page.SCALE:.3f}px;margin-left:6px"></div>')
+    if notes:
+        p.add(f'<div class="bar" style="top:{bar}px">{page.t("Notes")}</div>')
+    else:
+        month, year = MONTH.split(' ')
+        chevron = page.piece('chevron.down')
+        p.add(f'<div class="bar" style="top:{bar}px">{page.t(month)}'
+              f'<span class="t" style="color:{C["text3"]}">&nbsp;{year}</span>'
+              f'<img src="{page.png_uri(chevron)}" alt="" style="width:{chevron.width / page.SCALE:.3f}px;'
+              f'height:{chevron.height / page.SCALE:.3f}px;margin-left:6px"></div>')
     right = p.width - (GUTTER - (BUTTON - SYMBOL) / 2)
     settings, links = right - BUTTON / 2, right - BUTTON / 2 - (BUTTON + 4)
     link = page.link_symbol(58)
@@ -157,17 +165,22 @@ def search_symbol():
     return symbol
 
 
-def tab_bar(p):
-    """Today, lit, and Notes in one capsule; search in its own (ui/TabBar.tsx)."""
+def tab_bar(p, notes=False):
+    """Today and Notes in one capsule, the open one lit; search in its own (ui/TabBar.tsx)."""
     surface = ('background:rgba(255,255,255,0.86);box-shadow:0 0 0 0.5px rgba(0,0,0,0.1),'
                '0 6px 18px -4px rgba(0,0,0,0.16);')
     label = "font:{w} 10.5px/1.193 '" + page.TEXT + "';letter-spacing:0.1px;color:{c}"
     tab = ('width:%dpx;height:%dpx;border-radius:%dpx;display:flex;flex-direction:column;align-items:center;'
            'justify-content:center;gap:2px;' % (TAB, BAR - 2 * PADDING, (BAR - 2 * PADDING) // 2))
-    today = (f'<div style="{tab}background:rgba(44,44,49,0.1)">{sun_symbol(21, 1.9, C["text"])}'
-             f'<div style="{label.format(w=600, c=C["text"])}">Today</div></div>')
-    notes = (f'<div style="{tab}">{page.note_symbol(19, 1.6, C["text2"])}'
-             f'<div style="{label.format(w=500, c=C["text2"])}">Notes</div></div>')
+    lit = 'background:rgba(44,44,49,0.1)'
+
+    def one(name, on, symbol):
+        color = C['text'] if on else C['text2']
+        return (f'<div style="{tab}{lit if on else ""}">{symbol(color)}'
+                f'<div style="{label.format(w=600 if on else 500, c=color)}">{name}</div></div>')
+
+    today = one('Today', not notes, lambda color: sun_symbol(21, 1.9 if not notes else 1.6, color))
+    notes = one('Notes', notes, lambda color: page.note_symbol(19, 1.9 if notes else 1.6, color))
     bottom = max(INSET_BOTTOM - 12, 12)
     top = p.height - bottom - BAR
     p.add(f'<div style="position:absolute;left:{GUTTER}px;top:{top}px;height:{BAR}px;border-radius:{BAR // 2}px;'
@@ -191,6 +204,29 @@ def screen(browser):
     return page.render_page(browser, p)
 
 
+# The Notes tab, for the images for X: a starred note, with scratch and one more beside it.
+NOTES, OPEN = ['Scratch', 'Books to read', 'Gift ideas'], 'Books to read'
+NOTE_LINES = [
+    (0, 'text', 'Books to read'),
+    (0, 'done', 'The Remains of the Day'),
+    (0, 'todo', 'Seeing Like a State'),
+    (0, 'todo', 'A Swim in a Pond in the Rain'),
+    (1, 'bullet', 'Start with the Chekhov chapter'),
+    (0, 'todo', 'Middlemarch'),
+]
+
+
+def notes_screen(browser):
+    p = page.Page(WIDTH, HEIGHT)
+    y = p.iphone_status()
+    y = header(p, y, notes=True)
+    y = p.notes_strip(y, NOTES, OPEN)
+    y = p.note_head(y, '★ Starred', ['Share', 'Delete'])
+    p.lines(y, NOTE_LINES, title_first=True)
+    tab_bar(p, notes=True)
+    return page.render_page(browser, p)
+
+
 def read(name):
     return np.asarray(Image.open(os.path.join(SCREENS, name)).convert('RGB'), dtype=np.uint8)
 
@@ -204,8 +240,15 @@ def write(pixels, name):
     print(f'{os.path.relpath(path, ROOT)}  {size[0]} × {size[1]}  {os.path.getsize(path) // 1024} KB')
 
 
+folder = sys.argv[sys.argv.index('--screens') + 1] if '--screens' in sys.argv else None
 with page.chrome() as browser:
-    light = np.asarray(screen(browser), dtype=np.uint8)
+    today = screen(browser)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+        for name, shot in (('today.png', today), ('notes.png', notes_screen(browser))):
+            shot.save(os.path.join(folder, name), optimize=True)
+            print(f'{os.path.relpath(os.path.join(folder, name), ROOT)}  {shot.width} × {shot.height}')
+light = np.asarray(today, dtype=np.uint8)
 curves = [tone_curve(read('01-today.png'), read('07-dark.png'), channel) for channel in range(3)]
 dark = np.stack([curves[channel][light[:, :, channel]] for channel in range(3)], axis=2)
 
