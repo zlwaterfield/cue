@@ -34,7 +34,7 @@ tomorrow (⌘D) or any date (⇧⌘M, which offers the day you picked last first
 lines to act on them together.
 
 <p align="center">
-  <img src="docs/images/move-to-date.png" alt="Move to, opened with ⇧⌘M: the to-do being moved at the top, &quot;fri&quot; read as Fri, Nov 13 (tomorrow), and a calendar alongside" width="80%">
+  <img src="docs/images/move-to-date.png" alt="Move to, opened with ⇧⌘M: the to-do being moved at the top, &quot;fri&quot; read as the coming Friday, and a calendar alongside with today ringed and Friday picked" width="80%">
 </p>
 
 **Notes.** For what doesn't belong to a day: one scratch page to paste and edit something you'll
