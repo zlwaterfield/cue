@@ -4,8 +4,9 @@ import { controller } from './controller'
 import { getOffsets, setOffsets } from './dom'
 import { updateLinks } from './highlights'
 import { useIsEditing, useIsSelected, useItem, useSelectionDepth } from './hooks'
-import { LinkLine } from './LinkLine'
+import { LinkLine, NoteLine } from './LinkLine'
 import { soleLink } from '@shared/links'
+import { soleNote } from '@shared/notes'
 import * as ops from '@shared/editor/ops'
 import { beginItemDrag, beginTextPointer } from './pointer'
 
@@ -15,7 +16,8 @@ import { beginItemDrag, beginTextPointer } from './pointer'
  * from the store when it changes elsewhere (undo, paste, sync).
  *
  * A line that is only a link shows its page instead (`LinkLine`) while it isn't being
- * edited; its editable waits behind, out of the layout, for the caret to arrive.
+ * edited, and one that links to a note shows the note (`NoteLine`); the editable waits
+ * behind, out of the layout, for the caret to arrive.
  */
 export const ItemRow = memo(function ItemRow({ id, depth, date }: { id: string; depth: number; date: ISODate }) {
   const item = useItem(id)
@@ -60,7 +62,8 @@ export const ItemRow = memo(function ItemRow({ id, depth, date }: { id: string; 
   if (selected) classes.push('is-selected')
   if (!text) classes.push('is-empty')
   const link = editing ? null : soleLink(text)
-  if (link) classes.push('is-link')
+  const note = editing ? null : soleNote(text)
+  if (link || note) classes.push('is-link')
 
   const style = { '--depth': depth, ...(bandDepth !== null && { '--sel-depth': bandDepth }) } as React.CSSProperties
 
@@ -112,6 +115,7 @@ export const ItemRow = memo(function ItemRow({ id, depth, date }: { id: string; 
         onCompositionEnd={(e) => controller.onCompositionEnd(id, e.currentTarget)}
       />
       {link ? <LinkLine id={id} date={date} url={link} /> : null}
+      {note ? <NoteLine id={id} date={date} note={note} /> : null}
     </div>
   )
 })

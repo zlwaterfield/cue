@@ -30,6 +30,8 @@ Days are dates (YYYY-MM-DD) in the user's own calendar: work out "today" in thei
 
 Every line shown ends with its id, like {#0199e3a4-…}. Pass ids to update_lines. Never write ids into text.
 
+A line that is only "cue://note/<date>" links to a starred note, a page kept beside the days; get_day with that date reads it.
+
 Changes show up on the user's Mac and iPhone within seconds.`
 
 interface Tool {

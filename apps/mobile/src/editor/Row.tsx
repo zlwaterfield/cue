@@ -7,7 +7,7 @@ import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { diffDays } from '@shared/dates'
 import { soleLink } from '@shared/links'
-import { isNotePage, SCRATCH } from '@shared/notes'
+import { isNotePage, SCRATCH, soleNote } from '@shared/notes'
 import type { ISODate } from '@shared/types'
 import { focusAt } from '../../modules/cue-native'
 import { useStore } from '../core/store'
@@ -17,7 +17,7 @@ import { colors, metrics, useColors } from '../ui/theme'
 import { editor } from './controller'
 import { beginDrag, drag, dragTop, resetDrag, scrollState, updateDrag } from './drag'
 import { useItem } from './hooks'
-import { LinkIcon, LinkLine } from './LinkLine'
+import { LinkIcon, LinkLine, NoteIcon, NoteLine } from './LinkLine'
 import { Marker } from './Marker'
 import { swipe, SWIPE_ACT, SWIPE_DELETE_FRACTION, SWIPE_HOME, type SwipeKind } from './Swipe'
 
@@ -52,10 +52,14 @@ const ACCESSIBILITY_ACTIONS = {
   other: [{ name: 'advance', label: 'Make a to-do' }, ...LINE_ACTIONS]
 }
 const LINK_ACTIONS = [{ name: 'open', label: 'Open link' }, { name: 'edit', label: 'Edit link' }]
+const NOTE_ACTIONS = [{ name: 'open', label: 'Open note' }, { name: 'edit', label: 'Edit link' }]
 
 function onAccessibilityAction(id: string, action: string): void {
-  const link = soleLink(itemStore.get(id)?.text ?? '')
+  const text = itemStore.get(id)?.text ?? ''
+  const link = soleLink(text)
+  const note = soleNote(text)
   if (action === 'open' && link) void openLink(link)
+  else if (action === 'open' && note) editor.openLinkedNote(note)
   else if (action === 'edit') editor.focus(id, itemStore.get(id)?.text.length ?? 0)
   else if (action === 'advance') editor.advance(id)
   else if (action === 'bullet') editor.toggleType(id, 'bullet')
@@ -106,7 +110,8 @@ const dropped = (date: ISODate, id: string, index: number, depth: number): void 
  *  - swipe right: to-do, then done       - swipe left: tomorrow; further: delete
  *
  * A line that is only a link shows its page instead (`LinkLine`) while it isn't being
- * edited. Tapping the page (or its icon) opens it; tapping the space beside it edits the link.
+ * edited, and one that links to a note shows the note (`NoteLine`). Tapping the page (or
+ * its icon) opens it; tapping the space beside it edits the link.
  */
 export const Row = memo(function Row({
   id,
@@ -135,8 +140,10 @@ export const Row = memo(function Row({
   const flash = useStore(ui, (s) => (s.flash?.id === id ? s.flash.at : 0))
   const kind: SwipeKind = item?.type !== 'todo' ? 0 : done ? 2 : 1
   const link = item && !focused ? soleLink(item.text) : null
+  const note = item && !focused ? soleNote(item.text) : null
   // A plain line has no marker, so its link's icon hangs in the marker column.
   const hangingLink = link && item?.type === 'text' ? link : null
+  const hangingNote = note && item?.type === 'text' ? note : null
   const linkWidth = useRef(0)
 
   const setRef = useCallback(
@@ -314,10 +321,11 @@ export const Row = memo(function Row({
         editor.focus(id, 0)
         return
       }
-      if (link) {
+      if (link || note) {
         // The page opens; the space beside it (or under a short title) edits the link.
-        if (e.x <= linkWidth.current + 8) void openLink(link)
-        else editor.focus(id, item?.text.length ?? 0)
+        if (e.x > linkWidth.current + 8) editor.focus(id, item?.text.length ?? 0)
+        else if (link) void openLink(link)
+        else if (note) editor.openLinkedNote(note)
         return
       }
       const fallback = (): void => editor.focus(id, item?.text.length ?? 0)
@@ -332,6 +340,7 @@ export const Row = memo(function Row({
     onActivate: () => {
       if (ghost) editor.focus(id, 0)
       else if (hangingLink) void openLink(hangingLink)
+      else if (hangingNote) editor.openLinkedNote(hangingNote)
       else editor.tapMarker(id)
     }
   })
@@ -355,7 +364,13 @@ export const Row = memo(function Row({
         {/* The whole marker column takes the tap, the gutter to its left included. */}
         <GestureDetector gesture={markerGesture}>
           <View style={styles.markerHit} collapsable={false}>
-            {hangingLink ? <LinkIcon url={hangingLink} done={!!done} /> : <Marker type={item?.type ?? 'text'} done={!!done} />}
+            {hangingLink ? (
+              <LinkIcon url={hangingLink} done={!!done} />
+            ) : hangingNote ? (
+              <NoteIcon done={!!done} />
+            ) : (
+              <Marker type={item?.type ?? 'text'} done={!!done} />
+            )}
           </View>
         </GestureDetector>
         <GestureDetector gesture={bodyGesture}>
@@ -386,18 +401,19 @@ export const Row = memo(function Row({
               placeholderTextColor={c.text3}
               selectionColor={c.accent}
               autoCapitalize="sentences"
-              style={[styles.text, title && (!item || item.type === 'text') && styles.title, { color: done ? c.text3 : c.text }, done && styles.done, remeasure && styles.remeasure, link && styles.behind]}
+              style={[styles.text, title && (!item || item.type === 'text') && styles.title, { color: done ? c.text3 : c.text }, done && styles.done, remeasure && styles.remeasure, (link || note) && styles.behind]}
               nativeID={`line-${id}`}
               // For end-to-end tests: depth, type and text, e.g. "1/todo-done:Book flights".
               testID={ghost ? `new-line-${date}` : `${depth}/${item.type}${done ? '-done' : ''}:${item.text}`}
               accessibilityLabel={ghost ? 'New line' : item.type === 'todo' ? (done ? 'Completed to-do' : 'To-do') : item.type === 'bullet' ? 'Bullet' : 'Text'}
               // What the marker, swipes and drag do, for VoiceOver's actions rotor.
               accessibilityActions={
-                ghost ? undefined : [...(link ? LINK_ACTIONS : []), ...ACCESSIBILITY_ACTIONS[item.type === 'todo' ? (done ? 'done' : 'todo') : 'other']]
+                ghost ? undefined : [...(link ? LINK_ACTIONS : note ? NOTE_ACTIONS : []), ...ACCESSIBILITY_ACTIONS[item.type === 'todo' ? (done ? 'done' : 'todo') : 'other']]
               }
               onAccessibilityAction={(e) => onAccessibilityAction(id, e.nativeEvent.actionName)}
             />
             {link ? <LinkLine url={link} done={!!done} icon={!hangingLink} onWidth={(w) => (linkWidth.current = w)} /> : null}
+            {note ? <NoteLine note={note} done={!!done} icon={!hangingNote} onWidth={(w) => (linkWidth.current = w)} /> : null}
           </View>
         </GestureDetector>
       </View>

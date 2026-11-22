@@ -1,5 +1,6 @@
 import { Keyboard, Share, type TextInputInstance } from 'react-native'
 import * as Haptics from 'expo-haptics'
+import { router } from 'expo-router'
 import { addDays, friendlyDate, todayISO } from '@shared/dates'
 import * as ops from '@shared/editor/ops'
 import { dropTarget, subtreeEnd } from '@shared/editor/geometry'
@@ -441,6 +442,7 @@ export class Editor {
     const before: SelectionSnapshot = { kind: 'text', id, ...this.caretOf(id) }
     this.commit('Typing', (tx) => void tx.update(id, { text }), { coalesce: `text:${id}`, before })
     this.autoformat(id, previous, text)
+    this.mention(id)
   }
 
   /** The blank last line becomes a real item, keeping its id, its view and the keyboard. */
@@ -458,6 +460,12 @@ export class Editor {
       { coalesce: `text:${id}`, before: { kind: 'none' } }
     )
     this.autoformat(id, '', clean)
+    this.mention(id)
+  }
+
+  /** "@" on an empty line asks which note to link (the link-note sheet), when there's one to link. */
+  private mention(id: string): void {
+    if (itemStore.get(id)?.text === '@' && notePages().length > 1) router.push({ pathname: '/link-note', params: { id } })
   }
 
   private autoformat(id: string, previous: string, text: string): void {
@@ -569,6 +577,24 @@ export class Editor {
     tx.create({ id, date })
     tx.place([id], date, null, 'end')
     return true
+  }
+
+  /**
+   * Link a starred note from a line (`ops.linkNote`), picked in the link-note sheet that the
+   * toolbar's note button or "@" on an empty line opens.
+   */
+  linkNote(id: string, note: ISODate): void {
+    const date = itemStore.get(id)?.date ?? this.ghostDate(id)
+    if (!date) return
+    this.undo.seal()
+    this.commit('Link note', (tx) => (this.materialize(tx, id) ? ops.linkNote(tx, date, id, note) : null))
+    Haptics.selectionAsync()
+  }
+
+  /** Open a linked note, unless it has gone since. */
+  openLinkedNote(note: ISODate): void {
+    if (itemStore.outline(note).length) void this.goTo(note)
+    else showToast('That note was deleted')
   }
 
   /** The toolbar's type buttons: a button turns its type on, or back to plain text. */

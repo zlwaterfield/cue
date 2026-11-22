@@ -3,6 +3,9 @@ import type { ISODate } from '@shared/types'
 import { bareLabel, type LinkPreview } from '@shared/links'
 import { backend } from '../data/backend'
 import { useLinkPreview } from '../store/links'
+import { openLinkedNote } from '../notes/actions'
+import { useLinkedNoteTitle } from '../notes/model'
+import { icons } from '../ui/icons'
 import { controller } from './controller'
 import { beginTextPointer } from './pointer'
 
@@ -16,8 +19,53 @@ import { beginTextPointer } from './pointer'
  */
 export const LinkLine = memo(function LinkLine({ id, date, url }: { id: string; date: ISODate; url: string }) {
   const preview = useLinkPreview(url)
-  const down = useRef<{ x: number; y: number } | null>(null)
   const title = preview?.title
+  return (
+    <PageLine id={id} date={date} href={url} open={() => void backend.openExternal(url)} data={{ 'data-link': url }}>
+      <span className="link-icon" aria-hidden>
+        <SiteIcon preview={preview} />
+      </span>
+      <span className={title ? 'link-title' : 'link-title is-bare'}>
+        {title ?? bareLabel(url)}
+        {title ? <span className="link-byline">{` ${preview!.byline}`}</span> : null}
+      </span>
+    </PageLine>
+  )
+})
+
+/**
+ * A line that is only a link to a starred note (`soleNote`), shown as the note: its name as
+ * it is now, beside the note glyph. Clicking it opens the note, as a link opens its page.
+ */
+export const NoteLine = memo(function NoteLine({ id, date, note }: { id: string; date: ISODate; note: ISODate }) {
+  const title = useLinkedNoteTitle(note)
+  return (
+    <PageLine id={id} date={date} open={() => openLinkedNote(note)} data={{ 'data-note': note }}>
+      <span className="link-icon" aria-hidden>
+        {icons.text}
+      </span>
+      <span className={title ? 'link-title' : 'link-title is-gone'}>{title ?? 'Deleted note'}</span>
+    </PageLine>
+  )
+})
+
+/** What a link line and a note line share: click the page to open it, beside it to edit the line. */
+function PageLine({
+  id,
+  date,
+  href,
+  open,
+  data,
+  children
+}: {
+  id: string
+  date: ISODate
+  href?: string
+  open: () => void
+  data: Record<string, string>
+  children: React.ReactNode
+}) {
+  const down = useRef<{ x: number; y: number } | null>(null)
 
   const onMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     down.current = null
@@ -34,24 +82,18 @@ export const LinkLine = memo(function LinkLine({ id, date, url }: { id: string; 
     const start = down.current
     down.current = null
     if (!start || Math.hypot(e.clientX - start.x, e.clientY - start.y) > 4) return
-    if ((e.target as Element).closest('.link-page')) void backend.openExternal(url)
+    if ((e.target as Element).closest('.link-page')) open()
     else controller.focusEnd(id)
   }
 
   return (
-    <div className="link-line" onMouseDown={onMouseDown} onClick={onClick} data-link={url}>
-      <a className="link-page" href={url} title={url} draggable={false} tabIndex={-1}>
-        <span className="link-icon" aria-hidden>
-          <SiteIcon preview={preview} />
-        </span>
-        <span className={title ? 'link-title' : 'link-title is-bare'}>
-          {title ?? bareLabel(url)}
-          {title ? <span className="link-byline">{` ${preview!.byline}`}</span> : null}
-        </span>
+    <div className="link-line" onMouseDown={onMouseDown} onClick={onClick} {...data}>
+      <a className="link-page" href={href} title={href} draggable={false} tabIndex={-1}>
+        {children}
       </a>
     </div>
   )
-})
+}
 
 /** The site's icon, or a link glyph until (or unless) the page names one that draws. */
 export function SiteIcon({ preview }: { preview: LinkPreview | null }) {

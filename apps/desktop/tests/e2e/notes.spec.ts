@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { focusedText, launch, type Cue } from './app'
+import { addDays, focusedText, launch, outline, today, type Cue } from './app'
 
 /** Notes: scratch and the starred notes, one page at a time, beside Today and Week. */
 
@@ -132,6 +132,76 @@ async function newNote(page: Page, name: string, ...rest: string[]): Promise<voi
   }
   await expect(open(page)).toHaveText(name)
 }
+
+test('"@" on an empty line links a note, shown by its name, which opens it', async () => {
+  const { page } = cue
+  await newNote(page, 'Shopping list', '[] eggs')
+  await page.keyboard.press('Meta+1')
+  await page.keyboard.type('[] @')
+  await expect(page.locator('.palette.is-note')).toBeVisible()
+  await page.keyboard.type('shop')
+  await expect(page.locator('.palette-item').first()).toHaveText('Shopping list')
+  await page.keyboard.press('Enter')
+
+  // A to-do like any other, with the caret on the next one.
+  const linked = page.locator('.day .row.is-todo .link-line[data-note]')
+  await expect(linked).toHaveText('Shopping list')
+  await page.keyboard.type('bread')
+  expect(await lines(page)).toEqual([expect.stringMatching(/^cue:\/\/note\/1\d{3}-\d{2}-\d{2}$/), 'bread'])
+
+  // It opens the note, and follows its name.
+  await linked.locator('.link-page').click()
+  await expect(open(page)).toHaveText('Shopping list')
+  await page.locator('.day .row .text').first().click()
+  await page.keyboard.press('End')
+  await page.keyboard.type(' for Saturday')
+  await page.keyboard.press('Meta+1')
+  await expect(linked).toHaveText('Shopping list for Saturday')
+
+  // Checking it off is for the day; the note is left as it was.
+  await page.locator('.day .row.is-todo .marker').first().click()
+  await expect(page.locator('.day .row.is-done .link-line[data-note]')).toHaveCount(1)
+  await page.keyboard.press('Meta+4')
+  expect(await lines(page)).toEqual(['Shopping list for Saturday', 'eggs'])
+})
+
+test('Link a note… goes after the line the caret is on; Backspace backs out', async () => {
+  const { page } = cue
+  await newNote(page, 'Leads')
+  await page.keyboard.press('Meta+1')
+  await page.keyboard.type('Calls')
+  await page.keyboard.press('Meta+k')
+  await page.keyboard.type('link a note')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.palette.is-note .palette-item')).toHaveText(['Leads'])
+  await page.keyboard.press('Backspace')
+  await expect(page.locator('.palette')).toHaveCount(0)
+  expect(await focusedText(page)).toBe('Calls')
+
+  await page.keyboard.press('Meta+k')
+  await page.keyboard.type('link a note')
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.day .link-line[data-note]')).toHaveText('Leads')
+  expect((await lines(page))[0]).toBe('Calls')
+  // One undo takes the link away.
+  await page.keyboard.press('Meta+z')
+  expect(await lines(page)).toEqual(['Calls'])
+})
+
+test('a note linked from another day\'s blank last line lands on that day', async () => {
+  const { page } = cue
+  await newNote(page, 'Packing')
+  await page.keyboard.press('Meta+3')
+  const tomorrow = addDays(await today(page), 1)
+  await page.locator(`.day[data-day="${tomorrow}"] .row.is-ghost .text`).click()
+  await page.keyboard.press('Meta+k')
+  await page.keyboard.type('link a note')
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Enter')
+  await expect(page.locator(`.day[data-day="${tomorrow}"] .link-line[data-note]`)).toHaveText('Packing')
+  expect(await outline(page, await today(page))).toBe('')
+})
 
 test('the title bar says where you are, and ⌘[ ⌘] stop at the first and last note', async () => {
   const { page } = cue

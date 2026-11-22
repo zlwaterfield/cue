@@ -47,6 +47,7 @@ export const COMMANDS: CommandMeta[] = [
   { id: 'notes.scratch', title: 'Scratch', group: 'Notes', shortcut: 'Mod+E', keywords: 'note pad quick blob draft misc' },
   { id: 'notes.new', title: 'New note', group: 'Notes', shortcut: 'Mod+Shift+N', keywords: 'create add star starred keep pin favorite page' },
   { id: 'notes.discard', title: 'Clear or delete note', group: 'Notes', shortcut: 'Mod+Alt+Backspace', keywords: 'scratch discard empty throw away remove unstar' },
+  { id: 'notes.link', title: 'Link a note…', group: 'Notes', keywords: 'mention reference @ starred page insert add' },
   { id: 'notes.copy', title: 'Copy page', group: 'Notes', shortcut: 'Mod+Shift+C', keywords: 'copy all whole day note markdown clipboard' },
   { id: 'looseEnds.toggle', title: 'Show earlier open to-dos', group: 'Navigate', keywords: 'loose ends overdue unfinished leftover carry over' },
 

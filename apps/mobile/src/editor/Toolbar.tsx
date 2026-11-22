@@ -18,7 +18,7 @@ export const TOOLBAR_SPACE = BAR_HEIGHT + BAR_GAP
 /**
  * The bar floating above the keyboard while writing. Line types are one tap each: ☐ makes
  * the line a to-do and • a bullet, and tapping the lit one turns it back into plain text.
- * Then indent, undo, and "move to another day".
+ * Then indent, undo, "move to another day", and "link a note".
  */
 export function Toolbar() {
   const c = useColors()
@@ -52,6 +52,12 @@ export function Toolbar() {
             label="Move to another day"
             disabled={!item}
             onPress={() => item && router.push({ pathname: '/move', params: { id: item.id } })}
+          />
+          <Tool
+            id="link-note"
+            icon="doc.text"
+            label="Link a note"
+            onPress={() => focused && router.push({ pathname: '/link-note', params: { id: focused } })}
           />
           <View style={styles.spacer} />
           <Tool id="hide" icon="keyboard.chevron.compact.down" label="Hide keyboard" onPress={() => Keyboard.dismiss()} />
@@ -119,8 +125,11 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }
   },
+  // The row narrows its buttons a little rather than overflow a 375-point screen.
   tool: {
     width: 40,
+    minWidth: 34,
+    flexShrink: 1,
     height: 36,
     borderRadius: 18,
     alignItems: 'center',

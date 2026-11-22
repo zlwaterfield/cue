@@ -1,5 +1,6 @@
 import { generateNKeysBetween } from 'fractional-indexing'
 import type { LineSpec } from '../markdown'
+import { noteLink } from '../notes'
 import type { ISODate, ItemType } from '../types'
 import type { Tx } from './tx'
 
@@ -329,4 +330,25 @@ function linksHeading(tx: Tx, date: ISODate): string | null {
 export function addToLinks(tx: Tx, date: ISODate, line: LineSpec): string {
   const heading = linksHeading(tx, date) ?? placeLines(tx, date, null, 'end', [{ depth: 0, type: 'bullet', done: false, text: 'Links' }])[0]
   return placeLines(tx, date, heading, tx.lastChildId(heading, date) ?? null, [{ ...line, depth: 0 }])[0]
+}
+
+/**
+ * Link a starred note from a page (`notes.ts`). The line `id` becomes the link if it's empty,
+ * or holds only the "@" typed to ask for it; otherwise the link goes on a new line after it,
+ * as Return would make. With no line, it goes at the end of `date`. Either way the caret
+ * moves on to a new line after the link, ready to carry on writing.
+ */
+export function linkNote(tx: Tx, date: ISODate, id: string | null, note: ISODate): CaretFocus {
+  const item = id ? tx.get(id) : undefined
+  let link: string
+  if (!item) {
+    link = tx.create({ date }).id
+    tx.place([link], date, null, 'end')
+  } else if (item.text.trim() === '' || item.text.trim() === '@') {
+    link = item.id
+  } else {
+    link = splitAt(tx, item.id, item.text.length)!.id
+  }
+  tx.update(link, { text: noteLink(note) })
+  return splitAt(tx, link, noteLink(note).length)!
 }

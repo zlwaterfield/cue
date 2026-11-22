@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { friendlyDate, isISODate } from '@shared/dates'
 import { linkDay, linkGroup } from '@shared/linkList'
-import { FIRST_NOTE, isNotePage, LAST_NOTE, neighborNote, newNotePage, notePageLabel, notePages, notePagesOf, noteTitle, SCRATCH } from '@shared/notes'
+import { FIRST_NOTE, isNotePage, LAST_NOTE, linkedNoteTitle, neighborNote, newNotePage, noteLink, notePageLabel, notePages, notePagesOf, noteTitle, SCRATCH, soleNote } from '@shared/notes'
 import { buildOutline } from '@shared/outline'
 import { markdownFiles } from '@shared/portability'
 import { validateItem } from '@shared/repository'
@@ -119,5 +119,42 @@ describe('notes', () => {
     expect(text('Notes/Books to read own.md')).toBe('# Books: to read / own\n\n- [ ] Middlemarch\n')
     // A note that opens with a bullet keeps it.
     expect(text('Notes/A list with no name line.md')).toBe('# A list with no name line\n\n- A list with no name line\n')
+  })
+
+  it('links a note from a line that is only its address, by its page', () => {
+    expect(noteLink(B)).toBe('cue://note/1042-07-15')
+    expect(soleNote(` ${noteLink(B)} `)).toBe(B)
+    expect(soleNote(noteLink(SCRATCH))).toBe(SCRATCH)
+    // Only a whole line, and only a note's page.
+    expect(soleNote(`see ${noteLink(B)}`)).toBeNull()
+    expect(soleNote('cue://note/2026-10-17')).toBeNull()
+    expect(soleNote('cue://note/1042-07-15x')).toBeNull()
+    expect(soleNote('https://example.com')).toBeNull()
+  })
+
+  it('shows a linked note by its name as it is now, or as gone once deleted', () => {
+    const items = [newItem({ id: 't', date: A, text: 'Shopping', position: 'a0' })]
+    expect(linkedNoteTitle(storeOf(items), A)).toBe('Shopping')
+    items[0] = { ...items[0], text: 'Groceries' }
+    expect(linkedNoteTitle(storeOf(items), A)).toBe('Groceries')
+    expect(linkedNoteTitle(storeOf([]), A)).toBeNull()
+  })
+
+  it('exports a link to a note as a Markdown link to its file', () => {
+    const files = markdownFiles([
+      newItem({ date: '2026-10-17', type: 'todo', text: noteLink(A), position: 'a0' }),
+      newItem({ date: '2026-10-17', type: 'text', text: noteLink('1099-01-01'), position: 'a1' }),
+      newItem({ date: A, type: 'text', text: 'Shopping [weekly]', position: 'a0' }),
+      newItem({ date: A, type: 'bullet', text: noteLink(B), position: 'a1' }),
+      newItem({ date: B, type: 'text', text: 'Leads', position: 'a0' }),
+      newItem({ date: '2026-10-18', text: noteLink('1000-03-02'), position: 'a0' }),
+      newItem({ date: '1000-03-02', type: 'text', text: 'Plan ) final', position: 'a0' })
+    ])
+    const text = (path: string) => files.find((f) => f.path === path)!.text
+    // A link to a note that has gone stays as it was written.
+    expect(text('2026/2026-10-17.md')).toContain('- [ ] [Shopping \\[weekly\\]](../Notes/Shopping%20%5Bweekly%5D.md)\n\ncue://note/1099-01-01')
+    // A parenthesis in the name can't end the link early.
+    expect(text('2026/2026-10-18.md')).toContain('[Plan ) final](../Notes/Plan%20%29%20final.md)')
+    expect(text('Notes/Shopping [weekly].md')).toBe('# Shopping [weekly]\n\n- [Leads](../Notes/Leads.md)\n')
   })
 })

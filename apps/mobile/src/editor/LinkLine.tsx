@@ -2,7 +2,9 @@ import { memo, useState } from 'react'
 import { Image, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native'
 import { SymbolView } from 'expo-symbols'
 import { bareLabel } from '@shared/links'
+import type { ISODate } from '@shared/types'
 import { useLinkPreview } from '../core/links'
+import { useLinkedNoteTitle } from '../core/notes'
 import { metrics, useColors } from '../ui/theme'
 import { BOX, capCentre } from './Marker'
 
@@ -42,6 +44,52 @@ export const LinkLine = memo(function LinkLine({
     </View>
   )
 })
+
+/**
+ * A line that is only a link to a starred note (`soleNote`), shown as the note: its name as
+ * it is now, beside the note glyph. Tapping it opens the note, as a link opens its page.
+ */
+export const NoteLine = memo(function NoteLine({
+  note,
+  done,
+  icon = true,
+  onWidth
+}: {
+  note: ISODate
+  done: boolean
+  icon?: boolean
+  onWidth: (width: number) => void
+}) {
+  const c = useColors()
+  const title = useLinkedNoteTitle(note)
+  return (
+    <View style={styles.link} onLayout={(e) => onWidth(e.nativeEvent.layout.width)} testID={`note-link:${title ?? 'deleted'}`}>
+      {icon ? <NoteGlyph done={done} style={styles.iconBox} /> : null}
+      <Text numberOfLines={2} style={[styles.title, { color: done || !title ? c.text3 : c.text }, done && styles.done]}>
+        {title ?? 'Deleted note'}
+      </Text>
+    </View>
+  )
+})
+
+/** The note glyph in the marker column, where a link's icon hangs. */
+export const NoteIcon = memo(function NoteIcon({ done }: { done: boolean }) {
+  const { fontScale } = useWindowDimensions()
+  return (
+    <View style={styles.hanging}>
+      <NoteGlyph done={done} style={[styles.hangingBox, { marginTop: capCentre(fontScale) - ICON / 2 }]} />
+    </View>
+  )
+})
+
+function NoteGlyph({ done, style }: { done: boolean; style: StyleProp<ViewStyle> }) {
+  const c = useColors()
+  return (
+    <View style={[style, done && styles.faded]}>
+      <SymbolView name="doc.text" size={14} weight="medium" tintColor={c.text2} />
+    </View>
+  )
+}
 
 /** The site's icon in the marker column, where a box would be at every text size. */
 export const LinkIcon = memo(function LinkIcon({ url, done }: { url: string; done: boolean }) {

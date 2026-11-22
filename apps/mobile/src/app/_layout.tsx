@@ -28,6 +28,7 @@ export default function RootLayout() {
           <Stack.Screen name="links" options={{ presentation: 'modal', contentStyle: { backgroundColor: c.bgElevated } }} />
           <Stack.Screen name="settings" options={{ ...sheet, sheetAllowedDetents: [0.7, 1] }} />
           <Stack.Screen name="move" options={{ ...sheet, sheetAllowedDetents: 'fitToContents' }} />
+          <Stack.Screen name="link-note" options={{ ...sheet, sheetAllowedDetents: 'fitToContents' }} />
           <Stack.Screen name="calendar" options={{ ...sheet, sheetAllowedDetents: 'fitToContents' }} />
           {/* Turning sync on, from Settings. */}
           <Stack.Screen name="sign-in" options={{ presentation: 'modal' }} />
