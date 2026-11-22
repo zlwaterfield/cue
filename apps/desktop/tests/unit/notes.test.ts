@@ -146,11 +146,15 @@ describe('notes', () => {
       newItem({ date: '2026-10-17', type: 'text', text: noteLink('1099-01-01'), position: 'a1' }),
       newItem({ date: A, type: 'text', text: 'Shopping [weekly]', position: 'a0' }),
       newItem({ date: A, type: 'bullet', text: noteLink(B), position: 'a1' }),
-      newItem({ date: B, type: 'text', text: 'Leads', position: 'a0' })
+      newItem({ date: B, type: 'text', text: 'Leads', position: 'a0' }),
+      newItem({ date: '2026-10-18', text: noteLink('1000-03-02'), position: 'a0' }),
+      newItem({ date: '1000-03-02', type: 'text', text: 'Plan ) final', position: 'a0' })
     ])
     const text = (path: string) => files.find((f) => f.path === path)!.text
     // A link to a note that has gone stays as it was written.
     expect(text('2026/2026-10-17.md')).toContain('- [ ] [Shopping \\[weekly\\]](../Notes/Shopping%20%5Bweekly%5D.md)\n\ncue://note/1099-01-01')
+    // A parenthesis in the name can't end the link early.
+    expect(text('2026/2026-10-18.md')).toContain('[Plan ) final](../Notes/Plan%20%29%20final.md)')
     expect(text('Notes/Shopping [weekly].md')).toBe('# Shopping [weekly]\n\n- [Leads](../Notes/Leads.md)\n')
   })
 })

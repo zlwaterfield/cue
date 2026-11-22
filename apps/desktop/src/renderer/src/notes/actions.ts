@@ -86,9 +86,10 @@ async function copyPage(): Promise<void> {
  * mode, which "Link a note…" or "@" on an empty line opens.
  */
 export function linkNote(note: ISODate): void {
+  // Back on the line first: a blank last line isn't a target, and only the caret says its page.
+  controller.closeOverlay()
   const id = controller.targets()[0] ?? null
   const date = (id && itemStore.get(id)?.date) || currentPage()
-  controller.closeOverlay()
   controller.undo.seal()
   controller.commit('Link note', (tx) => ops.linkNote(tx, date, id, note))
 }

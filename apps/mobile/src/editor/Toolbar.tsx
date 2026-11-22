@@ -125,8 +125,11 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }
   },
+  // The row narrows its buttons a little rather than overflow a 375-point screen.
   tool: {
     width: 40,
+    minWidth: 34,
+    flexShrink: 1,
     height: 36,
     borderRadius: 18,
     alignItems: 'center',

@@ -59,7 +59,7 @@ export function markdownFiles(items: Item[]): ExportFile[] {
   const linked = (list: Item[]): Item[] =>
     list.map((item) => {
       const note = byPage.get(soleNote(item.text) ?? '')
-      return note ? { ...item, text: `[${note.title.replace(/[[\]\\]/g, '\\$&')}](../Notes/${encodeURIComponent(note.name)}.md)` } : item
+      return note ? { ...item, text: `[${note.title.replace(/[[\]\\]/g, '\\$&')}](../Notes/${fileLink(note.name)}.md)` } : item
     })
 
   const files: ExportFile[] = days.map(([date, day]) => ({ path: `${date.slice(0, 4)}/${date}.md`, text: dayToMarkdown(date, linked(day)) }))
@@ -70,6 +70,11 @@ export function markdownFiles(items: Item[]): ExportFile[] {
     files.push({ path: `Notes/${name}.md`, text: dayToMarkdown(date, linked(body)).replace(/^# .*$/m, `# ${title}`) })
   }
   return files
+}
+
+/** A file name in a Markdown link: parentheses too, which would end the link early. */
+function fileLink(name: string): string {
+  return encodeURIComponent(name).replace(/[()]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
 }
 
 /**

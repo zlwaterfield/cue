@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { focusedText, launch, type Cue } from './app'
+import { addDays, focusedText, launch, outline, today, type Cue } from './app'
 
 /** Notes: scratch and the starred notes, one page at a time, beside Today and Week. */
 
@@ -187,6 +187,20 @@ test('Link a note… goes after the line the caret is on; Backspace backs out', 
   // One undo takes the link away.
   await page.keyboard.press('Meta+z')
   expect(await lines(page)).toEqual(['Calls'])
+})
+
+test('a note linked from another day\'s blank last line lands on that day', async () => {
+  const { page } = cue
+  await newNote(page, 'Packing')
+  await page.keyboard.press('Meta+3')
+  const tomorrow = addDays(await today(page), 1)
+  await page.locator(`.day[data-day="${tomorrow}"] .row.is-ghost .text`).click()
+  await page.keyboard.press('Meta+k')
+  await page.keyboard.type('link a note')
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Enter')
+  await expect(page.locator(`.day[data-day="${tomorrow}"] .link-line[data-note]`)).toHaveText('Packing')
+  expect(await outline(page, await today(page))).toBe('')
 })
 
 test('the title bar says where you are, and ⌘[ ⌘] stop at the first and last note', async () => {
