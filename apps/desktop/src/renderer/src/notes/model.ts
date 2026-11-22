@@ -78,7 +78,17 @@ export function noteTitle(date: ISODate): string {
 
 /** A note's name, following edits to its first line. */
 export function useNoteTitle(date: ISODate): string {
-  const subscribe = useCallback(
+  return useSyncExternalStore(useNoteSubscription(date), () => noteTitle(date))
+}
+
+/** A linked note's name, or null once it has gone. */
+export function useLinkedNoteTitle(date: ISODate): string | null {
+  return useSyncExternalStore(useNoteSubscription(date), () => shared.linkedNoteTitle(itemStore, date))
+}
+
+/** Hears a note's page and its first line, which is its name. */
+function useNoteSubscription(date: ISODate): (listener: () => void) => () => void {
+  return useCallback(
     (listener: () => void) => {
       let offItem = (): void => {}
       const watch = (): void => {
@@ -98,5 +108,4 @@ export function useNoteTitle(date: ISODate): string {
     },
     [date]
   )
-  return useSyncExternalStore(subscribe, () => noteTitle(date))
 }

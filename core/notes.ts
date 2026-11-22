@@ -83,6 +83,29 @@ export function neighborNote(pages: ISODate[], current: ISODate, direction: -1 |
   return index === -1 ? undefined : pages[index + direction]
 }
 
+/**
+ * A link to a note from a day: a line that is only `cue://note/<its page>`. Like a line
+ * that is only a link (`links.ts`), it shows the note in its place, by its name as it is
+ * now, and opening it opens the note. The line is a line like any other: it can be a to-do,
+ * checked off or moved to tomorrow, and the note it links to is never touched.
+ */
+const NOTE_LINK = /^cue:\/\/note\/(\d{4}-\d{2}-\d{2})$/
+
+export function noteLink(date: ISODate): string {
+  return `cue://note/${date}`
+}
+
+/** The note a line links to, if the line is only a link to one. */
+export function soleNote(text: string): ISODate | null {
+  const date = NOTE_LINK.exec(text.trim())?.[1]
+  return date && isNotePage(date) ? date : null
+}
+
+/** The name of a linked note, or null once it has gone (deleted, here or on another device). */
+export function linkedNoteTitle(source: NoteSource, date: ISODate): string | null {
+  return source.outline(date).length ? noteTitle(source, date) : null
+}
+
 /** A note where a date would be shown (search results, links, "moved to …"): "Scratch", or "Notes". */
 export function notePageLabel(date: ISODate): string {
   return date === SCRATCH ? 'Scratch' : 'Notes'

@@ -5,6 +5,7 @@ import * as ops from '@shared/editor/ops'
 import { Tx } from '@shared/editor/tx'
 import { ItemStore } from '@shared/itemStore'
 import type { LineSpec } from '@shared/markdown'
+import { noteLink } from '@shared/notes'
 import { buildOutline } from '@shared/outline'
 import type { Item, ItemType } from '@shared/types'
 
@@ -276,6 +277,37 @@ describe('Sharing a link', () => {
     await setup('- a\n  - Links')
     run((tx) => ops.addToLinks(tx, DAY, link))
     expect(render(store)).toBe('- a\n  - Links\n- Links\n  https://example.com')
+  })
+})
+
+describe('Linking a note', () => {
+  const NOTE = '1042-07-15'
+  const LINK = noteLink(NOTE)
+
+  it('makes an empty line the link, then carries on to a new line of the same kind', async () => {
+    await setup('[ ] milk\n[ ] blank\nlater')
+    run((tx) => tx.update('blank', { text: '' }))
+    const focus = run((tx) => ops.linkNote(tx, DAY, 'blank', NOTE))
+    expect(render(store)).toBe(`[ ] milk\n[ ] ${LINK}\n[ ] \nlater`)
+    expect(focus).toEqual({ id: store.outline(DAY)[2].id, start: 0 })
+  })
+
+  it('replaces the "@" that asked for it', async () => {
+    await setup('- @')
+    run((tx) => ops.linkNote(tx, DAY, '@', NOTE))
+    expect(render(store)).toBe(`- ${LINK}\n- `)
+  })
+
+  it('goes on a new line after a line with something on it, leaving that line alone', async () => {
+    await setup('[ ] eggs\nlater')
+    run((tx) => ops.linkNote(tx, DAY, 'eggs', NOTE))
+    expect(render(store)).toBe(`[ ] eggs\n[ ] ${LINK}\n[ ] \nlater`)
+  })
+
+  it('goes at the end of the day with no line to put it on', async () => {
+    await setup('a')
+    run((tx) => ops.linkNote(tx, DAY, null, NOTE))
+    expect(render(store)).toBe(`a\n${LINK}\n`)
   })
 })
 

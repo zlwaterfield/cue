@@ -7,6 +7,7 @@
     "../../../core/ids": "../../../core/ids.ts",
     "../../../core/links": "../../../core/links.ts",
     "../../../core/markdown": "../../../core/markdown.ts",
+    "../../../core/notes": "../../../core/notes.ts",
     "../../../core/outline": "../../../core/outline.ts",
     "../../../core/types": "../../../core/types.ts"
   }

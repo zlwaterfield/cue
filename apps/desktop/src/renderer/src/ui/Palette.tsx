@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { COMMANDS, shortcutKeys, type CommandGroup } from '@shared/commands'
 import { parseDateInput } from '@shared/dateParse'
 import { isNotePage, notePages, noteTitle } from '../notes/model'
-import { openNote } from '../notes/actions'
+import { currentPage, linkNote, openNote } from '../notes/actions'
 import { addDays, friendlyDate, namedMoveDays, nextWeekday, relativeLabel, shortDate, startOfWeek } from '@shared/dates'
 import { matchRanges, searchTerms } from '@shared/text'
 import type { ISODate, ItemType, SearchResult } from '@shared/types'
@@ -17,8 +17,9 @@ import { Calendar } from './Calendar'
 import { commandIcon, icons } from './icons'
 
 /**
- * ⌘K. One surface, three modes: commands (fuzzy), search (all notes), and date
- * (natural-language "go to", ⌘J). Everything is keyboard-driven; the mouse works too.
+ * ⌘K. One surface, four modes: commands (fuzzy), search (all notes), date
+ * (natural-language "go to", ⌘J), and note (a starred note to link, from "Link a note…"
+ * or "@" on an empty line). Everything is keyboard-driven; the mouse works too.
  * Move to (⇧⌘M) is its own window, in MoveTo.tsx; ⌘K still moves with "move to fri".
  */
 
@@ -93,6 +94,8 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const hasTarget = useMemo(() => controller.targets().length > 0, [])
+  // A note isn't linked from itself.
+  const here = useMemo(() => currentPage(), [])
   const mode = overlay.mode
 
   useLayoutEffect(() => {
@@ -159,6 +162,17 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
           void itemStore.ensureLoaded([date]).then(() => controller.openItem(r.id, itemStore.get(r.id)?.date ?? date, match))
         }
       }))
+    }
+
+    if (mode === 'note') {
+      const q = query.trim()
+      return notePages()
+        .slice(1) // scratch is for what you'll throw away, not for linking to
+        .filter((page) => page !== here)
+        .map((page) => ({ page, score: q ? fuzzyScore(q, noteTitle(page)) : 0 }))
+        .filter((n): n is { page: ISODate; score: number } => n.score !== null)
+        .sort((a, b) => b.score - a.score)
+        .map(({ page }) => ({ key: page, icon: icons.text, title: noteTitle(page), run: () => linkNote(page) }))
     }
 
     if (mode === 'date') {
@@ -292,7 +306,7 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
       run: () => switchMode({ kind: 'palette', mode: 'search', query: q })
     })
     return list
-  }, [mode, query, found, today, settings.weekStartsOn, hasTarget])
+  }, [mode, query, found, today, settings.weekStartsOn, hasTarget, here])
 
   const clamped = Math.min(index, Math.max(0, entries.length - 1))
 
@@ -318,7 +332,9 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
     }
     if (e.key === 'Backspace' && query === '' && mode !== 'commands') {
       e.preventDefault()
-      switchMode({ kind: 'palette', mode: 'commands' })
+      // Picking a note is a step in writing a line, so backing out goes back to the line.
+      if (mode === 'note') controller.closeOverlay()
+      else switchMode({ kind: 'palette', mode: 'commands' })
     }
   }
 
@@ -327,7 +343,9 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
       ? 'Search all notes'
       : mode === 'date'
         ? 'Go to… try “fri”, “next mon”, “oct 31”'
-        : 'Type a command, a date, or search…'
+        : mode === 'note'
+          ? 'Link a note…'
+          : 'Type a command, a date, or search…'
 
   // "No matches" waits for this query's own results.
   const q = query.trim()
@@ -340,7 +358,11 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
         : 'Find anything you’ve written'
       : mode === 'date'
         ? 'Try “friday”, “in 3 days”, or “2026-10-31”'
-        : 'No matching commands'
+        : mode === 'note'
+          ? notePages().length > 1
+            ? 'No matching notes'
+            : 'No starred notes yet. ⇧⌘N starts one.'
+          : 'No matching commands'
 
   const highlightedDate = mode === 'date' ? (entries[clamped]?.date ?? null) : null
   let lastGroup: string | undefined
@@ -350,7 +372,7 @@ function PalettePanel({ overlay }: { overlay: PaletteOverlay }) {
       <div className={`palette is-${mode}`} role="dialog" aria-label="Command palette">
         <div className="palette-input">
           <span className="palette-mode">
-            {mode === 'search' ? <SearchIcon /> : mode === 'date' ? <CalendarIcon /> : <CommandIcon />}
+            {mode === 'search' ? <SearchIcon /> : mode === 'date' ? <CalendarIcon /> : mode === 'note' ? icons.text : <CommandIcon />}
           </span>
           <input
             ref={inputRef}

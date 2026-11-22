@@ -682,6 +682,12 @@ class EditorController {
       { coalesce: `text:${id}`, before }
     )
     this.autoformat(id, el)
+    this.mention(id)
+  }
+
+  /** "@" on an empty line asks which note to link (`notes.link`), when there's one to link. */
+  private mention(id: string): void {
+    if (itemStore.get(id)?.text === '@' && notePages().length > 1) this.openOverlay({ kind: 'palette', mode: 'note' })
   }
 
   private autoformat(id: string, el: HTMLElement): void {
@@ -723,6 +729,7 @@ class EditorController {
     )
     const created = this.els.get(id)
     if (created) this.autoformat(id, created)
+    this.mention(id)
   }
 
   onCompositionStart(): void {

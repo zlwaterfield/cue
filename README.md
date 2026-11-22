@@ -41,7 +41,9 @@ lines to act on them together.
 probably throw away, and a few notes you star to keep and add to over time. They sit beside
 Today and Week (⌘4), one page at a time, and are pages like any day, with the same lines and
 shortcuts. ⌘E opens scratch from anywhere and takes you back to the line you left; ⇧⌘N starts
-a note, and its first line is its name. This is for a handful of notes, not a notebook.
+a note, and its first line is its name. Type @ on an empty line to link a note from a day: the
+line shows the note's name, opens it with a click, and can be a to-do like any other. This is for
+a handful of notes, not a notebook.
 
 <p align="center">
   <img src="docs/images/notes.png" alt="Notes, beside Today and Week: a starred note called Books to read, with Scratch and Gift ideas named above it" width="49%">

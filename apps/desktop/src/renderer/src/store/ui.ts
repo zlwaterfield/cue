@@ -44,7 +44,8 @@ export type Selection =
   | { kind: 'text'; id: string }
   | { kind: 'blocks'; date: ISODate; anchor: string; focus: string }
 
-export type PaletteMode = 'commands' | 'search' | 'date'
+/** `note` picks a starred note to link from the page (`notes.link`, or "@" on an empty line). */
+export type PaletteMode = 'commands' | 'search' | 'date' | 'note'
 
 /** Settings' categories, in the order the rail lists them. */
 export const SETTINGS_CATEGORIES = ['General', 'Sync', 'Assistants', 'Your data', 'About'] as const

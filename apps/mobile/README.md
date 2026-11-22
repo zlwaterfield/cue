@@ -55,7 +55,7 @@ folder holds what's specific to a phone: touch, the keyboard, and the app lifecy
 | Swipe left | Move to tomorrow (Undo in the toast); keep going past 2/3 of the width to delete (it turns red) |
 | Swipe the page, off the lines | Left for the next day, right for the previous one |
 | Long-press, then drag | Reorder, taking children along. Drag sideways to nest or un-nest, one level at a time, within what the outline allows. A finger already moving sideways is a swipe, not a lift |
-| Toolbar floating above the keyboard | ☐ to-do and • bullet (tap the lit one for plain text), outdent, indent, undo, move to another day, hide the keyboard |
+| Toolbar floating above the keyboard | ☐ to-do and • bullet (tap the lit one for plain text), outdent, indent, undo, move to another day, link a note (or type @ on an empty line), hide the keyboard |
 | Type `- ` / `[] ` / `[x] ` | Bullet, to-do, done to-do, as on the Mac |
 | Return / Backspace | The Mac's rules: Return continues the list; on an empty item it steps out, then drops the marker. Backspace at the start drops the marker, then the indent, then joins the line above |
 

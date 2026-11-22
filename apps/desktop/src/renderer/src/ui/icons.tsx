@@ -158,6 +158,7 @@ const BY_COMMAND: Record<string, keyof typeof icons> = {
   'go.week': 'week',
   'go.notes': 'text',
   'notes.scratch': 'text',
+  'notes.link': 'text',
   'go.prevDay': 'prev',
   'go.nextDay': 'next',
   'go.date': 'calendar',

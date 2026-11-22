@@ -84,7 +84,8 @@ Scripts in `apps/desktop/scripts/`: `dev.mjs`, `release.mjs` (sign, notarize, st
    looseEnds.ts    unfinished to-dos from the last 30 days, shown on Today
    links.ts        finding links, parsing page previews, fetchPage
    linkList.ts     the Links list: collectLinks, filterLinks, grouping
-   notes.ts        scratch and the starred notes: pages kept on days in 1000–1099
+   notes.ts        scratch and the starred notes: pages kept on days in 1000–1099,
+                   and links to them from a day (cue://note/<page>)
    sync/engine.ts  SyncEngine: push the outbox, pull the feed, retry
    sync/supabase.ts  SupabaseSync: auth, sync_push/sync_pull, realtime hints
    sync/memoryServer.ts  in-memory reference server for tests
@@ -291,7 +292,9 @@ starring at the same moment don't land on one page. Nothing in storage, the sync
 the server had to change. A note has no fields of its own: its name is its first line, and
 it exists while it has lines. Wherever a date would be shown for one (search, links, export,
 the assistant tools), its name or "Notes" is shown instead. This suits a handful of notes;
-a notebook would want pages with ids of their own.
+a notebook would want pages with ids of their own. A day links to a note with a line that is
+only `cue://note/<its page>`, which shows the note by its name the way a line that is only a link
+shows its page; a page that never changes is all the link needs to keep pointing at the note.
 
 The outline for a day is derived, never stored (`core/outline.ts`). Derivation is
 total: orphaned items render at the top level and parent cycles are broken.

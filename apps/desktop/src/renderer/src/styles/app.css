@@ -679,6 +679,11 @@ button:focus-visible {
   text-overflow: ellipsis;
 }
 
+/* A linked note that has since been deleted. */
+.link-title.is-gone {
+  color: var(--text-3);
+}
+
 .link-byline {
   margin-left: 0.2em;
   font-size: calc(var(--row-font-size) - 2px);

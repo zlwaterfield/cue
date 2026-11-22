@@ -81,6 +81,24 @@ async function copyPage(): Promise<void> {
   showToast(`Copied ${name}`)
 }
 
+/**
+ * Link a starred note from the line the caret is on (`ops.linkNote`): picked in ⌘K's note
+ * mode, which "Link a note…" or "@" on an empty line opens.
+ */
+export function linkNote(note: ISODate): void {
+  const id = controller.targets()[0] ?? null
+  const date = (id && itemStore.get(id)?.date) || currentPage()
+  controller.closeOverlay()
+  controller.undo.seal()
+  controller.commit('Link note', (tx) => ops.linkNote(tx, date, id, note))
+}
+
+/** Open a linked note, unless it has gone since. */
+export function openLinkedNote(date: ISODate): void {
+  if (itemStore.outline(date).length) openNote(date)
+  else showToast('That note was deleted')
+}
+
 /** Open a note with the caret on its blank last line, ready for more. */
 export function openNote(date: ISODate): void {
   void controller.navigate({ mode: 'notes', date }, { focus: { id: ghostId(date), start: 0 } })
@@ -108,6 +126,9 @@ export function runNotesCommand(id: string): void {
       return
     case 'notes.copy':
       void copyPage()
+      return
+    case 'notes.link':
+      controller.toggleOverlay({ kind: 'palette', mode: 'note' })
       return
   }
 }
